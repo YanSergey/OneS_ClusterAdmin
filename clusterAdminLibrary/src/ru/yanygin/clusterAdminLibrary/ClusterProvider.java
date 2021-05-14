@@ -20,14 +20,17 @@ import com._1c.v8.ibis.admin.IClusterInfo;
 import com._1c.v8.ibis.admin.IInfoBaseInfo;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import ru.yanygin.clusterAdminLibrary.Config.Server;
 
 public class ClusterProvider {
+	
 	File configFile;
 	Config commonConfig;
+	String defaultConfigPath = ".\\config.json";
 
 	Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary");
 
@@ -37,17 +40,17 @@ public class ClusterProvider {
 	}
 
 	public void readSavedKnownServers(String configPath) {
-		LOGGER.info("start read config from file <{}>", configPath);
+		LOGGER.info("Start read config from file <{}>", configPath);
 		
 		if (configPath.isBlank()) {
-			LOGGER.debug("config is blank, create new");
+			LOGGER.debug("Config path is empty, create new config in root folder");
 			commonConfig = new Config();
 			return;
 		}
 		
 		configFile = new File(configPath);
 		if (!configFile.exists()) {
-			LOGGER.debug("config file not exists, create new");
+			LOGGER.debug("Config file not exists, create new");
 			commonConfig = new Config();
 			return;
 		}
@@ -58,38 +61,43 @@ public class ClusterProvider {
 			jsonReader = new JsonReader(
 					new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
 		} catch (FileNotFoundException excp) {
-			LOGGER.debug("read config error {}", excp);
-//			return;
+			LOGGER.debug("Config file read error: {}", excp);
+			LOGGER.debug("Create new config in root folder");
+			configFile = new File(defaultConfigPath);
+			commonConfig = new Config();
+			return;
 		}
 		Gson gson = new GsonBuilder()
-			    .excludeFieldsWithoutExposeAnnotation()
+			    .excludeFieldsWithoutExposeAnnotation() // Читаем поля только с аннотацией @Expose
 			    .create();
 		
 		try {
 			commonConfig = gson.fromJson(jsonReader, Config.class);
 		} catch (Exception excp) {
 			LOGGER.debug("error convert config from json");
-//			return;
+			LOGGER.debug("Create new config in root folder");
+			configFile = new File(defaultConfigPath);
+			commonConfig = new Config();
+			return;
 		}
 
 		if (commonConfig == null) {
-			LOGGER.debug("config is null, after read json. Create new");
+			LOGGER.debug("config is null, after read json");
+			LOGGER.debug("Create new config in root folder");
+			configFile = new File(defaultConfigPath);
 			commonConfig = new Config();
 		}
 		else {
 			commonConfig.servers.forEach((server, config) -> {
-				LOGGER.debug("server {} start init", server);
 				config.init();
-//				if (config.autoconnect) {
-//					config.connect(false);
-//				}
-
 			});
 		}
-		LOGGER.info("end read config");
+		LOGGER.info("Config file read successfully");
 	}
 	
 	public void saveKnownServers() {//String configPath) {
+		
+		LOGGER.info("Start save config from file <{}>", configFile.getAbsolutePath());
 		
 //		configFile = new File(configPath);
 
@@ -97,21 +105,25 @@ public class ClusterProvider {
 		try {
 			jsonWriter = new JsonWriter(
 					new OutputStreamWriter(new FileOutputStream(configFile), StandardCharsets.UTF_8));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+		} catch (FileNotFoundException excp) {
+			// файл вроде бы автоматически создается и эксепшн не бросается
+			LOGGER.debug("Config file save error: {}", excp);
 			return;
 		}
 		Gson gson = new GsonBuilder()
-			    .excludeFieldsWithoutExposeAnnotation()
+			    .excludeFieldsWithoutExposeAnnotation() // Сохраняем поля только с аннотацией @Expose
 			    .setPrettyPrinting() // надо сохранять в человекочитаемом-форматированном виде, но не работает
 			    .create();
-		gson.toJson(commonConfig, commonConfig.getClass(), jsonWriter);
+		try {
+			gson.toJson(commonConfig, commonConfig.getClass(), jsonWriter);
+		} catch (JsonIOException excp) {
+			LOGGER.debug("Config file save error: {}", excp);
+		}
 		
 		try {
 			jsonWriter.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (IOException excp) {
+			LOGGER.debug("Config file save error: {}", excp);
 		}
 		
 	}

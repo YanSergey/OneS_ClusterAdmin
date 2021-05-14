@@ -329,7 +329,7 @@ public class EditServerDialog extends Dialog {
 
 	private void saveNewServerProperties() {
 		if (serverParams != null) {
-			serverParams.setNewServerProperties(managerHost,
+			serverParams.setServerNewProperties(managerHost,
 												managerPort,
 												agentPort,
 												rasHost,
