@@ -1,16 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
+	<classpathentry kind="src" output="target/classes" path="src/main/java">
 		<attributes>
-			<attribute name="module" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/gson lib"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/java 1c lib"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/slf4j"/>
-	<classpathentry excluding="resources/|resources/" kind="src" path="src"/>
-	<classpathentry kind="src" path="src/resources"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.swt.win32.win32.x86_64_3.115.100.v20201202-1103.jar" sourcepath="C:/Users/yanyg/AppData/Local/Temp/.org.sf.feeling.decompiler1620105063333/source/org.eclipse.swt.win32.win32.x86_64-3.115.100-sources-1620105998193.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.jface_3.22.0.v20201106-0834.jar" sourcepath="C:/Users/yanyg/AppData/Local/Temp/.org.sf.feeling.decompiler1619760646904/source/org.eclipse.jface-3.22.0-sources-1619780637748.jar"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry excluding="**" kind="src" output="target/classes" path="src/main/resources">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="target/classes"/>
 </classpath>
