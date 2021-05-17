@@ -18,8 +18,9 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5">
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
+			<attribute name="module" value="true"/>
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
@@ -28,5 +29,12 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="C:/git/OneS_ClusterAdmin/clusterAdminLibrary/lib/com._1c.v8.core-1.0.30-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/git/OneS_ClusterAdmin/clusterAdminLibrary/lib/com._1c.v8.ibis.admin-1.6.7.jar"/>
+	<classpathentry kind="lib" path="C:/git/OneS_ClusterAdmin/clusterAdminLibrary/lib/com._1c.v8.ibis.swp-1.1.1-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/git/OneS_ClusterAdmin/clusterAdminLibrary/lib/com._1c.v8.ibis-1.1.1-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/git/OneS_ClusterAdmin/clusterAdminLibrary/lib/com._1c.v8.swp.netty-1.0.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/git/OneS_ClusterAdmin/clusterAdminLibrary/lib/com._1c.v8.swp-1.0.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/git/OneS_ClusterAdmin/clusterAdminLibrary/lib/netty-3.2.6.Final.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
