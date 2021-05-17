@@ -41,8 +41,17 @@
 		<dependency>
 			<groupId>org.eclipse.platform</groupId>
 			<artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
-			<version>3.115.100</version>
+			<version>3.116.0</version>
 		</dependency>
+
+
+		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.gtk.linux.x86_64 -->
+		<dependency>
+			<groupId>org.eclipse.platform</groupId>
+			<artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
+			<version>3.116.0</version>
+		</dependency>
+
 
 		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.jface -->
 		<dependency>
@@ -51,20 +60,14 @@
 			<version>3.22.0</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.jface.databinding -->
+		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
-			<groupId>org.eclipse.platform</groupId>
-			<artifactId>org.eclipse.jface.databinding</artifactId>
-			<version>1.12.100</version>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.8.6</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.jface.text -->
-		<dependency>
-			<groupId>org.eclipse.platform</groupId>
-			<artifactId>org.eclipse.jface.text</artifactId>
-			<version>3.16.500</version>
-		</dependency>
-		
+
 	</dependencies>
 
 

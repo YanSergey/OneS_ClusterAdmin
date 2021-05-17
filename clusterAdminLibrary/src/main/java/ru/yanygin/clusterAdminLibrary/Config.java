@@ -386,7 +386,7 @@ public class Config {
 				return;
 			}
 
-			LOGGER.debug("Try connect server {} to {}:{}", this.getServerKey(), address, port);
+			LOGGER.debug("Try connect server {} to {}:{}", new String[] { this.getServerKey(), address, Integer.toString(port)});
 
 			IAgentAdminConnectorFactory factory = new AgentAdminConnectorFactory();
 			agentConnector = factory.createConnector(timeout);
