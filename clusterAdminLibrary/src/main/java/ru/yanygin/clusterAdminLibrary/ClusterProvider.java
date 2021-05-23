@@ -38,7 +38,7 @@ public class ClusterProvider {
 		
 		
 	}
-
+	
 	public void readSavedKnownServers(String configPath) {
 		LOGGER.info("Start read config from file <{}>", configPath);
 		
@@ -68,7 +68,7 @@ public class ClusterProvider {
 			return;
 		}
 		Gson gson = new GsonBuilder()
-			    .excludeFieldsWithoutExposeAnnotation() // Читаем поля только с аннотацией @Expose
+			    .excludeFieldsWithoutExposeAnnotation() // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ @Expose
 			    .create();
 		
 		try {
@@ -106,13 +106,13 @@ public class ClusterProvider {
 			jsonWriter = new JsonWriter(
 					new OutputStreamWriter(new FileOutputStream(configFile), StandardCharsets.UTF_8));
 		} catch (FileNotFoundException excp) {
-			// файл вроде бы автоматически создается и эксепшн не бросается
+			// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 			LOGGER.debug("Config file save error: {}", excp);
 			return;
 		}
 		Gson gson = new GsonBuilder()
-			    .excludeFieldsWithoutExposeAnnotation() // Сохраняем поля только с аннотацией @Expose
-			    .setPrettyPrinting() // надо сохранять в человекочитаемом-форматированном виде, но не работает
+			    .excludeFieldsWithoutExposeAnnotation() // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ @Expose
+			    .setPrettyPrinting() // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 			    .create();
 		try {
 			gson.toJson(commonConfig, commonConfig.getClass(), jsonWriter);
