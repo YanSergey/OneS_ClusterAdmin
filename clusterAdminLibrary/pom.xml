@@ -165,7 +165,8 @@
 <!-- 				</configuration> -->
 <!-- 			</plugin> -->
 			
-
+			<!-- копирование зависимостей оставим на само приложение -->
+			<!-- 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
@@ -188,8 +189,10 @@
 					</execution>
 				</executions>
 			</plugin>
+			 -->
 
 			<!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-assembly-plugin -->
+			<!-- нет результатов работы плагина в консоли при сборке -->
 			<plugin>
 			    <groupId>org.apache.maven.plugins</groupId>
 			    <artifactId>maven-assembly-plugin</artifactId>
