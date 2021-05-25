@@ -1,31 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
+	<classpathentry kind="src" output="target/classes" path="src/main/java">
 		<attributes>
-			<attribute name="module" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/gson lib"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/java 1c lib"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/clusterAdmin Library"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/slf4j"/>
-	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.osgi_3.16.100.v20201030-1916.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.osgi_3.16.100.v20201030-1916.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.commands_3.9.800.v20201021-1339.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.commands_3.9.800.v20201021-1339.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.equinox.common_3.14.0.v20201102-2053.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.equinox.common_3.14.0.v20201102-2053.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.equinox.registry_3.10.0.v20201107-1818.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.equinox.registry_3.10.0.v20201107-1818.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.runtime_3.20.0.v20201027-1526.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.runtime_3.20.0.v20201027-1526.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.text_3.10.400.v20200925-0557.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.text_3.10.400.v20200925-0557.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.swt.win32.win32.x86_64_3.115.100.v20201202-1103.jar" sourcepath="C:/Users/yanyg/AppData/Local/Temp/.org.sf.feeling.decompiler1620486927347/source/org.eclipse.swt.win32.win32.x86_64-3.115.100-sources-1620487869594.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.jface_3.22.0.v20201106-0834.jar" sourcepath="C:/Users/yanyg/AppData/Local/Temp/.org.sf.feeling.decompiler1620105063333/source/org.eclipse.jface-3.22.0-sources-1620136746209.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.jface.text_3.16.500.v20201112-1545.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.jface.text_3.16.500.v20201112-1545.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.ui.workbench_3.122.0.v20201122-1345.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.ui.workbench_3.122.0.v20201122-1345.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/com.ibm.icu_67.1.0.v20200706-1749.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/com.ibm.icu_67.1.0.v20200706-1749.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.ui.forms_3.11.0.v20201025-0656.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.ui.forms_3.11.0.v20201025-0656.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding_1.10.100.v20200926-1123.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding_1.10.100.v20200926-1123.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding.beans_1.7.100.v20201021-1339.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding.beans_1.7.100.v20201021-1339.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding.observable_1.10.0.v20200730-0848.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding.observable_1.10.0.v20200730-0848.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding.property_1.8.100.v20200619-0651.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.core.databinding.property_1.8.100.v20200619-0651.jar"/>
-	<classpathentry kind="lib" path="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.jface.databinding_1.12.100.v20201014-0742.jar" sourcepath="C:/Users/yanyg/.p2/pool/plugins/org.eclipse.jface.databinding_1.12.100.v20201014-0742.jar"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="test" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="target/classes"/>
 </classpath>

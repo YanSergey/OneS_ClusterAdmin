@@ -27,6 +27,9 @@
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
+    <logger name="ClusterProvider" level="debug" additivity="false">
+    	<appender-ref ref="CONSOLE"></appender-ref>
+    	<appender-ref ref="FILE"></appender-ref></logger>
 
     <root level="error">
         <appender-ref ref="CONSOLE"/>

@@ -32,7 +32,7 @@ public class ClusterProvider {
 	Config commonConfig;
 	String defaultConfigPath = ".\\config.json";
 
-	Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary");
+	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider");
 
 	public ClusterProvider() {
 		
