@@ -57,11 +57,13 @@ public class ViewerArea extends Composite {
 	Image serverIcon;
 	Image serverIconUp;
 	Image serverIconDown;
+	Image serverIconConnecting;
 	Image infobaseIcon;
 	Image infobasesIcon;
 	Image clusterIcon;
 	Image userIcon;
 	Image connectionIcon;
+	Image locksIcon;
 	Image workingProcessesIcon;
 	Image workingProcessIcon;
 	Image connectActionIcon;
@@ -77,6 +79,10 @@ public class ViewerArea extends Composite {
 	MenuItem menuItemDisconnectServer;
 	Menu clusterMenu;
 	Menu infobaseMenu;
+	
+	TabItem tabSessions;
+	TabItem tabConnections;
+	TabItem tabLocks;
 	
 	Table tableSessions;
 	Table tableConnections;
@@ -127,6 +133,8 @@ public class ViewerArea extends Composite {
 		
 		// Пропорции областей
 		sashForm.setWeights(new int[] {3, 10});
+		
+		connectToAllServers();
 
 	}
 	
@@ -143,25 +151,27 @@ public class ViewerArea extends Composite {
 	
 	private void initIcon() {
 		
-		serverIcon = getImage(getParent().getDisplay(), 		"/icons/server_24.png");
-		serverIconUp = getImage(getParent().getDisplay(), 		"/icons/server_up_24.png");
-		serverIconDown = getImage(getParent().getDisplay(), 	"/icons/server_down_24.png");
-		infobaseIcon = getImage(getParent().getDisplay(), 		"/icons/infobase_24.png");
-		infobasesIcon = getImage(getParent().getDisplay(), 		"/icons/infobases_24.png");
-		clusterIcon = getImage(getParent().getDisplay(), 		"/icons/cluster_24.png");
-		userIcon = getImage(getParent().getDisplay(), 			"/icons/user.png");
-		connectionIcon = getImage(getParent().getDisplay(), 	"/icons/connection.png");
+		serverIcon = getImage("server_24.png");
+		serverIconUp = getImage("server_up_24.png");
+		serverIconDown = getImage("server_down_24.png");
+		serverIconConnecting = getImage("server_connecting_24.png");
+		infobaseIcon = getImage("infobase_24.png");
+		infobasesIcon = getImage("infobases_24.png");
+		clusterIcon = getImage("cluster_24.png");
+		userIcon = getImage("user.png");
+		connectionIcon = getImage("connection.png");
+		locksIcon = getImage("lock_16.png");
 
-		workingProcessesIcon = getImage(getParent().getDisplay(), 	"/icons/wps.png");
-		workingProcessIcon = getImage(getParent().getDisplay(), 	"/icons/wp.png");
+		workingProcessesIcon = getImage("wps.png");
+		workingProcessIcon = getImage("wp.png");
 
-		connectActionIcon = getImage(getParent().getDisplay(), 		"/icons/connect_action_24.png");
-		disconnectActionIcon = getImage(getParent().getDisplay(), 	"/icons/disconnect_action_24.png");
+		connectActionIcon = getImage("connect_action_24.png");
+		disconnectActionIcon = getImage("disconnect_action_24.png");
 		
-		editIcon = getImage(getParent().getDisplay(), 			"/icons/edit_16.png");
-		addIcon = getImage(getParent().getDisplay(), 			"/icons/add_16.png");
-		deleteIcon = getImage(getParent().getDisplay(), 		"/icons/delete_16.png");
-		lockUsersIcon = getImage(getParent().getDisplay(), 		"/icons/lock_users_16.png");
+		editIcon = getImage("edit_16.png");
+		addIcon = getImage("add_16.png");
+		deleteIcon = getImage("delete_16.png");
+		lockUsersIcon = getImage("lock_users_16.png");
 
 	}
 	
@@ -317,9 +327,9 @@ public class ViewerArea extends Composite {
 //			}
 //		});
 		
-		TreeColumn columnAutoconnect = new TreeColumn(serversTree, SWT.CENTER);
-		columnAutoconnect.setText("lock");
-		columnAutoconnect.setWidth(30);
+//		TreeColumn columnVersion = new TreeColumn(serversTree, SWT.CENTER);
+//		columnVersion.setText("V8 version");
+//		columnVersion.setWidth(30);
 	}
 	
 	private void initServersTreeContextMenu() {
@@ -405,6 +415,8 @@ public class ViewerArea extends Composite {
 			
 		});
 
+		MenuItem menuItemSepatator = new MenuItem(serverMenu, SWT.SEPARATOR);
+
 		MenuItem menuItemAddNewServer = new MenuItem(serverMenu, SWT.NONE);
 		menuItemAddNewServer.setText("Add Server");
 		menuItemAddNewServer.setImage(addIcon);
@@ -478,9 +490,9 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server server = (Server) item[0].getData("ServerConfig");
+				Server config = (Server) item[0].getData("ServerConfig");
 				
-				clusterProvider.removeServerInList(server);
+				clusterProvider.removeServerInList(config);
 				
 //				item[0].dispose();
 
@@ -501,14 +513,14 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server server = getServerConfigFromItem(item[0]); // (Server) item[0].getParentItem().getData("ServerConfig");
+				Server config = getServerConfigFromItem(item[0]); // (Server) item[0].getParentItem().getData("ServerConfig");
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getData("ClusterInfo");
 				
-				clusterInfo = server.getClusterInfo(clusterInfo.getClusterId());
+				clusterInfo = config.getClusterInfo(clusterInfo.getClusterId());
 				
 				EditClusterDialog editClusterDialog;
 				try {
-					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), server, clusterInfo);
+					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
@@ -533,12 +545,12 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server server = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getData("ServerConfig");
+				Server config = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getData("ServerConfig");
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getData("ClusterInfo");
 
 				CreateInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), server, clusterInfo);
+					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
@@ -546,7 +558,7 @@ public class ViewerArea extends Composite {
 				
 				int dialogResult = infobaseDialog.open();
 				if (dialogResult == 0) {
-					IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterInfo.getClusterId(), infobaseDialog.getNewInfobaseUUID());
+					IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infobaseDialog.getNewInfobaseUUID());
 					addInfobaseItemInInfobaseNode(item[0], infoBaseInfo);
 				}
 			}
@@ -562,15 +574,15 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server server = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getParentItem().getParentItem().getData("ServerConfig");
+				Server config = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getParentItem().getParentItem().getData("ServerConfig");
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getParentItem().getParentItem().getData("ClusterInfo");
 				IInfoBaseInfo infoBaseInfoTemp = getInfoBaseInfoFromItem(item[0]); // (IInfoBaseInfo) item[0].getData("InfoBaseInfo");
 				
-				IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoTemp.getInfoBaseId());
+				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoTemp.getInfoBaseId());
 				EditInfobaseDialog infobaseDialog;
 				try {
 					// TODO может лучше передавать InfoBaseId, а там получать infoBaseInfo
-					infobaseDialog = new EditInfobaseDialog(getParent().getDisplay().getActiveShell(), server, clusterInfo, infoBaseInfo);
+					infobaseDialog = new EditInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo, infoBaseInfo);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
@@ -593,14 +605,14 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server server = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getParentItem().getParentItem().getData("ServerConfig");
+				Server config = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getParentItem().getParentItem().getData("ServerConfig");
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getParentItem().getParentItem().getData("ClusterInfo");
 				IInfoBaseInfo infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfo) item[0].getData("InfoBaseInfo");
 				
 //				IInfoBaseInfo infoBaseInfo = server.clusterConnector.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				DropInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new DropInfobaseDialog(getParent().getDisplay().getActiveShell(), server, clusterInfo, infoBaseInfoShort.getInfoBaseId());
+					infobaseDialog = new DropInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo, infoBaseInfoShort.getInfoBaseId());
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
@@ -632,10 +644,10 @@ public class ViewerArea extends Composite {
 				
 				TreeItem selectItem = item[0];
 				
-				Server server = getServerConfigFromItem(selectItem);
+				Server config = getServerConfigFromItem(selectItem);
 				IClusterInfo clusterInfo = getClusterInfoFromItem(selectItem);
 				IInfoBaseInfo infoBaseInfoTemp = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfoShort) selectItem.getData("InfoBaseInfoShort");
-				IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoTemp.getInfoBaseId());
+				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoTemp.getInfoBaseId());
 				
 				infoBaseInfo.setScheduledJobsDenied(true);
 				infoBaseInfo.setSessionsDenied(true);
@@ -645,7 +657,7 @@ public class ViewerArea extends Composite {
 				infoBaseInfo.setDeniedParameter("");
 				infoBaseInfo.setPermissionCode("");
 				
-				server.updateInfoBase(clusterInfo.getClusterId(), infoBaseInfo);
+				config.updateInfoBase(clusterInfo.getClusterId(), infoBaseInfo);
 			}
 		});		
 
@@ -658,11 +670,11 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server server = getServerConfigFromItem(item[0]);
+				Server config = getServerConfigFromItem(item[0]);
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
 				IInfoBaseInfo infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfoShort) item[0].getData("InfoBaseInfoShort");
 				
-				server.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), false);
+				config.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), false);
 			}
 		});
 		
@@ -675,11 +687,11 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server server = getServerConfigFromItem(item[0]);
+				Server config = getServerConfigFromItem(item[0]);
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
 				IInfoBaseInfo infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfoShort) item[0].getData("InfoBaseInfoShort");
 				
-				server.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), true);
+				config.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), true);
 			}
 		});
 		
@@ -689,7 +701,7 @@ public class ViewerArea extends Composite {
 	
 	private void initSessionTable(TabFolder tabFolder) {
 
-		TabItem tabSessions = new TabItem(tabFolder, SWT.NONE);
+		tabSessions = new TabItem(tabFolder, SWT.NONE);
 		tabSessions.setText("Sessions");
 
 		tableSessions = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
@@ -731,8 +743,8 @@ public class ViewerArea extends Composite {
 					
 					IClusterInfo clusterInfo = (IClusterInfo) item.getData("ClusterInfo");
 					ISessionInfo sessionInfo = (ISessionInfo) item.getData("SessionInfo");
-					Server server = (Server) item.getData("ServerConfig");
-					server.terminateSession(clusterInfo.getClusterId(), sessionInfo.getSid(), "Your session was interrupted by the administrator");
+					Server config = (Server) item.getData("ServerConfig");
+					config.terminateSession(clusterInfo.getClusterId(), sessionInfo.getSid(), "Your session was interrupted by the administrator");
 				}
 				
 			}
@@ -741,7 +753,7 @@ public class ViewerArea extends Composite {
 	
 	private void initConnectionsTable(TabFolder tabFolder) {
 
-		TabItem tabConnections = new TabItem(tabFolder, SWT.NONE);
+		tabConnections = new TabItem(tabFolder, SWT.NONE);
 		tabConnections.setText("Connections");
 		
 		tableConnections = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
@@ -751,13 +763,13 @@ public class ViewerArea extends Composite {
 		
 		initConnectionsTableContextMenu();
 		
-		addTableColumn(tableConnections, "Application", 	100);
-		addTableColumn(tableConnections, "ConnectionID", 	100);
+		addTableColumn(tableConnections, "Infobase", 		100);
+		addTableColumn(tableConnections, "Connection", 		100);
+		addTableColumn(tableConnections, "Session", 		100);
 		addTableColumn(tableConnections, "Hostname", 		100);
-		addTableColumn(tableConnections, "Infobase ID", 	100);
-		addTableColumn(tableConnections, "Infobase connection ID", 100);
+		addTableColumn(tableConnections, "Application", 	100);
 		addTableColumn(tableConnections, "Connected at", 	100);
-		addTableColumn(tableConnections, "SessionNumber", 	100);
+		addTableColumn(tableConnections, "Infobase connection ID", 100);
 		addTableColumn(tableConnections, "rphost ID", 		100);
 		
 	}
@@ -768,7 +780,7 @@ public class ViewerArea extends Composite {
 	
 	private void initLocksTable(TabFolder tabFolder) {
 
-		TabItem tabLocks = new TabItem(tabFolder, SWT.NONE);
+		tabLocks = new TabItem(tabFolder, SWT.NONE);
 		tabLocks.setText("Locks");
 		
 		tableLocks = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
@@ -787,7 +799,7 @@ public class ViewerArea extends Composite {
 		addTableColumn(tableLocks, "Hostname", 		100);
 		addTableColumn(tableLocks, "Port", 			100);
 		addTableColumn(tableLocks, "Locked at", 	120);
-		addTableColumn(tableLocks, "Locked Object", 100);
+//		addTableColumn(tableLocks, "Locked Object", 100);
 		
 	}
 	
@@ -809,16 +821,16 @@ public class ViewerArea extends Composite {
 			disposeTreeItemWithChildren(clusterItem);
 		}
 
-		Server server = (Server) serverItem.getData("ServerConfig");
+		Server serverConfig = (Server) serverItem.getData("ServerConfig");
 		
 //		// смена иконки сервера на вкл/выкл
 //		serverItem.setImage(server.isConnected() ? serverIconUp : serverIconDown);
 		
-		if (!server.isConnected()) {
+		if (!serverConfig.isConnected()) {
 			return;
 		}
 		
-		List<IClusterInfo> clusters = server.getClusters();
+		List<IClusterInfo> clusters = serverConfig.getClusters();
 		clusters.forEach(clusterInfo -> {
 			TreeItem clusterItem = addClusterItemInServersTree(serverItem, clusterInfo);
 			
@@ -830,8 +842,8 @@ public class ViewerArea extends Composite {
 //			}
 			
 			// Заполнение списка инфобаз
-			fillInfobasesOfCluster(clusterItem, server);
-			fillWorkingProcessesInCluster(clusterItem, server);
+			fillInfobasesOfCluster(clusterItem, serverConfig);
+			fillWorkingProcessesInCluster(clusterItem, serverConfig);
 
 		});
 		
@@ -839,17 +851,17 @@ public class ViewerArea extends Composite {
 		serverItem.setExpanded(!clusters.isEmpty());
 	}
 	
-	private void fillInfobasesOfCluster(TreeItem clusterItem, Server server) {
+	private void fillInfobasesOfCluster(TreeItem clusterItem, Server serverConfig) {
 		
 		//debug
 //		List<IInfoBaseInfo> infoBases = serverConfig.getInfoBases();
 		//debug
 		IClusterInfo clusterInfo = (IClusterInfo) clusterItem.getData("ClusterInfo");
 //		List<IInfoBaseInfoShort> infoBases = server.getInfoBasesShort(clusterInfo.getClusterId()); // краткая инфа - ID, имя, описание
-		List<IInfoBaseInfo> infoBases = server.getInfoBases(clusterInfo.getClusterId()); // краткой инфы недостаточно
+		List<IInfoBaseInfo> infoBases = serverConfig.getInfoBases(clusterInfo.getClusterId()); // краткой инфы недостаточно
 		
-		if (infoBases.size() > 0) {
-			TreeItem infobaseNode = addInfobaseNodeInServersTree(clusterItem, "Infobases ("+infoBases.size()+")");
+		if (!infoBases.isEmpty()) {
+			TreeItem infobaseNode = addInfobaseNodeInServersTree(clusterItem, String.format("Infobases (%s)", infoBases.size()));
 			
 			infoBases.forEach(infoBaseInfo-> {
 				
@@ -867,18 +879,18 @@ public class ViewerArea extends Composite {
 
 	}
 	
-	private void fillWorkingProcessesInCluster(TreeItem clusterItem, Server server) {
+	private void fillWorkingProcessesInCluster(TreeItem clusterItem, Server serverConfig) {
 
 		IClusterInfo clusterInfo = (IClusterInfo) clusterItem.getData("ClusterInfo");
-		List<IWorkingProcessInfo> wProcesses = server.getWorkingProcesses(clusterInfo.getClusterId());
+		List<IWorkingProcessInfo> wProcesses = serverConfig.getWorkingProcesses(clusterInfo.getClusterId());
 		
-		if (wProcesses.size() > 0) {
-			TreeItem workingProcessesNode = addWorkingProcessNodeInClusterItem(clusterItem, "Working processes ("+wProcesses.size()+")");
+		if (!wProcesses.isEmpty()) {
+			TreeItem workingProcessesNode = addWorkingProcessNodeInClusterItem(clusterItem, String.format("Working processes (%s)", wProcesses.size()));
 			
 			wProcesses.forEach(wProcess-> {
-								
 				addWorkingProcessItemInWPNode(workingProcessesNode, wProcess);
 			});
+			
 			clusterItem.setExpanded(true);
 			workingProcessesNode.setExpanded(true);
 			
@@ -939,9 +951,8 @@ public class ViewerArea extends Composite {
 		item.setImage(0, infobaseIcon);
 		item.setChecked(false);
 		
-		item.setImage(1, ibInfo.isSessionsDenied() ? lockUsersIcon : null);
+//		item.setImage(1, ibInfo.isSessionsDenied() ? lockUsersIcon : null);
 		
-//		item.setChecked(ibInfo.isSessionsDenied());
 	}
 	
 	private TreeItem addWorkingProcessNodeInClusterItem(TreeItem clusterItem, String title) {
@@ -955,11 +966,11 @@ public class ViewerArea extends Composite {
 		return item;
 	}
 	
-	private void addWorkingProcessItemInWPNode(TreeItem infobaseNode, IWorkingProcessInfo wpInfo) {
-		TreeItem item = new TreeItem(infobaseNode, SWT.NONE);
+	private void addWorkingProcessItemInWPNode(TreeItem wpNodeItem, IWorkingProcessInfo wpInfo) {
+		TreeItem item = new TreeItem(wpNodeItem, SWT.NONE);
 		
 		item.setText(new String[] { wpInfo.getHostName() + " - " + wpInfo.getMainPort()});
-		item.setData("Type", "WorkingProcessNode");
+		item.setData("Type", "WorkingProcess");
 		item.setData("WorkingProcessInfo", wpInfo);
 		item.setImage(workingProcessIcon);
 		item.setChecked(false);
@@ -983,7 +994,7 @@ public class ViewerArea extends Composite {
 							sessionInfo.getStartedAt().toString(),
 							sessionInfo.getLastActiveAt().toString(),
 							sessionInfo.getHost(),
-							sessionInfo.getAppId(),
+							serverConfig.getApplicationName(sessionInfo.getAppId()),
 							convertUuidToString(sessionInfo.getWorkingProcessId())//,
 							
 //							sessionInfo.getClientIPAddress(),
@@ -1047,13 +1058,13 @@ public class ViewerArea extends Composite {
 		}
 
 		String[] itemText = {
-							connectionInfo.getApplication(),
-							Integer.toString(connectionInfo.getConnId()),
-							connectionInfo.getHost(),
 							infobaseName,
-							convertUuidToString(connectionInfo.getInfoBaseConnectionId()),
-							connectionInfo.getConnectedAt().toString(),
+							Integer.toString(connectionInfo.getConnId()),
 							Integer.toString(connectionInfo.getSessionNumber()),
+							connectionInfo.getHost(),
+							serverConfig.getApplicationName(connectionInfo.getApplication()),
+							connectionInfo.getConnectedAt().toString(),
+							convertUuidToString(connectionInfo.getInfoBaseConnectionId()),
 							convertUuidToString(connectionInfo.getWorkingProcessId())
 							};
 
@@ -1105,7 +1116,7 @@ public class ViewerArea extends Composite {
 			
 		String lockDescr = lockInfo.getLockDescr();
 		Date lockedAt = lockInfo.getLockedAt();
-		UUID lockedObject = lockInfo.getObject();				
+//		UUID lockedObject = lockInfo.getObject(); // Почему то всегда нули
 		
 		String[] itemText = {
 							lockDescr,
@@ -1114,17 +1125,16 @@ public class ViewerArea extends Composite {
 							sessionNumber,
 							computerName,
 							appName,
-							hostName,
+							serverConfig.getApplicationName(hostName),
 							hostPort,
-							lockedAt.toString(),
-							lockedObject.toString()
+							lockedAt.toString()
 							};
 
 		connectionItem.setText(itemText);
 		connectionItem.setData("ClusterInfo", 		clusterInfo);
 		connectionItem.setData("InfoBaseInfoShort", infoBaseInfo);
 		connectionItem.setData("IObjectLockInfo", 	lockInfo);
-		connectionItem.setImage(connectionIcon);
+		connectionItem.setImage(locksIcon);
 		connectionItem.setChecked(false);
 	}
 
@@ -1187,6 +1197,22 @@ public class ViewerArea extends Composite {
 		return null;
 	}
 	
+	private IWorkingProcessInfo getWorkingProcessInfoFromItem(TreeItem item) {
+		
+		if (item.getData("Type") == "WorkingProcess")
+			return (IWorkingProcessInfo) item.getData("WorkingProcessInfo");
+		
+		TreeItem parentItem = item.getParentItem();
+		while (parentItem != null) {
+			
+			if (parentItem.getData("Type") == "WorkingProcess")
+				return (IWorkingProcessInfo) parentItem.getData("WorkingProcessInfo");
+			else 
+				parentItem = parentItem.getParentItem();
+		}
+		return null;
+	}
+	
 	private IInfoBaseInfo getInfoBaseInfoFromItem(TreeItem item) {
 		if (item.getData("Type") == "Infobase")
 			return (IInfoBaseInfo) item.getData("InfoBaseInfo");
@@ -1207,8 +1233,8 @@ public class ViewerArea extends Composite {
 		item.dispose();
 	}
 	
-	private Image getImage(Device device, String name) {
-		return new Image(device, this.getClass().getResourceAsStream(name));
+	private Image getImage(String name) {
+		return new Image(getParent().getDisplay(), this.getClass().getResourceAsStream("/icons/".concat(name)));
 	}
 
 	private void connectToAllServers() {
@@ -1216,23 +1242,35 @@ public class ViewerArea extends Composite {
 //		clusterProvider.connectToServers(); // кажется надо переделать соединение внутрь цикла
 		TreeItem[] serversItem = serversTree.getItems();
 		
-		for (TreeItem serverItem : serversItem) { // TODO переделать на многопоток
-			connectServerItem(serverItem);
+		for (TreeItem serverItem : serversItem) {
+			Server config = (Server) serverItem.getData("ServerConfig");
+			if (config.autoconnect)
+				connectServerItem(serverItem);
 		}
 	}
 
 	private void connectServerItem(TreeItem serverItem) {
-		Server server = (Server) serverItem.getData("ServerConfig");
-		server.connectAndAuthenticate(false);
-		// смена иконки сервера на вкл/выкл
-		serverItem.setImage(server.isConnected() ? serverIconUp : serverIconDown);
-
-		fillClustersInTree(serverItem);
+		
+		// async
+		serverItem.setImage(serverIconConnecting);
+		Display.getDefault().asyncExec(() -> {
+			
+			Server config = (Server) serverItem.getData("ServerConfig");
+			config.connectAndAuthenticate(false);
+	
+			serverItem.setImage(config.isConnected() ? serverIconUp : serverIconDown);
+			serverItem.setText(new String[] { config.getServerDescription()});
+			fillClustersInTree(serverItem);
+			
+		});
+		
+		
+		
 	}
 	
 	private void disconnectServerItem(TreeItem serverItem) {
-		Server server = (Server) serverItem.getData("ServerConfig");
-		server.disconnectFromAgent();
+		Server config = (Server) serverItem.getData("ServerConfig");
+		config.disconnectFromAgent();
 		serverItem.setImage(serverIconDown);
 		
 		TreeItem[] clusterItems = serverItem.getItems();
@@ -1244,6 +1282,7 @@ public class ViewerArea extends Composite {
 	private void selectItemInTreeHandler(TreeItem treeItem) {
 		Server serverConfig;
 		IClusterInfo clusterInfo;
+		IWorkingProcessInfo wpInfo;
 		IInfoBaseInfo infoBaseInfo;
 		
 		List<ISessionInfo> sessions;
@@ -1254,16 +1293,14 @@ public class ViewerArea extends Composite {
 		case "Server":
 			serversTree.setMenu(serverMenu);
 
-//			sessions = new ArrayList<>();
-//			connections = new ArrayList<>();
-//			locks = new ArrayList<>();
-			tableSessions.removeAll();
-			tableConnections.removeAll();
-			tableLocks.removeAll();
+//			tableSessions.removeAll();
+//			tableConnections.removeAll();
+//			tableLocks.removeAll();
+			clearTabs();
 			return;
-//			break;
 		case "Cluster":
 		case "InfobaseNode":
+		case "WorkingProcessNode":
 			serversTree.setMenu(clusterMenu);
 
 			serverConfig 	= getServerConfigFromItem(treeItem);
@@ -1273,6 +1310,21 @@ public class ViewerArea extends Composite {
 			sessions 	= serverConfig.getSessions(clusterInfo.getClusterId());
 			connections = serverConfig.getConnectionsShort(clusterInfo.getClusterId());
 			locks 		= serverConfig.getLocks(clusterInfo.getClusterId());
+			break;
+		case "WorkingProcess":
+			serversTree.setMenu(null);
+
+			serverConfig 	= getServerConfigFromItem(treeItem);
+			clusterInfo 	= getClusterInfoFromItem(treeItem);
+			wpInfo 			= getWorkingProcessInfoFromItem(treeItem);
+			infoBaseInfo 	= null;
+//			infoBaseInfo 	= (IInfoBaseInfo) treeItem.getData("InfoBaseInfo");
+			
+			sessions 	= serverConfig.getWorkingProcessSessions(clusterInfo.getClusterId(), wpInfo.getWorkingProcessId());
+			connections = serverConfig.getWorkingProcessConnectionsShort(clusterInfo.getClusterId(), wpInfo.getWorkingProcessId());
+//			connections = wpInfo.getConnections();
+			locks = new ArrayList<>();
+//			locks 		= serverConfig.getInfoBaseLocks(clusterInfo.getClusterId(), infoBaseInfo.getInfoBaseId());
 			break;
 		case "Infobase":
 			serversTree.setMenu(infobaseMenu);
@@ -1287,27 +1339,37 @@ public class ViewerArea extends Composite {
 			break;
 		default:
 			serversTree.setMenu(null);
-			tableSessions.removeAll();
-			tableConnections.removeAll();
-			tableLocks.removeAll();
+			clearTabs();
 			return;
-//			break;
 		}
 
 		tableSessions.removeAll();
+		tabSessions.setText(String.format("Sessions (%s)", sessions.size()));
 		sessions.forEach(session -> {
 			addSessionInTable(serverConfig, clusterInfo, infoBaseInfo, session);
 		});
 
 		tableConnections.removeAll();
+		tabConnections.setText(String.format("Connections (%s)", connections.size()));
 		connections.forEach(connection -> {
 			addConnectionInTable(serverConfig, clusterInfo, infoBaseInfo, connection);
 		});
 
 		tableLocks.removeAll();
+		tabLocks.setText(String.format("Locks (%s)", locks.size()));
 		locks.forEach(lock -> {
 			addLocksInTable(serverConfig, clusterInfo, infoBaseInfo, lock, sessions, connections);
 		});
+	}
+
+	
+	private void clearTabs() {
+		tabSessions.setText("Sessions");
+		tabConnections.setText("Connections");
+		tabLocks.setText("Locks");
+		tableSessions.removeAll();
+		tableConnections.removeAll();
+		tableLocks.removeAll();
 	}
 
 	
