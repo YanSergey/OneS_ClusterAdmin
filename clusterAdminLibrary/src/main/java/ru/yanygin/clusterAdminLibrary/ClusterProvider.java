@@ -199,8 +199,14 @@ public class ClusterProvider {
 		return infobases;
 	}
 	
+	public void close() {
 
-	
+		getServers().forEach((server, config) -> {
+			if (config.isConnected())
+				config.disconnectFromAgent();
+		});
+
+	}	
 	
 	
 	

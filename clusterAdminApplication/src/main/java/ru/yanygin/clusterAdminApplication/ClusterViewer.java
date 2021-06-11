@@ -68,14 +68,16 @@ public class ClusterViewer extends ApplicationWindow {
 	@Override
 	public boolean close() {
 		
-		Map<String, Server> servers = clusterProvider.getServers();
-			
-		if (!servers.isEmpty()) {
-			servers.forEach((server, config) -> {
-				if (config.isConnected())
-					config.disconnectFromAgent();
-			});
-		}
+		clusterProvider.close();
+		
+//		Map<String, Server> servers = clusterProvider.getServers();
+//			
+//		if (!servers.isEmpty()) {
+//			servers.forEach((server, config) -> {
+//				if (config.isConnected())
+//					config.disconnectFromAgent();
+//			});
+//		}
 		
 		return super.close();
 	}

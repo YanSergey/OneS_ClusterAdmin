@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
@@ -77,6 +78,10 @@ public class Config {
 		void performAutenticate(String userName, String password, boolean saveNewUserpass);
 	}
 
+	interface IGetInfobaseInfo {
+		IInfoBaseInfo getInfo(String userName, String password);
+	}
+
 	public class Server {
 		
 		@SerializedName("ManagerHost")
@@ -126,6 +131,12 @@ public class Config {
 		public boolean available;
 		
 		public String connectionError;	
+
+//		public String agentVersion;
+		
+		public String getAgentVersion() {
+			return isConnected() ? agentConnection.getAgentVersion() : "";
+		}
 		
 //		public ClusterConnector clusterConnector;
 		
@@ -134,7 +145,7 @@ public class Config {
 		private IAgentAdminConnection agentConnection;
 
 		
-//		public Map<UUID, String> clustersNameCashe; // делать кеш информации кластеров или нет
+//		public Map<UUID, String> clustersNameCashe; // делать кеш информации кластеров или нет?
 		public Map<UUID, List<IInfoBaseInfoShort>> clustersInfoBasesCashe;
 		
 //		public Map<UUID, Pair<String, String>> credentialsClustersCashe;
@@ -149,7 +160,30 @@ public class Config {
 		private final static String DESIGNER = "Designer";
 		private final static String SERVER_CONSOLE = "SrvrConsole";
 		private final static String RAS_CONSOLE = "RAS";
-		private final static String JOBSCHEDULER = "JobSCheduler";
+		private final static String JOBSCHEDULER = "JobScheduler";
+		
+		public String getApplicationName(String appID) {
+			switch (appID) {
+			case THIN_CLIENT:
+				return "Thin client";
+			case THICK_CLIENT:
+				return "Thick client";
+			case DESIGNER:
+				return "Designer";
+			case SERVER_CONSOLE:
+				return "Cluster Console";
+			case RAS_CONSOLE:
+				return "Administration Server";
+			case JOBSCHEDULER:
+				return "Job scheduler";
+			case "":
+				return "";
+			default:
+				return String.format("Unknown client (%s)", appID);
+			}
+		}
+
+		UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
 		public Server(String serverName) {
 //			this.managerHost = calcHostName(serverName);
@@ -197,10 +231,15 @@ public class Config {
 				rasPort = Integer.toString(this.rasPort);
 			}
 			
-			return managerHost.concat(":")
-					.concat(Integer.toString(agentPort))
-					.concat("-")
-					.concat(rasPort);
+//			return managerHost.concat(":")
+//					.concat(Integer.toString(agentPort))
+//					.concat("-")
+//					.concat(rasPort);
+			
+			var descriptionFormat = isConnected() ? "%s:%s-%s (%s)" : "%s:%s-%s";
+			
+			return String.format(descriptionFormat, managerHost, Integer.toString(agentPort), rasPort, getAgentVersion());
+			
 		}
 
 		public String getManagerPortAsString() {
@@ -427,8 +466,8 @@ public class Config {
 		 */
 		public boolean isConnected() {
 			boolean isConnected = (agentConnection != null);
-			if (isConnected)
-				LOGGER.debug("Server {} is already connected", this.getServerKey());
+//			if (isConnected)
+//				LOGGER.debug("Server {} is already connected", this.getServerKey()); // засоряет лог
 			
 			return isConnected;
 		}
@@ -457,7 +496,7 @@ public class Config {
 				}
 
 			};
-			String authDescription = "Authethicates a central server administrator agent";
+			String authDescription = "Authentication of the Central server administrator Agent";
 
 			return runAuthProcessWithRequestToUser(authDescription, agentUserName, agentPassword, authMethod);
 		}
@@ -490,7 +529,7 @@ public class Config {
 			};
 				
 			String[] userAndPassword = credentialsClustersCashe.getOrDefault(clusterID, new String[] {"", ""});
-			String authDescription = "Authethicates a server cluster administrator";
+			String authDescription = "Authentication of the server cluster administrator";
 			
 			return runAuthProcessWithRequestToUser(authDescription, userAndPassword[0], userAndPassword[1], authMethod);
 			
@@ -552,9 +591,24 @@ public class Config {
 		 * @param password infobase administrator password
 		 */
 		public void addInfoBaseCredentials(UUID clusterID, String userName, String password) {
-			if (agentConnection == null) {
+			if (agentConnection == null)
 				throw new IllegalStateException("The connection is not established.");
-			}
+
+			
+//			IRunAuthenticate authMethod = (String ibUserName, String ibPssword, boolean saveNewUserpass) -> {
+//				
+//				String clusterName = getClusterInfo(clusterID).getName();
+//				
+//				LOGGER.debug("Add new infobase credentials for the cluster {} of server {}", clusterName, this.getServerKey());
+//				agentConnection.addAuthentication(clusterID, userName, password);
+//								
+//			};
+//				
+//			String[] userAndPassword = credentialsClustersCashe.getOrDefault(clusterID, new String[] {"", ""});
+//			String authDescription = "Authethicates a server cluster administrator";
+//			
+//			return runAuthProcessWithRequestToUser(authDescription, userAndPassword[0], userAndPassword[1], authMethod);
+			
 			
 			String clusterName = getClusterInfo(clusterID).getName();
 			LOGGER.debug("Add new infobase credentials for the cluster {} of server {}", clusterName, this.getServerKey());
@@ -706,12 +760,76 @@ public class Config {
 		 * @return infobase full infobase description
 		 */
 		public IInfoBaseInfo getInfoBaseInfo(UUID clusterID, UUID infobaseID) {
-			if (agentConnection == null) {
+			if (agentConnection == null)
 				throw new IllegalStateException("The connection is not established.");
-			}
 
+//			addInfoBaseCredentials(clusterID, "", ""); // в добавлении пустых кредов нет необходимости
+			
 			LOGGER.debug("Get the description for infobase {} of the cluster {}", infobaseID, clusterID);
-			return agentConnection.getInfoBaseInfo(clusterID, infobaseID);
+			IInfoBaseInfo infobaseInfo;
+			
+			try {
+				infobaseInfo = agentConnection.getInfoBaseInfo(clusterID, infobaseID);
+			} catch (Exception excp) {
+//				IGetInfobaseInfo authMethod = (String ibUserName, String ibPssword) -> {
+//					
+//					String clusterName = getClusterInfo(clusterID).getName();
+//					
+//					LOGGER.debug("Add new infobase credentials for the cluster {} of server {}", clusterName, this.getServerKey());
+//					agentConnection.addAuthentication(clusterID, ibUserName, ibPssword);
+//					
+//					return agentConnection.getInfoBaseInfo(clusterID, infobaseID);
+//
+//				};
+//				String authDescription = "Authentication of the server cluster administrator";
+//				
+//				return runAuthProcessWithRequestToUser(authDescription, ibUserName, ibPssword, authMethod);
+
+				AuthenticateDialog authenticateDialog;
+				String authExcpMessage = excp.getLocalizedMessage();
+				int dialogResult;
+
+				while (true) { // крутимся, пока не подойдет пароль, или пользователь не нажмет Отмена
+
+					String userName = "";
+					String authDescription = "Authentication of the infobase";
+					try {
+						LOGGER.debug("Requesting new user credentials for the infobase <{}>", infobaseID);
+						authenticateDialog = new AuthenticateDialog(Display.getDefault().getActiveShell(), userName, authDescription, authExcpMessage);
+						dialogResult = authenticateDialog.open();
+					} catch (Exception exc) {
+						LOGGER.debug("Request new user credentials for the infobase <{}> failed", infobaseID);
+						MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
+						messageBox.setMessage(exc.getLocalizedMessage());
+						messageBox.open();
+						return null;
+					}
+
+					if (dialogResult == 0) {
+						LOGGER.debug("The user has provided new credentials for the infobase <{}>", infobaseID);
+						userName = authenticateDialog.getUsername();
+						String password = authenticateDialog.getPassword();
+						try {
+							addInfoBaseCredentials(clusterID, userName, password);
+							infobaseInfo = agentConnection.getInfoBaseInfo(clusterID, infobaseID);
+							break;
+						} catch (Exception exc) {
+							LOGGER.debug("Autenticate to infobase <{}> error: {}", this.getServerKey(), excp.getLocalizedMessage());
+							authExcpMessage = exc.getLocalizedMessage();
+							continue;
+						}
+					} else {
+						return null;
+					}
+				}
+				
+				
+				
+			}
+			
+			
+			
+			return infobaseInfo;
 		}
 	    
 	    /**
@@ -724,6 +842,11 @@ public class Config {
 	    public String getInfoBaseName(UUID clusterID, UUID infobaseID)
 	    {
 			LOGGER.debug("Get the name for infobase {} of the cluster {}", infobaseID, clusterID);
+			
+			if (infobaseID.equals(emptyUuid)) {
+				LOGGER.debug("Infobase ID is empty");
+				return "";
+			}
 
 			String infobaseName = "";
 	    	
@@ -732,18 +855,20 @@ public class Config {
 			for (IInfoBaseInfoShort infobase : clusterInfoBases) {
 				if (infobase.getInfoBaseId().equals(infobaseID)) {
 					infobaseName = infobase.getName();
+					LOGGER.debug("Infobase name find in cashe");
 					break;
 				}
 			}
 			
-			LOGGER.debug("Infobase {} name of the cluster {} not found", infobaseID, clusterID);
 			// В кеше не нашли, обновляем кеш списка инфобаз и снова ищем
 			if (infobaseName.isBlank()) {
+				LOGGER.debug("Infobase not found in cashe. Cashe update");
 		    	clusterInfoBases = agentConnection.getInfoBasesShort(clusterID);
 		    	clustersInfoBasesCashe.put(clusterID, clusterInfoBases);
 				for (IInfoBaseInfoShort infobase : clusterInfoBases) {
 					if (infobase.getInfoBaseId().equals(infobaseID)){
 						infobaseName = infobase.getName();
+						LOGGER.debug("Infobase name find in cashe");
 						break;
 					}
 				}
@@ -844,16 +969,6 @@ public class Config {
 			return new ArrayList<>();
 
 		}
-	    
-//		public List<ISessionInfo> getSessions1(UUID clusterID)
-//	    {
-//	    	List<ISessionInfo> sessions = new ArrayList<>();
-//			if (!clusterConnector.isConnected())
-//				return sessions;
-//			
-//	        return clusterConnector.getSessions(clusterID);
-//	        
-//	    }
 
 		/**
 		 * Gets the list of infobase session descriptions.
@@ -872,18 +987,22 @@ public class Config {
 				return agentConnection.getInfoBaseSessions(clusterId, infobaseId);
 
 			return new ArrayList<>();
-		}	    
-	    
-//	    public List<ISessionInfo> getInfoBaseSessions1(UUID clusterID, UUID infobaseId)
-//	    {
-//	    	List<ISessionInfo> sessions = new ArrayList<>();
-//			if (!clusterConnector.isConnected())
-//				return sessions;
-//			
-////			UUID infobaseId = ibs.getInfoBaseId();
-//	        return clusterConnector.getInfoBaseSessions(clusterID, infobaseId);
-//	        
-//	    }
+		}
+		
+		public List<ISessionInfo> getWorkingProcessSessions(UUID clusterId, UUID wpID) {
+			if (isConnected()) {
+				List<ISessionInfo> clusterSessions = agentConnection.getSessions(clusterId);
+				List<ISessionInfo> wpSessions = new ArrayList<>();
+				clusterSessions.forEach(session -> {
+					if (session.getWorkingProcessId().equals(wpID))
+						wpSessions.add(session);
+				});
+				
+				return wpSessions;
+			}
+
+			return new ArrayList<>();
+		}
 
 	    /**
 	     * Terminates a session in the cluster.
@@ -932,34 +1051,61 @@ public class Config {
 
 			List<ISessionInfo> sessions = agentConnection.getInfoBaseSessions(clusterId, infobaseId);
 			for (ISessionInfo session : sessions) {
-				if (onlyUsersSession && !isUserSession(session.getAppId()))
+				if (onlyUsersSession && !isUserSession(session))
 					continue;
 				
 				agentConnection.terminateSession(clusterId, session.getSid());
 			}
 		}
 
-		private boolean isUserSession(String appName) {
+		private boolean isUserSession(ISessionInfo session) {
+			String appName = session.getAppId();
 			return appName.equals(THIN_CLIENT) || appName.equals(THICK_CLIENT);
 		}
 		
-		public List<IInfoBaseConnectionShort> getConnectionsShort(UUID clusterID) {
+		public List<IInfoBaseConnectionShort> getConnectionsShort(UUID clusterId) {
 			if (isConnected())
-				return agentConnection.getConnectionsShort(clusterID);
+				return agentConnection.getConnectionsShort(clusterId);
 
 			return new ArrayList<>();
 		}
 
-		public List<IInfoBaseConnectionShort> getInfoBaseConnectionsShort(UUID clusterID, UUID infobaseId) {
+		public List<IInfoBaseConnectionShort> getInfoBaseConnectionsShort(UUID clusterId, UUID infobaseId) {
 			if (isConnected())
-				return agentConnection.getInfoBaseConnectionsShort(clusterID, infobaseId);
+				return agentConnection.getInfoBaseConnectionsShort(clusterId, infobaseId);
 
 			return new ArrayList<>();
 		}
 
-		public List<IInfoBaseConnectionInfo> getInfoBaseConnections(UUID clusterID, UUID processId, UUID infobaseId) {
+		public List<IInfoBaseConnectionInfo> getInfoBaseConnections(UUID clusterId, UUID processId, UUID infobaseId) {
 			if (isConnected())
-				return agentConnection.getInfoBaseConnections(clusterID, processId, infobaseId);
+				return agentConnection.getInfoBaseConnections(clusterId, processId, infobaseId);
+
+			return new ArrayList<>();
+		}
+
+		public void disconnectConnection(UUID clusterId, UUID processId, UUID connectionId) {
+			if (isConnected())
+				agentConnection.disconnect(clusterId, processId, connectionId);
+
+		}
+		
+		public List<IInfoBaseConnectionShort> getWorkingProcessConnectionsShort(UUID clusterId, UUID wpID) {
+			if (isConnected()) {
+//				List<IInfoBaseConnectionShort> clusterConnections = agentConnection.getConnectionsShort(clusterId);
+////				List<IInfoBaseConnectionShort> wpConnections = new ArrayList<>();
+////				clusterConnections.forEach(connection -> {
+////					if (connection.getWorkingProcessId().equals(wpID))
+////						wpConnections.add(connection);
+////				});
+////				return wpConnections;
+				
+				return agentConnection.getConnectionsShort(clusterId)
+						.stream()
+						.filter(c -> c.getWorkingProcessId().equals(wpID))
+						.collect(Collectors.toList());
+				
+			}
 
 			return new ArrayList<>();
 		}
@@ -1018,8 +1164,6 @@ public class Config {
 
 			return new ArrayList<>();
 		}	
-		
-		
 		
 		
 	}
