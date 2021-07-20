@@ -12,7 +12,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
-import ru.yanygin.clusterAdminLibrary.Config.Server;
+import ru.yanygin.clusterAdminLibrary.Server;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Label;
@@ -78,6 +78,7 @@ public class EditServerDialog extends Dialog {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM);
 		
+		// найти способ установить заголовок окна
 //		parentShell.setText("Parameters of the central server 1C:Enterprise");
 
 		this.serverParams = serverParams;

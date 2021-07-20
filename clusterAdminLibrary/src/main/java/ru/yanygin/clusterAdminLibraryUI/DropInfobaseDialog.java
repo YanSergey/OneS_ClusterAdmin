@@ -9,7 +9,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import com._1c.v8.ibis.admin.IClusterInfo;
-import ru.yanygin.clusterAdminLibrary.Config.Server;
+import ru.yanygin.clusterAdminLibrary.Server;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Label;

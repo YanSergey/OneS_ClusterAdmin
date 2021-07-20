@@ -5,7 +5,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 
-import ru.yanygin.clusterAdminLibrary.Config.Server;
+import ru.yanygin.clusterAdminLibrary.Server;
 
 public class ServerTreeItem extends TreeItem {
 	

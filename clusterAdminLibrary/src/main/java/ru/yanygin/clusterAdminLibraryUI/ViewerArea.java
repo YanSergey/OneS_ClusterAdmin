@@ -49,7 +49,7 @@ import com._1c.v8.ibis.admin.IObjectLockInfo;
 import com._1c.v8.ibis.admin.ISessionInfo;
 import com._1c.v8.ibis.admin.IWorkingProcessInfo;
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
-import ru.yanygin.clusterAdminLibrary.Config.Server;
+import ru.yanygin.clusterAdminLibrary.Server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,16 +113,16 @@ public class ViewerArea extends Composite {
 //		toolBar = new ToolBar(this, SWT.FLAT | SWT.RIGHT); // Для отладки
 //		toolBar.setBounds(0, 0, 500, 23); // Для отладки
 		
-//		initToolbar(parent, toolBar, clusterProvider);
-		initMainMenu(sashForm, menu, clusterProvider);
+//		initToolbar(parent, toolBar);
+		initMainMenu(sashForm, menu);
 		
 		initServersTree(sashForm);
 		
 		TabFolder tabFolder = new TabFolder(sashForm, SWT.NONE);
 		
-		initSessionTable(tabFolder);//sashForm);
-		initConnectionsTable(tabFolder);//sashForm);
-		initLocksTable(tabFolder);//sashForm);
+		initSessionTable(tabFolder);
+		initConnectionsTable(tabFolder);
+		initLocksTable(tabFolder);
 		
 		this.setLayout(new FillLayout(SWT.HORIZONTAL));
 		
@@ -175,7 +175,7 @@ public class ViewerArea extends Composite {
 
 	}
 	
-	private void initToolbar(Composite parent, ToolBar toolBar, ClusterProvider clusterProvider) {
+	private void initToolbar(Composite parent, ToolBar toolBar) {
 //		ToolBar toolBar = applicationWindow.getToolBarManager().createControl(parent);
 		
 //		final Cursor handCursor = new Cursor(Display.getCurrent(), SWT.CURSOR_HAND);
@@ -211,22 +211,10 @@ public class ViewerArea extends Composite {
 		});
 	}
 
-	private void initMainMenu(Composite parent, Menu mainMenu, ClusterProvider clusterProvider) {
-//		ToolBar toolBar = applicationWindow.getToolBarManager().createControl(parent);
+	private void initMainMenu(Composite parent, Menu mainMenu) {
 		
 		if (mainMenu == null) {
 			return;
-//			Decorations d = new Decorations(parent, SWT.BORDER);		
-//			
-//			mainMenu = new Menu(d, SWT.BAR);
-//			d.setMenu(mainMenu);
-////			mainMenu.setLocation(parent.getLocation());
-//			mainMenu.setVisible(true);
-			
-//			mainMenu = new Menu(parent);
-//			parent.setMenu(mainMenu);
-////			mainMenu.setLocation(parent.getLocation());
-//			mainMenu.setVisible(true);
 		}
 		
 		MenuItem toolBarItemFindNewServers = new MenuItem(mainMenu, SWT.NONE);
@@ -262,13 +250,13 @@ public class ViewerArea extends Composite {
 		serversTree.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseDown(MouseEvent e) {
-				int button = e.button; // left = 1, right = 3
+
 				TreeItem[] item = serversTree.getSelection();
 				if (item.length == 0)
 					return;
 
 				TreeItem serverItem = item[0];
-				switch (e.button) {
+				switch (e.button) { // left = 1, right = 3
 					case 1:
 						selectItemInTreeHandler(serverItem);
 						break;
@@ -286,8 +274,9 @@ public class ViewerArea extends Composite {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
 
-				// кажется нужно сделать, что бы была реакция только на левый клик мышью
+				// нужно сделать, что бы была реакция только на левый клик мышью
 				// по правому клику только устанавливать нужное меню
+				// перенесено в addMouseListener
 
 //				TreeItem[] item = serversTree.getSelection();
 //				if (item.length == 0)
@@ -344,9 +333,9 @@ public class ViewerArea extends Composite {
 //			}
 //		});
 		
-//		TreeColumn columnVersion = new TreeColumn(serversTree, SWT.CENTER);
-//		columnVersion.setText("V8 version");
-//		columnVersion.setWidth(30);
+		TreeColumn columnDescription = new TreeColumn(serversTree, SWT.LEFT);
+		columnDescription.setText("");
+		columnDescription.setWidth(30);
 	}
 	
 	private void initServersTreeContextMenu() {
@@ -369,7 +358,7 @@ public class ViewerArea extends Composite {
 				MenuItem[] menuItems = serverMenu.getItems();
 
 				for (MenuItem menuItem : menuItems) {
-					if (menuItem == menuItemConnectServer)
+					if (menuItem == menuItemConnectServer) // menuItem.equals(menuItemConnectServer)
 						menuItem.setEnabled(!serverConfig.isConnected());
 
 					if (menuItem == menuItemDisconnectServer)
@@ -416,7 +405,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		menuItemDisconnectServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemDisconnectServer.setText("Disconnect of Server"); // Disconnect of Server??? - проверить написание
+		menuItemDisconnectServer.setText("Disconnect of Server");
 		menuItemDisconnectServer.setImage(disconnectActionIcon);
 		menuItemDisconnectServer.setEnabled(false);
 		menuItemDisconnectServer.addSelectionListener(new SelectionAdapter() {
@@ -531,8 +520,8 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]); // (Server) item[0].getParentItem().getData("ServerConfig");
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getData("ClusterInfo");
+				Server config = getServerConfigFromItem(item[0]);
+				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
 				
 				clusterInfo = config.getClusterInfo(clusterInfo.getClusterId());
 				
@@ -563,8 +552,8 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getData("ServerConfig");
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getData("ClusterInfo");
+				Server config = getServerConfigFromItem(item[0]);
+				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
 
 				CreateInfobaseDialog infobaseDialog;
 				try {
