@@ -135,7 +135,15 @@ public class Config {
 //		public String agentVersion;
 		
 		public String getAgentVersion() {
-			return isConnected() ? agentConnection.getAgentVersion() : "";
+			
+			String agentVersion;
+			try {
+				agentVersion = agentConnection.getAgentVersion();
+			} catch (Exception e) {
+				LOGGER.error("Unknown agent version of server {}", this.getServerKey());
+				agentVersion = "Unknown";
+			}
+			return isConnected() ? agentVersion : "";
 		}
 		
 //		public ClusterConnector clusterConnector;
