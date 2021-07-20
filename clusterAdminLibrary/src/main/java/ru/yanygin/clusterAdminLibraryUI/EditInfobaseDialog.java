@@ -12,7 +12,7 @@ import org.eclipse.swt.widgets.Text;
 
 import com._1c.v8.ibis.admin.IClusterInfo;
 import com._1c.v8.ibis.admin.IInfoBaseInfo;
-import ru.yanygin.clusterAdminLibrary.Config.Server;
+import ru.yanygin.clusterAdminLibrary.Server;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Label;
