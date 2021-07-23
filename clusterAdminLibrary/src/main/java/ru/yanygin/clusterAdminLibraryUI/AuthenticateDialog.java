@@ -70,7 +70,6 @@ public class AuthenticateDialog extends Dialog {
 		lblAuthenticateInfo.setText(authDescription);
 		
 		Label lblUsername = new Label(container, SWT.NONE);
-		lblUsername.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblUsername.setText("Username");
 		
 		txtUsername = new Text(container, SWT.BORDER);
@@ -78,15 +77,14 @@ public class AuthenticateDialog extends Dialog {
 		txtUsername.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
 		Label lblPassword = new Label(container, SWT.NONE);
-		lblPassword.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblPassword.setText("Password");
 		
 		txtPassword = new Text(container, SWT.BORDER);
 		txtPassword.setToolTipText("Password");
 		txtPassword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
-		lblAuthExcpMessage = new Label(container, SWT.NONE);
-		lblAuthExcpMessage.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 2, 1));
+		lblAuthExcpMessage = new Label(container, SWT.WRAP);
+		lblAuthExcpMessage.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, true, 2, 1));
 		lblAuthExcpMessage.setText(authExcpMessage);
 
 		initProperties();
@@ -95,7 +93,7 @@ public class AuthenticateDialog extends Dialog {
 	}
 
 	private void initProperties() {
-		this.txtUsername.setText(getUsername());
+		this.txtUsername.setText(username);
 	}
 
 	private void extractVariablesFromControls() {
@@ -128,7 +126,7 @@ public class AuthenticateDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(408, 220);
+		return new Point(420, 230);
 	}
 
 }

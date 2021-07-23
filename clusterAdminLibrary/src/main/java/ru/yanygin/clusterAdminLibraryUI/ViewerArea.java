@@ -94,6 +94,7 @@ public class ViewerArea extends Composite {
 	TreeColumn columnServer;
 
 	UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
+	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider");
 	
 	ClusterProvider clusterProvider;
 
@@ -431,12 +432,13 @@ public class ViewerArea extends Composite {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
 
-				Server newServer = clusterProvider.CreateNewServer();
+				Server newServer = clusterProvider.createNewServer();
 				EditServerDialog connectionDialog;
 				try {
 					connectionDialog = new EditServerDialog(getParent().getDisplay().getActiveShell(), newServer);
 				} catch (Exception excp) {
 					excp.printStackTrace();
+					LOGGER.error("Error init EditServerDialog for new server", excp);
 					return;
 				}
 				
@@ -446,7 +448,7 @@ public class ViewerArea extends Composite {
 					return;
 				}
 
-				clusterProvider.addNewServerInList(newServer);
+				clusterProvider.addNewServer(newServer);
 				TreeItem newServerItem = addServerItemInServersTree(newServer);
 
 				fillClustersInTree(newServerItem);
@@ -471,6 +473,7 @@ public class ViewerArea extends Composite {
 					connectionDialog = new EditServerDialog(getParent().getDisplay().getActiveShell(), serverConfig);
 				} catch (Exception excp) {
 					excp.printStackTrace();
+					LOGGER.error("Error init EditServerDialog for server {}", serverConfig.getServerDescription(), excp);
 					return;
 				}
 				
@@ -499,9 +502,7 @@ public class ViewerArea extends Composite {
 				
 				Server config = (Server) item[0].getData("ServerConfig");
 				
-				clusterProvider.removeServerInList(config);
-				
-//				item[0].dispose();
+				clusterProvider.removeServer(config);
 
 				disposeTreeItemWithChildren(item[0]);
 			}
@@ -527,9 +528,10 @@ public class ViewerArea extends Composite {
 				
 				EditClusterDialog editClusterDialog;
 				try {
-					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo);
+					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo.getClusterId());
 				} catch (Exception excp) {
 					excp.printStackTrace();
+					LOGGER.error("Error init EditClusterDialog for cluster {}", clusterInfo.getName(), excp);
 					return;
 				}
 				
@@ -557,7 +559,7 @@ public class ViewerArea extends Composite {
 
 				CreateInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo);
+					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo.getClusterId());
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
@@ -581,24 +583,23 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getParentItem().getParentItem().getData("ServerConfig");
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getParentItem().getParentItem().getData("ClusterInfo");
-				IInfoBaseInfoShort infoBaseInfoTemp = getInfoBaseInfoFromItem(item[0]); // (IInfoBaseInfo) item[0].getData("InfoBaseInfo");
+				Server config = getServerConfigFromItem(item[0]);
+				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
 				
-				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoTemp.getInfoBaseId());
+//				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				EditInfobaseDialog infobaseDialog;
 				try {
-					// TODO может лучше передавать InfoBaseId, а там получать infoBaseInfo
-					infobaseDialog = new EditInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo, infoBaseInfo);
+					infobaseDialog = new EditInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
 				}
 				
-				int dialogResult = infobaseDialog.open();
-				if (dialogResult == 0) {
-//					server.clusterConnector.updateInfoBase(server.clusterID, infoBaseInfo);
-				}
+//				int dialogResult = infobaseDialog.open();
+//				if (dialogResult == 0) {
+////					server.clusterConnector.updateInfoBase(server.clusterID, infoBaseInfo);
+//				}
 			}
 		});
 		
@@ -612,9 +613,9 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);// (Server) item[0].getParentItem().getParentItem().getParentItem().getData("ServerConfig");
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);// (IClusterInfo) item[0].getParentItem().getParentItem().getData("ClusterInfo");
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfo) item[0].getData("InfoBaseInfo");
+				Server config = getServerConfigFromItem(item[0]);
+				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
 				
 //				IInfoBaseInfo infoBaseInfo = server.clusterConnector.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				DropInfobaseDialog infobaseDialog;
@@ -653,8 +654,8 @@ public class ViewerArea extends Composite {
 				
 				Server config = getServerConfigFromItem(selectItem);
 				IClusterInfo clusterInfo = getClusterInfoFromItem(selectItem);
-				IInfoBaseInfoShort infoBaseInfoTemp = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfoShort) selectItem.getData("InfoBaseInfoShort");
-				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoTemp.getInfoBaseId());
+				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				
 				infoBaseInfo.setScheduledJobsDenied(true);
 				infoBaseInfo.setSessionsDenied(true);
@@ -679,7 +680,7 @@ public class ViewerArea extends Composite {
 				
 				Server config = getServerConfigFromItem(item[0]);
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfoShort) item[0].getData("InfoBaseInfoShort");
+				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
 				
 				config.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), false);
 			}
@@ -696,7 +697,7 @@ public class ViewerArea extends Composite {
 				
 				Server config = getServerConfigFromItem(item[0]);
 				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]); //(IInfoBaseInfoShort) item[0].getData("InfoBaseInfoShort");
+				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
 				
 				config.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), true);
 			}
@@ -860,9 +861,6 @@ public class ViewerArea extends Composite {
 	
 	private void fillInfobasesOfCluster(TreeItem clusterItem, Server serverConfig) {
 		
-		//debug
-//		List<IInfoBaseInfo> infoBases = serverConfig.getInfoBases();
-		//debug
 		IClusterInfo clusterInfo = (IClusterInfo) clusterItem.getData("ClusterInfo");
 		List<IInfoBaseInfoShort> infoBases = serverConfig.getInfoBasesShort(clusterInfo.getClusterId()); // краткая инфа - ID, имя, описание
 //		List<IInfoBaseInfo> infoBases = serverConfig.getInfoBases(clusterInfo.getClusterId()); // краткой инфы недостаточно
@@ -871,14 +869,9 @@ public class ViewerArea extends Composite {
 			TreeItem infobaseNode = addInfobaseNodeInServersTree(clusterItem, String.format("Infobases (%s)", infoBases.size()));
 			
 			infoBases.forEach(infoBaseInfo-> {
-				
-				//debug
-	//			IInfoBaseInfo infoBasesInfo = serverConfig.clusterConnector.getInfoBaseInfo(serverConfig.clusterID, infoBaseInfo.getInfoBaseId());
-	//			IInfoBaseInfoShort infoBasesShortInfo = serverConfig.clusterConnector.getInfoBaseShortInfo(serverConfig.clusterID, infoBaseInfo.getInfoBaseId());
-				//debug
-				
 				addInfobaseItemInInfobaseNode(infobaseNode, infoBaseInfo);
 			});
+			
 			clusterItem.setExpanded(true);
 			infobaseNode.setExpanded(true);
 			

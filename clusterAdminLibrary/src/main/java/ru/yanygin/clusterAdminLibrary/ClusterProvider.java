@@ -128,16 +128,16 @@ public class ClusterProvider {
 		
 	}
 	
-	public Server CreateNewServer() {
+	public Server createNewServer() {
 		return commonConfig.CreateNewServer();
 	}
 	
-	public void addNewServerInList(Server server) {
+	public void addNewServer(Server server) {
 		commonConfig.servers.put(server.getServerKey(), server);
 		saveKnownServers();
 	}
 	
-	public void removeServerInList(Server server) {
+	public void removeServer(Server server) {
 		commonConfig.servers.remove(server.getServerKey(), server);
 		saveKnownServers();
 	}

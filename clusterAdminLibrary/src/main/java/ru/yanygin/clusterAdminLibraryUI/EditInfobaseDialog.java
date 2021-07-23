@@ -1,6 +1,7 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
 import java.util.Date;
+import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -27,8 +28,10 @@ import org.eclipse.swt.widgets.DateTime;
 
 public class EditInfobaseDialog extends Dialog {
 	
-	private IInfoBaseInfo infoBaseInfo;
-	private IClusterInfo clusterInfo;
+//	private IInfoBaseInfo infoBaseInfo;
+//	private IClusterInfo clusterInfo;
+	private UUID infoBaseId;
+	private UUID clusterId;
 	private Server server;
 	
 	// Controls
@@ -88,7 +91,7 @@ public class EditInfobaseDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public EditInfobaseDialog(Shell parentShell, Server server, IClusterInfo clusterInfo, IInfoBaseInfo infoBaseInfo) {
+	public EditInfobaseDialog(Shell parentShell, Server server, UUID clusterId, UUID infoBaseId) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
@@ -96,8 +99,8 @@ public class EditInfobaseDialog extends Dialog {
 //		parentShell.setText("Parameters of the 1C:Enterprise infobase");
 	    
 		this.server = server;
-		this.clusterInfo = clusterInfo;
-		this.infoBaseInfo = infoBaseInfo;
+		this.clusterId = clusterId;
+		this.infoBaseId = infoBaseId;
 	}
 
 	/**
@@ -278,8 +281,10 @@ public class EditInfobaseDialog extends Dialog {
 	}
 
 	private void initInfobaseProperties() {
-		if (infoBaseInfo != null) {
+		if (infoBaseId != null) {
 			
+			IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, infoBaseId);
+
 			// Common properties
 			this.txtInfobaseName.setText(infoBaseInfo.getName());
 			this.txtInfobaseDescription.setText(infoBaseInfo.getDescr());
@@ -320,43 +325,6 @@ public class EditInfobaseDialog extends Dialog {
 		}
 	}
 
-	private void saveInfobaseProperties() {
-		if (infoBaseInfo != null) {
-
-			// Common properties
-			infoBaseInfo.setName(infobaseName);
-			infoBaseInfo.setDescr(infobaseDescription);
-			infoBaseInfo.setLicenseDistributionAllowed(allowDistributeLicense);
-			infoBaseInfo.setScheduledJobsDenied(sheduledJobsDenied);
-
-			// DB properties
-			infoBaseInfo.setDbServerName(serverDBName);
-			infoBaseInfo.setDbms(serverDBType);
-			infoBaseInfo.setDbName(databaseDbName);
-			infoBaseInfo.setDbUser(databaseDbUser);
-			infoBaseInfo.setDbPassword(databaseDbPassword);
-
-			// Lock properties
-			infoBaseInfo.setSessionsDenied(sessionsDenied);
-			infoBaseInfo.setDeniedFrom(sessionsDeniedFrom);
-			infoBaseInfo.setDeniedTo(sessionsDeniedTo);
-			infoBaseInfo.setDeniedMessage(deniedMessage);
-			infoBaseInfo.setPermissionCode(permissionCode);
-			infoBaseInfo.setDeniedParameter(deniedParameter);
-
-			// ExternalSessionManager properties
-			infoBaseInfo.setExternalSessionManagerConnectionString(externalSessionManagerConnectionString);
-			infoBaseInfo.setExternalSessionManagerRequired(externalSessionManagerRequired);
-
-			// SecurityProfile properties
-			infoBaseInfo.setSecurityProfileName(securityProfile);
-			infoBaseInfo.setSafeModeSecurityProfileName(safeModeSecurityProfile);
-
-			server.updateInfoBase(clusterInfo.getClusterId(), infoBaseInfo);
-			
-		}
-	}
-
 	private void extractInfobaseVariablesFromControls() {
 		
 		// Common properties
@@ -388,7 +356,46 @@ public class EditInfobaseDialog extends Dialog {
 		securityProfile 		= txtSecurityProfile.getText();
 		safeModeSecurityProfile = txtSafeModeSecurityProfile.getText();
 	}
+	
+	private void saveInfobaseProperties() {
 
+		extractInfobaseVariablesFromControls();
+		
+		IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, infoBaseId);
+		
+		// Common properties
+		infoBaseInfo.setName(infobaseName);
+		infoBaseInfo.setDescr(infobaseDescription);
+		infoBaseInfo.setLicenseDistributionAllowed(allowDistributeLicense);
+		infoBaseInfo.setScheduledJobsDenied(sheduledJobsDenied);
+		
+		// DB properties
+		infoBaseInfo.setDbServerName(serverDBName);
+		infoBaseInfo.setDbms(serverDBType);
+		infoBaseInfo.setDbName(databaseDbName);
+		infoBaseInfo.setDbUser(databaseDbUser);
+		infoBaseInfo.setDbPassword(databaseDbPassword);
+		
+		// Lock properties
+		infoBaseInfo.setSessionsDenied(sessionsDenied);
+		infoBaseInfo.setDeniedFrom(sessionsDeniedFrom);
+		infoBaseInfo.setDeniedTo(sessionsDeniedTo);
+		infoBaseInfo.setDeniedMessage(deniedMessage);
+		infoBaseInfo.setPermissionCode(permissionCode);
+		infoBaseInfo.setDeniedParameter(deniedParameter);
+		
+		// ExternalSessionManager properties
+		infoBaseInfo.setExternalSessionManagerConnectionString(externalSessionManagerConnectionString);
+		infoBaseInfo.setExternalSessionManagerRequired(externalSessionManagerRequired);
+		
+		// SecurityProfile properties
+		infoBaseInfo.setSecurityProfileName(securityProfile);
+		infoBaseInfo.setSafeModeSecurityProfileName(safeModeSecurityProfile);
+		
+		server.updateInfoBase(clusterId, infoBaseInfo);
+		
+	}
+	
 	private Date convertDateTime(DateTime date, DateTime time) {
 		
 		int year = date.getYear() - 1900; // чтото не так с конвертацией
@@ -411,7 +418,6 @@ public class EditInfobaseDialog extends Dialog {
 		buttonOK.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				extractInfobaseVariablesFromControls();
 				saveInfobaseProperties();
 				close();
 			}
@@ -423,7 +429,6 @@ public class EditInfobaseDialog extends Dialog {
 		buttonApply.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				extractInfobaseVariablesFromControls();
 				saveInfobaseProperties();
 			}
 		});

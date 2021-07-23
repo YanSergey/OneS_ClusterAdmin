@@ -28,7 +28,8 @@ import org.eclipse.swt.events.SelectionEvent;
 
 public class CreateInfobaseDialog extends Dialog {
 		
-	private IClusterInfo clusterInfo;
+//	private IClusterInfo clusterInfo;
+	private UUID clusterId;
 
 	private Server server;
 	private Button btnSheduledJobsDenied;
@@ -74,7 +75,7 @@ public class CreateInfobaseDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public CreateInfobaseDialog(Shell parentShell, Server server, IClusterInfo clusterInfo) {
+	public CreateInfobaseDialog(Shell parentShell, Server server, UUID clusterId) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
@@ -82,7 +83,7 @@ public class CreateInfobaseDialog extends Dialog {
 //		parentShell.setText("Parameters of the 1C:Enterprise infobase");
 	    
 		this.server = server;
-		this.clusterInfo = clusterInfo;
+		this.clusterId = clusterId;
 		
 	}
 
@@ -251,7 +252,7 @@ public class CreateInfobaseDialog extends Dialog {
 		infoBaseInfo.setDateOffset(infobaseDateOffset);
 
 		try {
-			newInfobaseUUID = server.createInfoBase(clusterInfo.getClusterId(), infoBaseInfo,
+			newInfobaseUUID = server.createInfoBase(clusterId, infoBaseInfo,
 					(infobaseCreationMode ? 1 : 0));
 		} catch (Exception excp) {
 			excp.printStackTrace();

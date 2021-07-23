@@ -32,17 +32,13 @@ import ru.yanygin.clusterAdminLibraryUI.AuthenticateDialog;
 
 public class Server {
 	
-	@SerializedName("ManagerHost")
+	@SerializedName("AgentHost")
 	@Expose
-	public String managerHost;
+	public String agentHost;
 	
 	@SerializedName("AgentPort")
 	@Expose
 	public int agentPort;
-	
-	@SerializedName("ManagerPort")
-	@Expose
-	private int managerPort;
 	
 	@SerializedName("RasHost")
 	@Expose
@@ -64,6 +60,10 @@ public class Server {
 	@Expose
 	public String localRasV8version;
 	
+	@SerializedName("LocalRasPath")
+	@Expose
+	public String localRasPath;
+	
 	@SerializedName("AgentUser")
 	@Expose
 	public String agentUserName;
@@ -80,25 +80,9 @@ public class Server {
 	
 	public String connectionError;	
 
-//	public String agentVersion;
-
 	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary");
-
-	public String getAgentVersion() {
-		
-		String agentVersion;
-		try {
-			agentVersion = agentConnection.getAgentVersion();
-		} catch (Exception e) {
-			LOGGER.error("Unknown agent version of server {}", this.getServerKey());
-			agentVersion = "Unknown";
-		}
-		return isConnected() ? agentVersion : "";
-	}
+	private UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
 	
-//	public ClusterConnector clusterConnector;
-	
-//	private final IAgentAdminConnectorFactory factory;
 	private IAgentAdminConnector agentConnector;
 	private IAgentAdminConnection agentConnection;
 
@@ -127,6 +111,10 @@ public class Server {
 	interface IGetInfobaseInfo {
 		IInfoBaseInfo getInfo(String userName, String password);
 	}
+	
+	public enum TypeServerInfo {
+		ClusterId, InfobaseId, WorkingProcessId, SessionId, ConnectionId
+	}
 
 	public String getApplicationName(String appID) {
 		switch (appID) {
@@ -149,21 +137,30 @@ public class Server {
 		}
 	}
 
-	UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
+	public String getAgentVersion() {
+		
+		String agentVersion;
+		try {
+			agentVersion = agentConnection.getAgentVersion();
+		} catch (Exception e) {
+			LOGGER.error("Unknown agent version of server {}", this.getServerKey());
+			agentVersion = "Unknown";
+		}
+		return isConnected() ? agentVersion : "";
+	}
 
 	public Server(String serverName) {
-//		this.managerHost = calcHostName(serverName);
-//		this.managerPort = calcManagerPort(serverName);
-//		this.rasPort = calcRemoteRASPort(serverName);
-		calcServerParams(serverName);
+
+		calculateServerParams(serverName);
 		
-		this.useLocalRas = false;
-		this.localRasPort = 0;
-		this.localRasV8version = "";
-		this.autoconnect = false;
-		this.available = false;
-		this.agentUserName = "";
-		this.agentPassword = "";
+		this.useLocalRas 		= false;
+		this.localRasPort 		= 0;
+		this.localRasV8version 	= "";
+		this.localRasPath 		= "";
+		this.autoconnect 		= false;
+		this.available 			= false;
+		this.agentUserName 		= "";
+		this.agentPassword 		= "";
 		
 		init();
 
@@ -182,39 +179,30 @@ public class Server {
 
 	}
 	
-	// Надо определиться что должно являться ключем, агент (Server:1540) или менеджер (Server:1541)
-	// Попробовать выпилить отовсюду упоминания менеджера, он нам нужен только для автоопределения, где находится агент
+	// Надо определиться что должно являться ключем, агент (Server:1540) или менеджер (Server:1541) или RAS (Server:1545)
 	public String getServerKey() {
-		return managerHost.concat(":").concat(Integer.toString(agentPort));
+		return agentHost.concat(":").concat(Integer.toString(agentPort));
 	}
-
+	
 	public String getServerDescription() {
-		String rasPort = "";
+		var rasPortString = "";
 		if (useLocalRas) {
-			rasPort = "(*".concat(Integer.toString(localRasPort)).concat(")");
+			rasPortString = "(*".concat(Integer.toString(localRasPort)).concat(")");
 		}
 		else {
-			rasPort = Integer.toString(this.rasPort);
+			rasPortString = Integer.toString(this.rasPort);
 		}
-		
-//		return managerHost.concat(":")
-//				.concat(Integer.toString(agentPort))
-//				.concat("-")
-//				.concat(rasPort);
 		
 		var descriptionFormat = isConnected() ? "%s:%s-%s (%s)" : "%s:%s-%s";
 		
-		return String.format(descriptionFormat, managerHost, Integer.toString(agentPort), rasPort, getAgentVersion());
+		return String.format(descriptionFormat, agentHost, Integer.toString(agentPort), rasPortString, getAgentVersion());
 		
 	}
-
-	public String getManagerPortAsString() {
-		return Integer.toString(managerPort);
-	}
-
+	
 	public String getAgentPortAsString() {
 		return Integer.toString(agentPort);
 	}
+	
 	public String getRasPortAsString() {
 		return Integer.toString(rasPort);
 	}
@@ -223,45 +211,45 @@ public class Server {
 		return Integer.toString(localRasPort);
 	}
 	
-	public void setServerNewProperties(String managerHost,
-										int managerPort,
+	public void setServerNewProperties(String agentHost,
 										int agentPort,
 										String rasHost,
 										int rasPort,
 										boolean useLocalRas,
 										int localRasPort,
 										String localRasV8version,
+										String localRasPath,
 										boolean autoconnect,
 										String agentUser,
 										String agentPassword,
 										Map<UUID, String[]> credentialsClustersCashe) {
 		
-		this.managerHost 	= managerHost;
-		this.managerPort 	= managerPort;
-		this.agentPort 		= agentPort;
-		this.rasHost		= rasHost;
-		this.rasPort 		= rasPort;
-		this.useLocalRas 	= useLocalRas;
-		this.localRasPort 	= localRasPort;
-		this.localRasV8version = localRasV8version;
-		this.autoconnect 	= autoconnect;
-		this.agentUserName 	= agentUser;
-		this.agentPassword 	= agentPassword;
+		this.agentHost 			= agentHost;
+		this.agentPort 			= agentPort;
+		this.rasHost			= rasHost;
+		this.rasPort 			= rasPort;
+		this.useLocalRas 		= useLocalRas;
+		this.localRasPort 		= localRasPort;
+		this.localRasV8version 	= localRasV8version;
+		this.localRasPath 		= localRasPath;
+		this.autoconnect 		= autoconnect;
+		this.agentUserName 		= agentUser;
+		this.agentPassword 		= agentPassword;
 		this.credentialsClustersCashe 	= credentialsClustersCashe;
 		
 		if (this.autoconnect)
 			connectAndAuthenticate(false);
 		
-		LOGGER.info("Server {} set new properties", this.getServerKey());
+		LOGGER.info("Set new properties for server {}", this.getServerKey());
 	}
 	
 	
 	/** Вычисляет имя хоста, на котором запущены процессы кластера
-	 * @param serverAddress - Имя инф.базы из списка баз. Может содержать номер порта менеджера кластера (по-умолчанию 1541).
+	 * @param serverAddress - Имя инф.базы из списка баз. Может содержать номер порта менеджера кластера (Если не указан, то по-умолчанию 1541).
 	 *  Примеры: Server1c, Server1c:2541
 	 * @return Имя хоста, на котором запущены процессы кластера
 	 */
-	private String calcHostName(String serverAddress) {
+	private String cutHostName(String serverAddress) {
 		String serverName;
 		String[] ar = serverAddress.split(":");
 		if (ar.length > 0) {
@@ -273,7 +261,7 @@ public class Server {
 		return serverName;
 	}
 	
-	private int calcManagerPort(String serverAddress) {
+	private int cutManagerPort(String serverAddress) {
 		int port;
 		String[] ar = serverAddress.split(":");
 		if (ar.length == 1) {
@@ -284,7 +272,7 @@ public class Server {
 		return port;
 	}
 	
-	private int calcRemoteRASPort(String serverAddress) {
+	private int cutRemoteRASPort(String serverAddress) {
 		int port;
 		String[] ar = serverAddress.split(":");
 		if (ar.length == 1) {
@@ -295,11 +283,11 @@ public class Server {
 		return port;
 	}
 	
-	private void calcServerParams(String serverAddress) {
+	private void calculateServerParams(String serverAddress) {
 		
-		String managerHost;
+		String agentHost;
 		String rasHost;
-		int managerPort;
+		int managerPort; // не нужен
 		int agentPort;
 		int rasPort;
 		
@@ -308,7 +296,7 @@ public class Server {
 			serverAddress = "localhost";
 		
 		String[] ar = serverAddress.split(":");
-		managerHost	= ar[0];
+		agentHost	= ar[0];
 		rasHost		= ar[0];
 		
 		if (ar.length == 1) {
@@ -321,13 +309,13 @@ public class Server {
 			rasPort = managerPort + 4;
 		}
 		
-		this.managerHost 	= managerHost;
-		this.rasHost 		= rasHost;
-		this.managerPort 	= managerPort;
-		this.agentPort 		= agentPort;
-		this.rasPort 		= rasPort;
+		this.agentHost 	= agentHost;
+		this.rasHost 	= rasHost;
+//		this.managerPort 	= managerPort;
+		this.agentPort 	= agentPort;
+		this.rasPort 	= rasPort;
 		
-		LOGGER.info("Server {} calc params", this.getServerKey());
+		LOGGER.info("Calculate params for Server {} ", this.getServerKey());
 		
 	}
 	
@@ -346,24 +334,7 @@ public class Server {
 			
 			if (disconnectAfter) {
 				disconnectFromAgent();	
-			}
-			
-			
-//			//auth agent
-//			authenticateAgent();
-//			clusters = getClusters(); // а надо ли мне здесь получать кластера???
-//			//auth clusters
-//			clusters.forEach(clusterInfo -> {
-//				try {
-//					authenticateCluster(clusterInfo.getClusterId(), "", "");
-//				} catch (Exception e) {
-//					String clusterUser = "CAdmin";
-//					String clusterPasswors = "123";
-//					authenticateCluster(clusterInfo.getClusterId(), clusterUser, clusterPasswors);
-//				}
-//
-//			});
-			
+			}			
 		}
 		catch (Exception excp) {
 			available = false;
@@ -737,20 +708,7 @@ public class Server {
 		try {
 			infobaseInfo = agentConnection.getInfoBaseInfo(clusterID, infobaseID);
 		} catch (Exception excp) {
-//			IGetInfobaseInfo authMethod = (String ibUserName, String ibPssword) -> {
-//				
-//				String clusterName = getClusterInfo(clusterID).getName();
-//				
-//				LOGGER.debug("Add new infobase credentials for the cluster {} of server {}", clusterName, this.getServerKey());
-//				agentConnection.addAuthentication(clusterID, ibUserName, ibPssword);
-//				
-//				return agentConnection.getInfoBaseInfo(clusterID, infobaseID);
-//
-//			};
-//			String authDescription = "Authentication of the server cluster administrator";
-//			
-//			return runAuthProcessWithRequestToUser(authDescription, ibUserName, ibPssword, authMethod);
-
+			
 			AuthenticateDialog authenticateDialog;
 			String authExcpMessage = excp.getLocalizedMessage();
 			int dialogResult;
@@ -788,12 +746,7 @@ public class Server {
 					return null;
 				}
 			}
-			
-			
-			
 		}
-		
-		
 		
 		return infobaseInfo;
 	}

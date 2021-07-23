@@ -28,18 +28,25 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
+import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.wb.swt.SWTResourceManager;
+import org.eclipse.swt.custom.CTabFolder;
+import org.eclipse.swt.widgets.Display;
 
 public class EditServerDialog extends Dialog {
 	
 	private Server serverParams;
-
-	private String managerHost;
-	private int managerPort;
+	
+	private String agentHost;
 	private int agentPort;
 	private String rasHost;
 	private int rasPort;
 	private boolean useLocalRas;
 	private String localRasV8version;
+	private String localRasPath;
 	private int localRasPort;
 	private boolean autoconnect;
 	private String agentUser;
@@ -50,29 +57,25 @@ public class EditServerDialog extends Dialog {
 	private Text txtRASHost;
 	private Text txtRasPort;
 	
-	private Text txtManagerHost;
+	private Text txtAgentHost;
 	private Text txtAgentPort;
-	private Text txtManagerPort;
-	
-	private Group grpLocalRasParameters;
-	private Button btnUseLocalRas;
-	private Label lblV8Version;
-	private Combo comboV8Versions;
 	private Text txtLocalRasPort;
-	private Text txtLocalRASLaunchString;
-	private Label lblLocalRASLaunchString;
+	private Text txtLocalRASPath;
+	private Label lblLocalRASPath;
 	
 	private Button btnAutoconnect;
-	private Button btnRebuild;
 	private Text txtAgentUser;
 	private Text txtAgentPasswors;
-	private Group grpCredentials;
+//	private Group grpCredentials;
 	private Table tableCredentials;
-
+	private Button radioUseRemoteRAS;
+	private Button radioUseLocalRAS;
+	
 	/**
 	 * Create the dialog.
+	 * 
 	 * @param parentShell
-	 * @param serverParams 
+	 * @param serverParams
 	 */
 	public EditServerDialog(Shell parentShell, Server serverParams) {
 		super(parentShell);
@@ -80,12 +83,13 @@ public class EditServerDialog extends Dialog {
 		
 		// найти способ установить заголовок окна
 //		parentShell.setText("Parameters of the central server 1C:Enterprise");
-
+		
 		this.serverParams = serverParams;
 	}
-
+	
 	/**
 	 * Create contents of the dialog.
+	 * 
 	 * @param parent
 	 */
 	@Override
@@ -97,126 +101,139 @@ public class EditServerDialog extends Dialog {
 		});
 		Composite container = (Composite) super.createDialogArea(parent);
 		GridLayout gridLayout = (GridLayout) container.getLayout();
-		gridLayout.numColumns = 2;
-//		new Label(container, SWT.NONE);
-//		new Label(container, SWT.NONE);
+		gridLayout.marginHeight = 0;
+		gridLayout.marginWidth = 0;
 		
-		Group grpRasParameters = new Group(container, SWT.NONE);
-		grpRasParameters.setText("RAS parameters");
-		grpRasParameters.setLayout(new GridLayout(3, false));
-		grpRasParameters.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+		TabFolder tabFolder = new TabFolder(container, SWT.NONE);
 		
-		Label lblRASHost = new Label(grpRasParameters, SWT.NONE);
+		TabItem tabConnect = new TabItem(tabFolder, SWT.NONE);
+		tabConnect.setText("Connect parameters");
+		
+		Composite connectContainer = new Composite(tabFolder, SWT.NONE);
+		tabConnect.setControl(connectContainer);
+		GridLayout gl_connectContainer = new GridLayout(2, false);
+		connectContainer.setLayout(gl_connectContainer);
+		
+		radioUseRemoteRAS = new Button(connectContainer, SWT.RADIO);
+		radioUseRemoteRAS.setSelection(true);
+		radioUseRemoteRAS.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				SelectionEvent a = e;
+//				tabRASVariant.setSelection(1);
+			}
+		});
+		radioUseRemoteRAS.setBounds(0, 0, 90, 16);
+		radioUseRemoteRAS.setText("Use remote RAS");
+		
+		radioUseLocalRAS = new Button(connectContainer, SWT.RADIO);
+		radioUseLocalRAS.setBounds(0, 0, 90, 16);
+		radioUseLocalRAS.setText("Use local RAS");
+		
+		Group grpRemoteRasParameters = new Group(connectContainer, SWT.NONE);
+		grpRemoteRasParameters.setText("Remote RAS parameters");
+		grpRemoteRasParameters.setLayout(new GridLayout(2, false));
+		
+		Label lblRASHost = new Label(grpRemoteRasParameters, SWT.NONE);
 		lblRASHost.setText("Host");
-		new Label(grpRasParameters, SWT.NONE);
 		
-		Label lblRasPort = new Label(grpRasParameters, SWT.NONE);
+		Label lblRasPort = new Label(grpRemoteRasParameters, SWT.NONE);
 		lblRasPort.setSize(46, 15);
 		lblRasPort.setText("Port");
 		
-		txtRASHost = new Text(grpRasParameters, SWT.BORDER);
-		GridData gd_txtRASHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
-		gd_txtRASHost.widthHint = 150;
+		txtRASHost = new Text(grpRemoteRasParameters, SWT.BORDER);
+		GridData gd_txtRASHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gd_txtRASHost.widthHint = 200;
 		txtRASHost.setLayoutData(gd_txtRASHost);
 		txtRASHost.setToolTipText("RAS host");
 		
-		txtRasPort = new Text(grpRasParameters, SWT.BORDER);
-		txtRasPort.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		txtRasPort = new Text(grpRemoteRasParameters, SWT.BORDER);
+		GridData gd_txtRasPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gd_txtRasPort.widthHint = 50;
+		txtRasPort.setLayoutData(gd_txtRasPort);
 		txtRasPort.setToolTipText("RAS Port");
 		
-		Group grpRagentParameters = new Group(container, SWT.NONE);
+		Group grpLocalRasParameters = new Group(connectContainer, SWT.NONE);
+		grpLocalRasParameters.setSize(417, 90);
+		grpLocalRasParameters.setText("Local RAS parameters");
+		grpLocalRasParameters.setLayout(new GridLayout(2, false));
+		
+		lblLocalRASPath = new Label(grpLocalRasParameters, SWT.NONE);
+		lblLocalRASPath.setSize(124, 15);
+		lblLocalRASPath.setText("Path");
+		
+		Label lblLocalRasPort = new Label(grpLocalRasParameters, SWT.NONE);
+		lblLocalRasPort.setSize(77, 15);
+		lblLocalRasPort.setText("Port");
+		
+		txtLocalRASPath = new Text(grpLocalRasParameters, SWT.BORDER);
+		GridData gd_txtLocalRASPath = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gd_txtLocalRASPath.widthHint = 200;
+		txtLocalRASPath.setLayoutData(gd_txtLocalRASPath);
+		txtLocalRASPath.setSize(389, 21);
+		txtLocalRASPath.setToolTipText("LocalRASPath");
+		
+		txtLocalRasPort = new Text(grpLocalRasParameters, SWT.BORDER);
+		GridData gd_txtLocalRasPort = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
+		gd_txtLocalRasPort.widthHint = 50;
+		txtLocalRasPort.setLayoutData(gd_txtLocalRasPort);
+		txtLocalRasPort.setToolTipText("local RAS port");
+		
+		Group grpRagentParameters = new Group(connectContainer, SWT.NONE);
 		grpRagentParameters.setText("Cluster Agent Parameters");
-		grpRagentParameters.setLayout(new GridLayout(3, false));
-		grpRagentParameters.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+		grpRagentParameters.setLayout(new GridLayout(2, false));
 		
 		Label lblAgentHost = new Label(grpRagentParameters, SWT.NONE);
 		lblAgentHost.setText("Host");
-		new Label(grpRagentParameters, SWT.NONE);
 		
 		Label lblAgentPort = new Label(grpRagentParameters, SWT.NONE);
 		lblAgentPort.setText("Port");
 		
-		txtManagerHost = new Text(grpRagentParameters, SWT.BORDER);
-		GridData gd_txtAgentHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
-		gd_txtAgentHost.widthHint = 150;
-		txtManagerHost.setLayoutData(gd_txtAgentHost);
-		txtManagerHost.setToolTipText("Agent host");
+		txtAgentHost = new Text(grpRagentParameters, SWT.BORDER);
+		GridData gd_txtAgentHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gd_txtAgentHost.widthHint = 200;
+		txtAgentHost.setLayoutData(gd_txtAgentHost);
+		txtAgentHost.setToolTipText("Agent host");
 		
 		txtAgentPort = new Text(grpRagentParameters, SWT.BORDER);
-		txtAgentPort.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		GridData gd_txtAgentPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gd_txtAgentPort.widthHint = 50;
+		txtAgentPort.setLayoutData(gd_txtAgentPort);
 		txtAgentPort.setToolTipText("Agent Port");
-		new Label(grpRagentParameters, SWT.NONE);
+		new Label(connectContainer, SWT.NONE);
 		
-		Label lblManagerPort = new Label(grpRagentParameters, SWT.NONE);
-		lblManagerPort.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblManagerPort.setText("Cluster Manager Port:");
+//		Button btnCheckButton = new Button(connectContainer, SWT.CHECK);
+//		btnCheckButton.setText("Check Button");
 		
-		txtManagerPort = new Text(grpRagentParameters, SWT.BORDER);
-		txtManagerPort.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		txtManagerPort.setToolTipText("manager port");
+		btnAutoconnect = new Button(connectContainer, SWT.CHECK);
+		btnAutoconnect.setText("Autoconnect to the server at startup");
+		new Label(connectContainer, SWT.NONE);
 		
-		grpLocalRasParameters = new Group(container, SWT.NONE);
-		GridData gd_grpLocalRasParameters = new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1);
-		gd_grpLocalRasParameters.widthHint = 487;
-		grpLocalRasParameters.setLayoutData(gd_grpLocalRasParameters);
-		grpLocalRasParameters.setText("Local RAS parameters");
-		grpLocalRasParameters.setLayout(new GridLayout(3, false));
+		TabItem tabCredentials = new TabItem(tabFolder, SWT.NONE);
+		tabCredentials.setText("Credentials");
 		
-		btnUseLocalRas = new Button(grpLocalRasParameters, SWT.CHECK);
-		btnUseLocalRas.setText("Use local RAS");
-		new Label(grpLocalRasParameters, SWT.NONE);
-		new Label(grpLocalRasParameters, SWT.NONE);
-		new Label(grpLocalRasParameters, SWT.NONE);
+		Composite credentialsContainer = new Composite(tabFolder, SWT.NONE);
+		tabCredentials.setControl(credentialsContainer);
+		credentialsContainer.setLayout(new GridLayout(1, false));
 		
-		lblV8Version = new Label(grpLocalRasParameters, SWT.NONE);
-		lblV8Version.setText("RAS V8 version");
+		Button btnSaveCredentialsInConfig = new Button(credentialsContainer, SWT.CHECK);
+		btnSaveCredentialsInConfig.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
+		btnSaveCredentialsInConfig.setSize(155, 16);
+		btnSaveCredentialsInConfig.setText("Save credentials");
 		
-		comboV8Versions = new Combo(grpLocalRasParameters, SWT.NONE);
-		GridData gd_comboV8Versions = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_comboV8Versions.widthHint = 150;
-		comboV8Versions.setLayoutData(gd_comboV8Versions);
-		// «аполнить список доступных платформ V8
+//		grpCredentials = new Group(credentialsContainer, SWT.NONE);
+//		GridData gd_grpCredentials = new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1);
+//		gd_grpCredentials.widthHint = 624;
+//		grpCredentials.setLayoutData(gd_grpCredentials);
+//		grpCredentials.setLayout(new GridLayout(2, false));
+//		grpCredentials.setText("Credentials");
 		
-		new Label(grpLocalRasParameters, SWT.NONE);
-		
-		Label lblLocalRasPort = new Label(grpLocalRasParameters, SWT.NONE);
-		lblLocalRasPort.setSize(77, 15);
-		lblLocalRasPort.setText("Local RAS port");
-		
-		txtLocalRasPort = new Text(grpLocalRasParameters, SWT.BORDER);
-		txtLocalRasPort.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		txtLocalRasPort.setToolTipText("local RAS port");
-		new Label(grpLocalRasParameters, SWT.NONE);
-		
-		lblLocalRASLaunchString = new Label(grpLocalRasParameters, SWT.NONE);
-		lblLocalRASLaunchString.setSize(124, 15);
-		lblLocalRASLaunchString.setText("Local RAS launch string:");
-		
-		btnRebuild = new Button(grpLocalRasParameters, SWT.NONE);
-		btnRebuild.setSize(52, 25);
-		btnRebuild.setText("Rebuild");
-		new Label(grpLocalRasParameters, SWT.NONE);
-		
-		txtLocalRASLaunchString = new Text(grpLocalRasParameters, SWT.BORDER);
-		GridData gd_txtLocalRASLaunchString = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
-		gd_txtLocalRASLaunchString.widthHint = 307;
-		txtLocalRASLaunchString.setLayoutData(gd_txtLocalRASLaunchString);
-		txtLocalRASLaunchString.setSize(389, 21);
-		txtLocalRASLaunchString.setToolTipText("LocalRASLaunchString");
-		
-		btnAutoconnect = new Button(container, SWT.CHECK);
-		btnAutoconnect.setText("Automatic connection to the server at startup");
-		new Label(container, SWT.NONE);
-		
-		grpCredentials = new Group(container, SWT.NONE);
-		grpCredentials.setLayout(new GridLayout(2, false));
-		grpCredentials.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
-		grpCredentials.setText("Credentials");
-		
-		Group grpCentralServerCredential = new Group(grpCredentials, SWT.NONE);
+		Group grpCentralServerCredential = new Group(credentialsContainer, SWT.NONE);
 		grpCentralServerCredential.setText("Central server adminstrator");
 		grpCentralServerCredential.setLayout(new GridLayout(4, false));
-		grpCentralServerCredential.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
+		GridData gd_grpCentralServerCredential = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
+		gd_grpCentralServerCredential.verticalIndent = 5;
+		grpCentralServerCredential.setLayoutData(gd_grpCentralServerCredential);
 		
 		Label lblAgentUser = new Label(grpCentralServerCredential, SWT.NONE);
 		lblAgentUser.setSize(23, 15);
@@ -236,8 +253,11 @@ public class EditServerDialog extends Dialog {
 		txtAgentPasswors.setSize(76, 21);
 		txtAgentPasswors.setToolTipText("Agent password");
 		
-		tableCredentials = new Table(grpCredentials, SWT.BORDER | SWT.FULL_SELECTION);
-		tableCredentials.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
+		tableCredentials = new Table(credentialsContainer, SWT.BORDER | SWT.FULL_SELECTION);
+		GridData gd_tableCredentials = new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1);
+		gd_tableCredentials.heightHint = 183;
+		gd_tableCredentials.verticalIndent = 5;
+		tableCredentials.setLayoutData(gd_tableCredentials);
 		tableCredentials.setHeaderVisible(true);
 		tableCredentials.setLinesVisible(true);
 		
@@ -260,93 +280,92 @@ public class EditServerDialog extends Dialog {
 		TableColumn tblclmnPassword = new TableColumn(tableCredentials, SWT.NONE);
 		tblclmnPassword.setWidth(100);
 		tblclmnPassword.setText("Password");
+		new Label(container, SWT.NONE);
 		
-		Button btnSaveCredentialsInConfig = new Button(grpCredentials, SWT.CHECK);
-		btnSaveCredentialsInConfig.setText("Save credentials in config");
-		new Label(grpCredentials, SWT.NONE);
-
 		initServerProperties();
-
 		
 		return container;
 	}
-
+	
 	private void initServerProperties() {
 		if (serverParams != null) {
 			this.txtRASHost.setText(serverParams.rasHost);
 			this.txtRasPort.setText(serverParams.getRasPortAsString());
 			
-			this.txtManagerHost.setText(serverParams.managerHost);
+			this.txtAgentHost.setText(serverParams.agentHost);
 			this.txtAgentPort.setText(serverParams.getAgentPortAsString());
-			this.txtManagerPort.setText(serverParams.getManagerPortAsString());
 			
-			this.btnUseLocalRas.setSelection(serverParams.useLocalRas);
-			this.comboV8Versions.setText(serverParams.localRasV8version);
+			this.radioUseRemoteRAS.setSelection(!serverParams.useLocalRas);
+			this.radioUseLocalRAS.setSelection(serverParams.useLocalRas);
+//			this.comboV8Versions.setText(serverParams.localRasV8version);
 			this.txtLocalRasPort.setText(serverParams.getLocalRasPortAsString());
+			
 			this.btnAutoconnect.setSelection(serverParams.autoconnect);
-
 			this.txtAgentUser.setText(serverParams.agentUserName);
 			this.txtAgentPasswors.setText(serverParams.agentPassword);
-
-			serverParams.credentialsClustersCashe.forEach((uuid, userPass) ->{
-
+			
+			serverParams.credentialsClustersCashe.forEach((uuid, userPass) -> {
+				
 				TableItem credentialItem = new TableItem(this.tableCredentials, SWT.NONE);
 				
-				String[] itemText = { "cluster",
-									userPass[2], // clusterName
-									uuid.toString(),
-									userPass[0], // username
-									userPass[1] }; // pass
+				String[] itemText = { "cluster", userPass[2], // clusterName
+						uuid.toString(), userPass[0], // username
+						userPass[1] }; // pass
 				
 				credentialItem.setText(itemText);
 				credentialItem.setData("UUID", uuid);
 				credentialItem.setChecked(false);
-
+				
 			});
 		}
 	}
-
+	
 	private void extractServerParameters() {
-		managerHost 		= txtManagerHost.getText();
-		managerPort 		= Integer.parseInt(txtManagerPort.getText());
-		agentPort 			= Integer.parseInt(txtAgentPort.getText());
-		rasHost 			= txtRASHost.getText();
-		rasPort 			= Integer.parseInt(txtRasPort.getText());
-		useLocalRas 		= btnUseLocalRas.getSelection();
-		localRasPort 		= Integer.parseInt(txtLocalRasPort.getText());
-		localRasV8version 	= comboV8Versions.getText();
-		autoconnect 		= btnAutoconnect.getSelection();
-		agentUser 			= txtAgentUser.getText();
-		agentPassword 		= txtAgentPasswors.getText();
+		agentHost = txtAgentHost.getText();
+		agentPort = Integer.parseInt(txtAgentPort.getText());
+		
+		rasHost = txtRASHost.getText();
+		rasPort = Integer.parseInt(txtRasPort.getText());
+		
+		useLocalRas 	= !radioUseRemoteRAS.getSelection();
+		localRasPort 	= Integer.parseInt(txtLocalRasPort.getText());
+//		localRasV8version 	= comboV8Versions.getText();
+		localRasPath 	= txtLocalRASPath.getText();
+		
+		autoconnect 	= btnAutoconnect.getSelection();
+		agentUser 		= txtAgentUser.getText();
+		agentPassword 	= txtAgentPasswors.getText();
 		
 		credentialsClustersCashe = new HashMap<>();
 		TableItem[] credentials = tableCredentials.getItems();
 		for (TableItem credential : credentials) {
 			UUID uuid = (UUID) credential.getData("UUID");
-			credentialsClustersCashe.put(uuid, new String[] {credential.getText(3), credential.getText(4), credential.getText(1)});
+			credentialsClustersCashe.put(uuid,
+					new String[] { credential.getText(3), credential.getText(4), credential.getText(1) });
 		}
 		
 	}
-
+	
 	private void saveNewServerProperties() {
 		if (serverParams != null) {
-			serverParams.setServerNewProperties(managerHost,
-												managerPort,
-												agentPort,
-												rasHost,
-												rasPort,
-												useLocalRas,
-												localRasPort,
-												localRasV8version,
-												autoconnect,
-												agentUser,
-												agentPassword,
-												credentialsClustersCashe);
+			serverParams.setServerNewProperties(agentHost,
+					agentPort,
+					rasHost,
+					rasPort,
+					useLocalRas,
+					localRasPort,
+					localRasV8version,
+					localRasPath,
+					autoconnect,
+					agentUser,
+					agentPassword,
+					credentialsClustersCashe);
 		}
 	}
-
+	
 	/**
 	 * Create contents of the button bar.
+	 * 
 	 * @param parent
 	 */
 	@Override
@@ -360,12 +379,12 @@ public class EditServerDialog extends Dialog {
 		});
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
-
+	
 	/**
 	 * Return the initial size of the dialog.
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(562, 580);
+		return new Point(630, 410);
 	}
 }
