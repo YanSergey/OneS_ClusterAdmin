@@ -1,5 +1,7 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.util.UUID;
+
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.graphics.Point;
@@ -27,7 +29,8 @@ import org.eclipse.swt.widgets.Group;
 
 public class EditClusterDialog extends Dialog {
 	
-	private IClusterInfo clusterInfo;
+//	private IClusterInfo clusterInfo;
+	private UUID clusterId;
 	private Server server;
 	
 	private Button btnClusterRecyclingKillProblemProcesses;
@@ -62,13 +65,8 @@ public class EditClusterDialog extends Dialog {
 	private Text txtWpMaxMemoryTimeLimit;
 	private Label lblAcceptableDeviationOfNumberOfServerErrors;
 	private Text txtClusterRecyclingErrorsCountThreshold;
-	private Label lblUnitSeconds1;
-	private Label lblUnitSeconds2;
-	private Label lblUnitProcents;
-	private Label lblUnitByte;
 	private Label lblShutDownProcessesStopAfter;
 	private Text txtExpirationTimeout;
-	private Label lblUnitSeconds1_1;
 	private Label lblFaultToleranceLevel;
 	private Text txtSessionFaultToleranceLevel;
 	private Label lblLoadBalancingMode;
@@ -80,7 +78,7 @@ public class EditClusterDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public EditClusterDialog(Shell parentShell, Server server, IClusterInfo clusterInfo) {
+	public EditClusterDialog(Shell parentShell, Server server, UUID clusterId) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
@@ -88,7 +86,7 @@ public class EditClusterDialog extends Dialog {
 //		parentShell.setText("Parameters of the 1C:Enterprise infobase");
 	    
 		this.server = server;
-		this.clusterInfo = clusterInfo;
+		this.clusterId = clusterId;
 	}
 
 	/**
@@ -104,7 +102,9 @@ public class EditClusterDialog extends Dialog {
 		});
 		Composite container = (Composite) super.createDialogArea(parent);
 		GridLayout gridLayout = (GridLayout) container.getLayout();
-		gridLayout.numColumns = 3;
+		gridLayout.marginWidth = 10;
+		gridLayout.marginHeight = 12;
+		gridLayout.numColumns = 2;
 		
 		Label lblClusterName = new Label(container, SWT.NONE);
 		lblClusterName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -113,7 +113,6 @@ public class EditClusterDialog extends Dialog {
 		txtClusterName = new Text(container, SWT.BORDER);
 		txtClusterName.setToolTipText("Cluster name");
 		txtClusterName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		new Label(container, SWT.NONE);
 		
 		lblComputerName = new Label(container, SWT.NONE);
 		lblComputerName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -122,7 +121,6 @@ public class EditClusterDialog extends Dialog {
 		txtComputerName = new Text(container, SWT.BORDER);
 		txtComputerName.setToolTipText("Computer Name");
 		txtComputerName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		new Label(container, SWT.NONE);
 		
 		Label lblIPPort = new Label(container, SWT.NONE);
 		lblIPPort.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -131,11 +129,9 @@ public class EditClusterDialog extends Dialog {
 		txtIPPort = new Text(container, SWT.BORDER);
 		txtIPPort.setToolTipText("IP Port");
 		txtIPPort.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		new Label(container, SWT.NONE);
 		
 		Label lblSecurityLevel = new Label(container, SWT.NONE);
 		lblSecurityLevel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-//		lblSecurityLevel.setToolTipText("");
 		lblSecurityLevel.setText("Security level");
 		
 		comboSecurityLevel = new Combo(container, SWT.READ_ONLY);
@@ -151,76 +147,66 @@ public class EditClusterDialog extends Dialog {
 		comboSecurityLevel.add("Constantly");
 		comboSecurityLevel.setData("Constantly", 2);
 		comboSecurityLevel.select(0);
-
-		new Label(container, SWT.NONE);
 		
 		groupWorkProcessesParams = new Group(container, SWT.NONE);
 		groupWorkProcessesParams.setText("Restart Work Processes");
-		groupWorkProcessesParams.setLayout(new GridLayout(3, false));
-		groupWorkProcessesParams.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 3, 1));
+		GridLayout gl_groupWorkProcessesParams = new GridLayout(2, false);
+		gl_groupWorkProcessesParams.verticalSpacing = 8;
+		groupWorkProcessesParams.setLayout(gl_groupWorkProcessesParams);
+		GridData gd_groupWorkProcessesParams = new GridData(SWT.RIGHT, SWT.CENTER, false, false, 3, 1);
+		gd_groupWorkProcessesParams.widthHint = 450;
+		groupWorkProcessesParams.setLayoutData(gd_groupWorkProcessesParams);
 		
 		lblRestartInterval = new Label(groupWorkProcessesParams, SWT.NONE);
 		lblRestartInterval.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblRestartInterval.setText("Restart Interval");
+		lblRestartInterval.setText("Restart interval (second)");
 		
 		txtWpLifeTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
+		txtWpLifeTimeLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		txtWpLifeTimeLimit.setToolTipText("Restart Interval");
-		
-		lblUnitSeconds1 = new Label(groupWorkProcessesParams, SWT.NONE);
-		lblUnitSeconds1.setText("seconds");
 		
 		lblAllowedAmountOfMemory = new Label(groupWorkProcessesParams, SWT.NONE);
 		lblAllowedAmountOfMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblAllowedAmountOfMemory.setText("Allowed Amount Of Memory");
+		lblAllowedAmountOfMemory.setText("Allowed amount\r\nof memory (KB)");
 		lblAllowedAmountOfMemory.setBounds(0, 0, 35, 15);
 		
 		txtWpMaxMemorySize = new Text(groupWorkProcessesParams, SWT.BORDER);
+		txtWpMaxMemorySize.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		txtWpMaxMemorySize.setToolTipText("Allowed Amount Of Memory");
 		txtWpMaxMemorySize.setBounds(0, 0, 76, 21);
 		
-		lblUnitByte = new Label(groupWorkProcessesParams, SWT.NONE);
-		lblUnitByte.setText("KB");
-		
 		lblIntervalExceedingAllowedAmountOfMemory = new Label(groupWorkProcessesParams, SWT.WRAP);
-		lblIntervalExceedingAllowedAmountOfMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblIntervalExceedingAllowedAmountOfMemory.setText("Interval Exceeding Allowed Amount Of Memory");
+		lblIntervalExceedingAllowedAmountOfMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, false, true, 1, 1));
+		lblIntervalExceedingAllowedAmountOfMemory.setText("Interval exceeding allowed\r\namount of memory (second)");
 		lblIntervalExceedingAllowedAmountOfMemory.setBounds(0, 0, 35, 15);
 		
 		txtWpMaxMemoryTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
+		txtWpMaxMemoryTimeLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		txtWpMaxMemoryTimeLimit.setToolTipText("Interval Exceeding Allowed Amount Of Memory");
 		txtWpMaxMemoryTimeLimit.setBounds(0, 0, 76, 21);
 		
-		lblUnitSeconds2 = new Label(groupWorkProcessesParams, SWT.NONE);
-		lblUnitSeconds2.setText("seconds");
-		
 		lblAcceptableDeviationOfNumberOfServerErrors = new Label(groupWorkProcessesParams, SWT.WRAP);
-		lblAcceptableDeviationOfNumberOfServerErrors.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, false, false, 1, 1));
-		lblAcceptableDeviationOfNumberOfServerErrors.setText("Acceptable deviation of the number of server errors");
-		lblAcceptableDeviationOfNumberOfServerErrors.setBounds(0, 0, 35, 15);
+		lblAcceptableDeviationOfNumberOfServerErrors.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, false, true, 1, 1));
+		lblAcceptableDeviationOfNumberOfServerErrors.setText("Acceptable deviation\r\nof the number of server errors (%)");
+		lblAcceptableDeviationOfNumberOfServerErrors.setBounds(0, 0, 35, 30);
 		
 		txtClusterRecyclingErrorsCountThreshold = new Text(groupWorkProcessesParams, SWT.BORDER);
+		txtClusterRecyclingErrorsCountThreshold.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		txtClusterRecyclingErrorsCountThreshold.setToolTipText("Acceptable deviation of the number of server errors");
 		txtClusterRecyclingErrorsCountThreshold.setBounds(0, 0, 76, 21);
-		
-		lblUnitProcents = new Label(groupWorkProcessesParams, SWT.NONE);
-		lblUnitProcents.setText("%");
+		new Label(groupWorkProcessesParams, SWT.NONE);
 		
 		btnClusterRecyclingKillProblemProcesses = new Button(groupWorkProcessesParams, SWT.CHECK);
+		btnClusterRecyclingKillProblemProcesses.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true, 1, 1));
 		btnClusterRecyclingKillProblemProcesses.setText("Force shutdown of problematic processes");
-		new Label(groupWorkProcessesParams, SWT.NONE);
-		new Label(groupWorkProcessesParams, SWT.NONE);
 		
 		lblShutDownProcessesStopAfter = new Label(container, SWT.NONE);
 		lblShutDownProcessesStopAfter.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblShutDownProcessesStopAfter.setText("Shut down processes stop after");
+		lblShutDownProcessesStopAfter.setText("Shut down processes stop after (second)");
 		
 		txtExpirationTimeout = new Text(container, SWT.BORDER);
 		txtExpirationTimeout.setToolTipText("Shut down processes stop after");
 		txtExpirationTimeout.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		
-		lblUnitSeconds1_1 = new Label(container, SWT.NONE);
-		lblUnitSeconds1_1.setToolTipText("");
-		lblUnitSeconds1_1.setText("seconds");
 		
 		lblFaultToleranceLevel = new Label(container, SWT.NONE);
 		lblFaultToleranceLevel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -229,7 +215,6 @@ public class EditClusterDialog extends Dialog {
 		txtSessionFaultToleranceLevel = new Text(container, SWT.BORDER);
 		txtSessionFaultToleranceLevel.setToolTipText("Fault tolerance level");
 		txtSessionFaultToleranceLevel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		new Label(container, SWT.NONE);
 		
 		lblLoadBalancingMode = new Label(container, SWT.NONE);
 		lblLoadBalancingMode.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -245,13 +230,11 @@ public class EditClusterDialog extends Dialog {
 		comboLoadBalancingMode.add("Memory priority"); // Приоритет по памяти
 		comboLoadBalancingMode.setData("Memory priority", 1);
 		comboLoadBalancingMode.select(0);
-		
-		new Label(container, SWT.NONE);
 
 		initServerProperties();
 
 		// У уже созданного кластера запрещено менять хост и порт
-		if (clusterInfo != null) {
+		if (clusterId != null) {
 			txtComputerName.setEditable(false);
 			txtIPPort.setEditable(false);
 		}
@@ -260,7 +243,10 @@ public class EditClusterDialog extends Dialog {
 	}
 
 	private void initServerProperties() {
-		if (clusterInfo != null) {
+		
+		if (clusterId != null) {
+			
+			IClusterInfo clusterInfo = server.getClusterInfo(clusterId);
 			
 			// Common properties
 			this.txtClusterName.setText(clusterInfo.getName());
@@ -283,12 +269,21 @@ public class EditClusterDialog extends Dialog {
 		}
 	}
 
+	private void resetToProf() {
+		this.comboLoadBalancingMode.select(0);
+	}
+	
 	private void saveNewClusterProperties() {
-		if (clusterInfo == null) {
+		
+		IClusterInfo clusterInfo;
+		
+		if (clusterId == null) {
 			clusterInfo = new ClusterInfo();
 	
-			clusterInfo.setHostName(computerName); // разрешено только при создании нового
-			clusterInfo.setMainPort(ipPort); // разрешено только при создании нового
+			clusterInfo.setHostName(computerName); 	// разрешено только при создании нового
+			clusterInfo.setMainPort(ipPort); 		// разрешено только при создании нового
+		} else {		
+			clusterInfo = server.getClusterInfo(clusterId);
 		}
 		
 		clusterInfo.setName(clusterName);
@@ -366,11 +361,20 @@ public class EditClusterDialog extends Dialog {
 				saveNewClusterProperties();
 			}
 		});
-		Button buttonReset = createButton(parent, IDialogConstants.PROCEED_ID, "Reset to PROF/CORP", false);
+		Button buttonReset = createButton(parent, IDialogConstants.RETRY_ID, "Reset", false);
+		buttonReset.setText("Reset");
 		buttonReset.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-//				resetToProf();
+				initServerProperties();
+			}
+		});
+		Button buttonResetToProf = createButton(parent, IDialogConstants.RETRY_ID, "Reset to PROF", false);
+		buttonResetToProf.setText("Reset to PROF");
+		buttonResetToProf.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				resetToProf();
 			}
 		});
 
@@ -381,7 +385,7 @@ public class EditClusterDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(493, 459);
+		return new Point(520, 500);
 	}
 
 }
