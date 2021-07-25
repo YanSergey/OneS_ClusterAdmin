@@ -187,7 +187,7 @@ public class ViewerArea extends Composite {
 		
 		userIcon = getImage("user.png");
 		sleepUserIcon = getImage("sleepUser.png");
-		robotIcon = getImage("robot3.png");
+		robotIcon = getImage("robot.png");
 
 		connectionIcon = getImage("connection.png");
 		locksIcon = getImage("lock_16.png");
