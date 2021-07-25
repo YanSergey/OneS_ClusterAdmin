@@ -284,6 +284,10 @@ public class EditInfobaseDialog extends Dialog {
 		if (infoBaseId != null) {
 			
 			IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, infoBaseId);
+			if (infoBaseInfo == null) {
+				close();
+				return;
+			}
 
 			// Common properties
 			this.txtInfobaseName.setText(infoBaseInfo.getName());

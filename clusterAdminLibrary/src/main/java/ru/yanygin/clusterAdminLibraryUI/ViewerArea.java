@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
@@ -64,6 +66,8 @@ public class ViewerArea extends Composite {
 	Image infobasesIcon;
 	Image clusterIcon;
 	Image userIcon;
+	Image sleepUserIcon;
+	Image robotIcon;
 	Image connectionIcon;
 	Image locksIcon;
 	Image workingProcessesIcon;
@@ -76,6 +80,7 @@ public class ViewerArea extends Composite {
 	Image lockUsersIcon;
 	
 	Tree serversTree;
+	TreeItem currentTreeItem;
 	Menu serverMenu;
 	MenuItem menuItemConnectServer;
 	MenuItem menuItemDisconnectServer;
@@ -95,7 +100,26 @@ public class ViewerArea extends Composite {
 
 	UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
 	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider");
+	FontData systemFontData = getDisplay().getSystemFont().getFontData()[0];
 	
+	enum TreeItemType {
+		SERVER, CLUSTER, INFOBASE_NODE, INFOBASE, WORKINGPROCESS_NODE, WORKINGPROCESS
+	}
+	
+	static final String SERVER_CONFIG = "ServerConfig";
+	static final String CLUSTER_ID = "ClusterId";
+	static final String INFOBASE_ID = "InfobaseId";
+	static final String WORKINGPROCESS_ID = "WorkingProcessId";
+	static final String SESSION_ID = "SessionId";
+	static final String CONNECTION_ID = "ConnectionId";
+
+//	static final String ServerConfig = "ServerConfig";
+//	static final String ClusterId = "ClusterId";
+//	static final String InfobaseId = "InfobaseId";
+//	static final String WorkingProcessId = "WorkingProcessId";
+//	static final String SessionId = "SessionId";
+//	static final String ConnectionId = "ConnectionId";
+
 	ClusterProvider clusterProvider;
 
 	//@Slf4j
@@ -135,13 +159,13 @@ public class ViewerArea extends Composite {
 		// Пропорции областей
 		sashForm.setWeights(new int[] {3, 10});
 		
-		connectToAllServers();
+		autoconnectToServers();
 
 	}
 	
 	@Override
 	public void addPaintListener(PaintListener listener) { // не работает
-		connectToAllServers();
+		autoconnectToServers();
 
 		super.addPaintListener(listener);
 	}
@@ -151,7 +175,8 @@ public class ViewerArea extends Composite {
 //	}
 	
 	private void initIcon() {
-		
+		LOGGER.info("Start init icon");
+	
 		serverIcon = getImage("server_24.png");
 		serverIconUp = getImage("server_up_24.png");
 		serverIconDown = getImage("server_down_24.png");
@@ -159,7 +184,11 @@ public class ViewerArea extends Composite {
 		infobaseIcon = getImage("infobase_24.png");
 		infobasesIcon = getImage("infobases_24.png");
 		clusterIcon = getImage("cluster_24.png");
+		
 		userIcon = getImage("user.png");
+		sleepUserIcon = getImage("sleepUser.png");
+		robotIcon = getImage("robot3.png");
+
 		connectionIcon = getImage("connection.png");
 		locksIcon = getImage("lock_16.png");
 
@@ -174,6 +203,7 @@ public class ViewerArea extends Composite {
 		deleteIcon = getImage("delete_16.png");
 		lockUsersIcon = getImage("lock_users_16.png");
 
+		LOGGER.info("Start init succesfully");
 	}
 	
 	private void initToolbar(Composite parent, ToolBar toolBar) {
@@ -207,7 +237,7 @@ public class ViewerArea extends Composite {
 		toolBarItemConnectAllServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				connectToAllServers();
+				autoconnectToServers();
 			}
 		});
 	}
@@ -236,7 +266,7 @@ public class ViewerArea extends Composite {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				
-				connectToAllServers();
+				autoconnectToServers();
 				
 			}
 		});
@@ -257,11 +287,13 @@ public class ViewerArea extends Composite {
 					return;
 
 				TreeItem serverItem = item[0];
-				switch (e.button) { // left = 1, right = 3
-					case 1:
-						selectItemInTreeHandler(serverItem);
+				
+				switch (e.button) {
+					case 1: // left click
+						selectItemInTree(serverItem);
 						break;
-					case 3:
+						
+					case 3: // right click
 						setContestMenuInTree(serverItem);
 						break;
 
@@ -467,7 +499,7 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				TreeItem serverItem = item[0];
-				Server serverConfig = (Server) serverItem.getData("ServerConfig");
+				Server serverConfig = (Server) serverItem.getData(SERVER_CONFIG);
 				EditServerDialog connectionDialog;
 				try {
 					connectionDialog = new EditServerDialog(getParent().getDisplay().getActiveShell(), serverConfig);
@@ -500,11 +532,28 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = (Server) item[0].getData("ServerConfig");
+				Server config = (Server) item[0].getData(SERVER_CONFIG);
 				
 				clusterProvider.removeServer(config);
 
 				disposeTreeItemWithChildren(item[0]);
+			}
+		});
+		
+		MenuItem menuItemUpdateServer = new MenuItem(serverMenu, SWT.NONE);
+		menuItemUpdateServer.setText("Update");
+//		menuItemUpdateCluster.setImage(editIcon);
+		menuItemUpdateServer.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+				TreeItem[] item = serversTree.getSelection();
+				if (item.length == 0)
+					return;
+				
+//				Server config = getServerConfigFromItem(item[0]);
+//				UUID clusterId = getClusterInfoFromItem(item[0]);
+				
+				updateClustersInTree(getParentItem(item[0], TreeItemType.SERVER));
 			}
 		});
 		
@@ -521,23 +570,38 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-				
-				clusterInfo = config.getClusterInfo(clusterInfo.getClusterId());
+				Server config = getCurrentServerConfig(item[0]);
+				UUID clusterId = getCurrentClusterId(item[0]);
 				
 				EditClusterDialog editClusterDialog;
 				try {
-					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo.getClusterId());
+					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
-					LOGGER.error("Error init EditClusterDialog for cluster {}", clusterInfo.getName(), excp);
+					LOGGER.error("Error init EditClusterDialog for cluster id {}", clusterId, excp);
 					return;
 				}
 				
 				int dialogResult = editClusterDialog.open();
 				if (dialogResult == 0) {
 				}
+			}
+		});
+		
+		MenuItem menuItemUpdateCluster = new MenuItem(clusterMenu, SWT.NONE);
+		menuItemUpdateCluster.setText("Update");
+//		menuItemUpdateCluster.setImage(editIcon);
+		menuItemUpdateCluster.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+				TreeItem[] item = serversTree.getSelection();
+				if (item.length == 0)
+					return;
+				
+//				Server config = getServerConfigFromItem(item[0]);
+//				UUID clusterId = getClusterInfoFromItem(item[0]);
+				
+				fillClustersInTree(getParentItem(item[0], TreeItemType.SERVER)); // здесь надо обновить инфу по одному кластеру
 			}
 		});
 		
@@ -554,12 +618,13 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+				Server config = getCurrentServerConfig(item[0]);
+//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+				UUID clusterId = getCurrentClusterId(item[0]);
 
 				CreateInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo.getClusterId());
+					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
@@ -567,7 +632,7 @@ public class ViewerArea extends Composite {
 				
 				int dialogResult = infobaseDialog.open();
 				if (dialogResult == 0) {
-					IInfoBaseInfoShort infoBaseInfo = config.getInfoBaseShortInfo(clusterInfo.getClusterId(), infobaseDialog.getNewInfobaseUUID());
+					IInfoBaseInfoShort infoBaseInfo = config.getInfoBaseShortInfo(clusterId, infobaseDialog.getNewInfobaseUUID());
 					addInfobaseItemInInfobaseNode(item[0], infoBaseInfo);
 				}
 			}
@@ -583,23 +648,25 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+				Server config = getCurrentServerConfig(item[0]);
+//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+				UUID clusterId = getCurrentClusterId(item[0]);
+				UUID infobaseId = getInfoBaseInfoFromItem(item[0]);
 				
 //				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				EditInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new EditInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
+					infobaseDialog = new EditInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, infobaseId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
 				}
 				
-//				int dialogResult = infobaseDialog.open();
-//				if (dialogResult == 0) {
-////					server.clusterConnector.updateInfoBase(server.clusterID, infoBaseInfo);
-//				}
+				int dialogResult = infobaseDialog.open();
+				if (dialogResult == 0) {
+//					server.clusterConnector.updateInfoBase(server.clusterID, infoBaseInfo);
+				}
 			}
 		});
 		
@@ -613,14 +680,16 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+				Server config = getCurrentServerConfig(item[0]);
+//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+				UUID clusterId = getCurrentClusterId(item[0]);
+				UUID infobaseId = getInfoBaseInfoFromItem(item[0]);
 				
 //				IInfoBaseInfo infoBaseInfo = server.clusterConnector.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				DropInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new DropInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterInfo, infoBaseInfoShort.getInfoBaseId());
+					infobaseDialog = new DropInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, infobaseId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					return;
@@ -652,11 +721,15 @@ public class ViewerArea extends Composite {
 				
 				TreeItem selectItem = item[0];
 				
-				Server config = getServerConfigFromItem(selectItem);
-				IClusterInfo clusterInfo = getClusterInfoFromItem(selectItem);
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
-				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
+				Server config = getCurrentServerConfig(selectItem);
+//				IClusterInfo clusterInfo = getClusterInfoFromItem(selectItem);
+//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+
+				UUID clusterId = getCurrentClusterId(item[0]);
+				UUID infobaseId = getInfoBaseInfoFromItem(item[0]);
 				
+				IInfoBaseInfo infoBaseInfo = config.getInfoBaseInfo(clusterId, infobaseId);
+
 				infoBaseInfo.setScheduledJobsDenied(true);
 				infoBaseInfo.setSessionsDenied(true);
 				infoBaseInfo.setDeniedFrom(null);
@@ -665,7 +738,7 @@ public class ViewerArea extends Composite {
 				infoBaseInfo.setDeniedParameter("");
 				infoBaseInfo.setPermissionCode("");
 				
-				config.updateInfoBase(clusterInfo.getClusterId(), infoBaseInfo);
+				config.updateInfoBase(clusterId, infoBaseInfo);
 			}
 		});		
 
@@ -678,11 +751,14 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+				Server config = getCurrentServerConfig(item[0]);
+//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
 				
-				config.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), false);
+				UUID clusterId = getCurrentClusterId(item[0]);
+				UUID infobaseId = getInfoBaseInfoFromItem(item[0]);
+				
+				config.terminateAllSessionsOfInfobase(clusterId, infobaseId, false);
 			}
 		});
 		
@@ -695,11 +771,14 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-				Server config = getServerConfigFromItem(item[0]);
-				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
+				Server config = getCurrentServerConfig(item[0]);
+//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
+//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
 				
-				config.terminateAllSessionsOfInfobase(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId(), true);
+				UUID clusterId = getCurrentClusterId(item[0]);
+				UUID infobaseId = getInfoBaseInfoFromItem(item[0]);
+				
+				config.terminateAllSessionsOfInfobase(clusterId, infobaseId, true);
 			}
 		});
 		
@@ -719,17 +798,23 @@ public class ViewerArea extends Composite {
 		
 		initSessionsTableContextMenu();
 		
-		addTableColumn(tableSessions, "Username", 		100);
+		addTableColumn(tableSessions, "Username", 		140);
 		addTableColumn(tableSessions, "Infobase", 		100);
-		addTableColumn(tableSessions, "Session N", 		80);
+		addTableColumn(tableSessions, "Session N", 		70);
 		addTableColumn(tableSessions, "Connection N", 	80);
-		addTableColumn(tableSessions, "Started At", 	120);
-		addTableColumn(tableSessions, "Last active at", 120);
+		addTableColumn(tableSessions, "Started At", 	140);
+		addTableColumn(tableSessions, "Last active at", 140);
 		addTableColumn(tableSessions, "Computer", 		100);
 		addTableColumn(tableSessions, "Application", 	100);
 		
-		addTableColumn(tableSessions, "rphost ID", 		100);
+		addTableColumn(tableSessions, "Host", 			100);
+		addTableColumn(tableSessions, "Port", 			60);
+		addTableColumn(tableSessions, "PID", 			60);
 				
+		addTableColumn(tableSessions, "License", 		60);
+		addTableColumn(tableSessions, "Is sleep", 		40);
+		addTableColumn(tableSessions, "PID", 			60);
+		addTableColumn(tableSessions, "PID", 			60);
 	}
 	
 	private void initSessionsTableContextMenu() {
@@ -749,10 +834,16 @@ public class ViewerArea extends Composite {
 				for (TableItem item : selectedItems) {
 					item.setForeground(new Color(150,0,0));
 					
-					IClusterInfo clusterInfo = (IClusterInfo) item.getData("ClusterInfo");
-					ISessionInfo sessionInfo = (ISessionInfo) item.getData("SessionInfo");
+//					IClusterInfo clusterInfo = (IClusterInfo) item.getData("ClusterInfo");
+//					ISessionInfo sessionInfo = (ISessionInfo) item.getData("SessionInfo");
+					
+					UUID clusterId = (UUID) item.getData(CLUSTER_ID);
+					UUID infobaseId = (UUID) item.getData(SESSION_ID);
+					
 					Server config = (Server) item.getData("ServerConfig");
-					config.terminateSession(clusterInfo.getClusterId(), sessionInfo.getSid(), "Your session was interrupted by the administrator");
+					config.terminateSession(clusterId, infobaseId, "Your session was interrupted by the administrator");
+					
+					// update tableSessions
 				}
 				
 			}
@@ -829,7 +920,7 @@ public class ViewerArea extends Composite {
 			disposeTreeItemWithChildren(clusterItem);
 		}
 
-		Server serverConfig = (Server) serverItem.getData("ServerConfig");
+		Server serverConfig = getCurrentServerConfig(serverItem);
 		
 //		// смена иконки сервера на вкл/выкл
 //		serverItem.setImage(server.isConnected() ? serverIconUp : serverIconDown);
@@ -859,14 +950,68 @@ public class ViewerArea extends Composite {
 		serverItem.setExpanded(!clusters.isEmpty());
 	}
 	
+	private void updateClustersInTree(TreeItem serverItem) {
+
+		Server serverConfig = getCurrentServerConfig(serverItem);
+		TreeItem[] clustersItems = serverItem.getItems();
+		
+		// у отключенного кластера удаляем все дочерние элементы
+		if (!serverConfig.isConnected()) {
+			for (TreeItem clusterItem : clustersItems) {
+				disposeTreeItemWithChildren(clusterItem);
+			}
+			return;
+		}
+		
+		List<IClusterInfo> clusters = serverConfig.getClusters();
+		
+		// удаление несуществующих элементов
+		for (TreeItem clusterItem : clustersItems) {
+			UUID currentClusterId = getCurrentClusterId(clusterItem);
+			List<IClusterInfo> foundCluster = clusters.stream()
+													.filter(c -> c.getClusterId().equals(currentClusterId))
+													.collect(Collectors.toList());
+
+			if (foundCluster.isEmpty()) {
+				disposeTreeItemWithChildren(clusterItem);
+			}
+		}
+		
+		// добавление новых элементов
+//		clustersItems = serverItem.getItems();
+		clusters.forEach(clusterInfo -> {
+			var itemFound = false;
+			for (TreeItem clusterItem : serverItem.getItems()) {
+				if (getCurrentClusterId(clusterItem).equals(clusterInfo.getClusterId())) {
+					itemFound = true;
+					break;
+				}
+			}
+			
+			if (!itemFound) {
+				TreeItem clusterItem = addClusterItemInServersTree(serverItem, clusterInfo);
+				
+				// Заполнение списка инфобаз и рабочих процессов
+				fillInfobasesOfCluster(clusterItem, serverConfig);
+				fillWorkingProcessesInCluster(clusterItem, serverConfig);
+			}
+			
+		});
+		
+		
+		// Разворачиваем дерево, если список кластеров не пустой
+		serverItem.setExpanded(!clusters.isEmpty());
+	}
+	
 	private void fillInfobasesOfCluster(TreeItem clusterItem, Server serverConfig) {
 		
-		IClusterInfo clusterInfo = (IClusterInfo) clusterItem.getData("ClusterInfo");
-		List<IInfoBaseInfoShort> infoBases = serverConfig.getInfoBasesShort(clusterInfo.getClusterId()); // краткая инфа - ID, имя, описание
+//		IClusterInfo clusterInfo = (IClusterInfo) clusterItem.getData("ClusterInfo");
+		UUID clusterId = getCurrentClusterId(clusterItem);
+		List<IInfoBaseInfoShort> infoBases = serverConfig.getInfoBasesShort(clusterId); // краткая инфа - ID, имя, описание
 //		List<IInfoBaseInfo> infoBases = serverConfig.getInfoBases(clusterInfo.getClusterId()); // краткой инфы недостаточно
 		
+		TreeItem infobaseNode = addInfobaseNodeInServersTree(clusterItem, String.format("Infobases (%s)", infoBases.size()));
 		if (!infoBases.isEmpty()) {
-			TreeItem infobaseNode = addInfobaseNodeInServersTree(clusterItem, String.format("Infobases (%s)", infoBases.size()));
 			
 			infoBases.forEach(infoBaseInfo-> {
 				addInfobaseItemInInfobaseNode(infobaseNode, infoBaseInfo);
@@ -879,10 +1024,12 @@ public class ViewerArea extends Composite {
 
 	}
 	
+	
 	private void fillWorkingProcessesInCluster(TreeItem clusterItem, Server serverConfig) {
 
-		IClusterInfo clusterInfo = (IClusterInfo) clusterItem.getData("ClusterInfo");
-		List<IWorkingProcessInfo> wProcesses = serverConfig.getWorkingProcesses(clusterInfo.getClusterId());
+//		IClusterInfo clusterInfo = (IClusterInfo) clusterItem.getData("ClusterInfo");
+		UUID clusterId = getCurrentClusterId(clusterItem);
+		List<IWorkingProcessInfo> wProcesses = serverConfig.getWorkingProcesses(clusterId);
 		
 		if (!wProcesses.isEmpty()) {
 			TreeItem workingProcessesNode = addWorkingProcessNodeInClusterItem(clusterItem, String.format("Working processes (%s)", wProcesses.size()));
@@ -897,17 +1044,18 @@ public class ViewerArea extends Composite {
 		}
 
 	}
+	
 
 	private TreeItem addServerItemInServersTree(Server config) {
 		
 //		TreeItem item = new ServerTreeItem(serversTree, SWT.NONE, config);
 		
-		TreeItem item = new TreeItem(serversTree, SWT.NONE);
+		var item = new TreeItem(serversTree, SWT.NONE);
 		
 		item.setText(new String[] { config.getServerDescription()});
-		item.setData("Type", "Server");
+		item.setData("Type", TreeItemType.SERVER);
 		item.setData("ServerKey", config.getServerKey());
-		item.setData("ServerConfig", config);
+		item.setData(SERVER_CONFIG, config);
 		
 		if (config.isConnected()) {
 			item.setImage(serverIconUp);
@@ -918,36 +1066,41 @@ public class ViewerArea extends Composite {
 		return item;
 	}
 	
+	
 	private TreeItem addClusterItemInServersTree(TreeItem serverItem, IClusterInfo clusterInfo) {
-		TreeItem item = new TreeItem(serverItem, SWT.NONE);
+		var item = new TreeItem(serverItem, SWT.NONE);
 		
-		item.setText(new String[] { clusterInfo.getName()});
-		item.setData("Type", "Cluster");
-		item.setData("ClusterName", clusterInfo.getName());
-		item.setData("ClusterInfo", clusterInfo);
+		var itemTitle = String.format("%s (%s)", clusterInfo.getName(), clusterInfo.getMainPort());
+		
+		item.setText(new String[] { itemTitle});
+		item.setData("Type", TreeItemType.CLUSTER);
+//		item.setData("ClusterName", clusterInfo.getName()); // Зачем?
+		item.setData(CLUSTER_ID, clusterInfo.getClusterId());
 		item.setImage(clusterIcon);
 		
 		return item;
 	}
 	
+	
 	private TreeItem addInfobaseNodeInServersTree(TreeItem clusterItem, String title) {
-		TreeItem item = new TreeItem(clusterItem, SWT.NONE);
+		var item = new TreeItem(clusterItem, SWT.NONE);
 		
 		item.setText(new String[] { title});
-		item.setData("Type", "InfobaseNode");
+		item.setData("Type", TreeItemType.INFOBASE_NODE);
 		item.setImage(infobasesIcon);
 		item.setChecked(false);
 		
 		return item;
 	}
 	
+	
 	private void addInfobaseItemInInfobaseNode(TreeItem infobaseNode, IInfoBaseInfoShort ibInfo) {
-		TreeItem item = new TreeItem(infobaseNode, SWT.NONE);
+		var item = new TreeItem(infobaseNode, SWT.NONE);
 		
 		item.setText(new String[] { ibInfo.getName()});
-		item.setData("Type", "Infobase");
-		item.setData("BaseName", ibInfo.getName());
-		item.setData("InfoBaseInfo", ibInfo);
+		item.setData("Type", TreeItemType.INFOBASE);
+//		item.setData("BaseName", ibInfo.getName()); // Зачем?
+		item.setData(INFOBASE_ID, ibInfo.getInfoBaseId());
 		item.setImage(0, infobaseIcon);
 		item.setChecked(false);
 		
@@ -955,47 +1108,87 @@ public class ViewerArea extends Composite {
 		
 	}
 	
+	
 	private TreeItem addWorkingProcessNodeInClusterItem(TreeItem clusterItem, String title) {
-		TreeItem item = new TreeItem(clusterItem, SWT.NONE);
+		var item = new TreeItem(clusterItem, SWT.NONE);
 		
 		item.setText(new String[] { title});
-		item.setData("Type", "WorkingProcessNode");
+		item.setData("Type", TreeItemType.WORKINGPROCESS_NODE);
 		item.setImage(workingProcessesIcon);
 		item.setChecked(false);
 		
 		return item;
 	}
 	
+	
 	private void addWorkingProcessItemInWPNode(TreeItem wpNodeItem, IWorkingProcessInfo wpInfo) {
-		TreeItem item = new TreeItem(wpNodeItem, SWT.NONE);
+		var item = new TreeItem(wpNodeItem, SWT.NONE);
 		
-		item.setText(new String[] { wpInfo.getHostName() + " - " + wpInfo.getMainPort()});
-		item.setData("Type", "WorkingProcess");
-		item.setData("WorkingProcessInfo", wpInfo);
+		var itemTitle = String.format("%s (%s)", wpInfo.getHostName(), wpInfo.getMainPort());
+		
+		item.setText(new String[] { itemTitle});
+		item.setData("Type", TreeItemType.WORKINGPROCESS);
+		item.setData(WORKINGPROCESS_ID, wpInfo.getWorkingProcessId());
 		item.setImage(workingProcessIcon);
 		item.setChecked(false);
 	}
+	
 
-	private void addSessionInTable(Server serverConfig, IClusterInfo clusterInfo, IInfoBaseInfoShort infoBaseInfo, ISessionInfo sessionInfo) {
+	private void addSessionInTable(Server serverConfig, UUID clusterId, UUID infobaseId, ISessionInfo sessionInfo, List<IInfoBaseConnectionShort> connections) {
 		TableItem sessionItem = new TableItem(tableSessions, SWT.NONE);
 
-		String infobaseName = "";
-		if (infoBaseInfo == null) {
-			infobaseName = serverConfig.getInfoBaseName(clusterInfo.getClusterId(), sessionInfo.getInfoBaseId());
-		} else {
-			infobaseName = infoBaseInfo.getName();
+//		String infobaseName = "";
+//		if (infoBaseInfo == null) {
+//			infobaseName = serverConfig.getInfoBaseName(clusterId, sessionInfo.getInfoBaseId());
+//		} else {
+//			infobaseName = infoBaseInfo.getName();
+//		}
+//		UUID infobaseId = infobaseId == null ? sessionInfo.getInfoBaseId() : infobaseId;
+		
+		if (infobaseId == null)
+			infobaseId = sessionInfo.getInfoBaseId();
+		
+		String infobaseName = serverConfig.getInfoBaseShortInfo(clusterId, infobaseId).getName();
+		
+		var connectionNumber = "";
+		if (!sessionInfo.getConnectionId().equals(emptyUuid)) {
+			List<IInfoBaseConnectionShort> thisConnection = connections.stream()
+																	.filter(c -> c.getInfoBaseConnectionId().equals(sessionInfo.getConnectionId()))
+																	.collect(Collectors.toList());
+			if (!thisConnection.isEmpty())
+				connectionNumber = String.valueOf(thisConnection.get(0).getConnId());
 		}
 
+		var wpHostName = "";
+		var wpMainPort = "";
+		var wpPid = "";
+		if (!sessionInfo.getWorkingProcessId().equals(emptyUuid)) {
+			IWorkingProcessInfo wpInfo = serverConfig.getWorkingProcessInfo(clusterId, sessionInfo.getWorkingProcessId());
+			
+			wpHostName = wpInfo.getHostName();
+			wpMainPort = Integer.toString(wpInfo.getMainPort());
+			wpPid = wpInfo.getPid();
+		}
+		var license = "";
+		if (!sessionInfo.getLicenses().isEmpty())
+			license = sessionInfo.getLicenses().get(0).getFullPresentation();
+		
 		String[] itemText = {
 							sessionInfo.getUserName(),
 							infobaseName,
 							Integer.toString(sessionInfo.getSessionId()),
-							convertUuidToString(sessionInfo.getConnectionId()),
+							connectionNumber,
 							sessionInfo.getStartedAt().toString(),
 							sessionInfo.getLastActiveAt().toString(),
 							sessionInfo.getHost(),
 							serverConfig.getApplicationName(sessionInfo.getAppId()),
-							convertUuidToString(sessionInfo.getWorkingProcessId())//,
+							wpHostName,
+							wpMainPort,
+							wpPid,
+							license,
+							Boolean.toString(sessionInfo.getHibernate()), // уснул
+							Integer.toString(sessionInfo.getPassiveSessionHibernateTime()),
+							Integer.toString(sessionInfo.getHibernateSessionTerminationTime())
 							
 //							sessionInfo.getClientIPAddress(),
 //							sessionInfo.getCurrentServiceName(),
@@ -1039,24 +1232,45 @@ public class ViewerArea extends Composite {
 							};
 
 		sessionItem.setText(itemText);
-		sessionItem.setData("ClusterInfo", clusterInfo);
+		sessionItem.setData(SERVER_CONFIG, 	serverConfig);
+		sessionItem.setData(CLUSTER_ID, 	clusterId);
 //		sessionItem.setData("InfoBaseInfoShort", infoBaseInfo);
-		sessionItem.setData("SessionInfo", sessionInfo);
-		sessionItem.setData("ServerConfig", serverConfig);
+		sessionItem.setData(SESSION_ID, 	sessionInfo.getSid()); //sessionInfo.getSessionId()
 		sessionItem.setImage(userIcon);
 		sessionItem.setChecked(false);
+		
+		switch (sessionInfo.getAppId()) {
+			case Server.THIN_CLIENT:
+			case Server.THICK_CLIENT:
+			case Server.DESIGNER:
+				sessionItem.setImage(sessionInfo.getHibernate() ? sleepUserIcon : userIcon);
+				break;
+			case Server.SERVER_CONSOLE:
+			case Server.RAS_CONSOLE:
+			case Server.JOBSCHEDULER:
+				sessionItem.setImage(robotIcon);
+				break;
+			default:
+				sessionItem.setImage(sessionInfo.getHibernate() ? sleepUserIcon : userIcon);
+		}
 	}
 	
-	private void addConnectionInTable(Server serverConfig, IClusterInfo clusterInfo, IInfoBaseInfoShort infoBaseInfo, IInfoBaseConnectionShort connectionInfo) {
+	
+	private void addConnectionInTable(Server serverConfig, UUID clusterId, UUID infobaseId, IInfoBaseConnectionShort connectionInfo) {
 		TableItem connectionItem = new TableItem(tableConnections, SWT.NONE);
 
 		String infobaseName = "";
-		if (infoBaseInfo == null) {
-			infobaseName = serverConfig.getInfoBaseName(clusterInfo.getClusterId(), connectionInfo.getInfoBaseId());
-		} else {
-			infobaseName = infoBaseInfo.getName();
+//		if (infoBaseInfo == null) {
+//			infobaseName = serverConfig.getInfoBaseName(clusterInfo.getClusterId(), connectionInfo.getInfoBaseId());
+//		} else {
+//			infobaseName = infoBaseInfo.getName();
+//		}
+		
+		if (infobaseId == null && !connectionInfo.getInfoBaseId().equals(emptyUuid)) {
+			infobaseId = connectionInfo.getInfoBaseId();
+			infobaseName = serverConfig.getInfoBaseShortInfo(clusterId, infobaseId).getName();
 		}
-
+		
 		String[] itemText = {
 							infobaseName,
 							Integer.toString(connectionInfo.getConnId()),
@@ -1069,14 +1283,15 @@ public class ViewerArea extends Composite {
 							};
 
 		connectionItem.setText(itemText);
-		connectionItem.setData("ClusterInfo", 		clusterInfo);
-		connectionItem.setData("InfoBaseInfoShort", infoBaseInfo);
-		connectionItem.setData("Connection", 		connectionInfo);
+		connectionItem.setData(CLUSTER_ID, 		clusterId);
+		connectionItem.setData(INFOBASE_ID,		infobaseId);
+		connectionItem.setData(CONNECTION_ID, 	connectionInfo.getInfoBaseConnectionId());
 		connectionItem.setImage(connectionIcon);
 		connectionItem.setChecked(false);
 	}
 	
-	private void addLocksInTable(Server serverConfig, IClusterInfo clusterInfo, IInfoBaseInfoShort infoBaseInfo, IObjectLockInfo lockInfo, List<ISessionInfo> sessionsInfo, List<IInfoBaseConnectionShort> connections) {
+	
+	private void addLocksInTable(Server serverConfig, UUID clusterId, UUID infobaseId, IObjectLockInfo lockInfo, List<ISessionInfo> sessionsInfo, List<IInfoBaseConnectionShort> connections) {
 		TableItem connectionItem = new TableItem(tableLocks, SWT.NONE);
 
 		String connectionNumber = "";
@@ -1102,11 +1317,11 @@ public class ViewerArea extends Composite {
 			computerName = connection.getHost();
 			
 			UUID wpId = connection.getWorkingProcessId();
-			IWorkingProcessInfo wpInfo = serverConfig.getWorkingProcessInfo(clusterInfo.getClusterId(), wpId);
+			IWorkingProcessInfo wpInfo = serverConfig.getWorkingProcessInfo(clusterId, wpId);
 			hostName = wpInfo.getHostName();
 			hostPort = Integer.toString(wpInfo.getMainPort());
 		
-			infobaseName = serverConfig.getInfoBaseName(clusterInfo.getClusterId(), connection.getInfoBaseId());
+			infobaseName = serverConfig.getInfoBaseName(clusterId, connection.getInfoBaseId());
 
 		} else {
 		}
@@ -1131,18 +1346,23 @@ public class ViewerArea extends Composite {
 							};
 
 		connectionItem.setText(itemText);
-		connectionItem.setData("ClusterInfo", 		clusterInfo);
-		connectionItem.setData("InfoBaseInfoShort", infoBaseInfo);
+		connectionItem.setData(CLUSTER_ID, 	clusterId);
+		connectionItem.setData(INFOBASE_ID,	infobaseId);
 		connectionItem.setData("IObjectLockInfo", 	lockInfo);
 		connectionItem.setImage(locksIcon);
 		connectionItem.setChecked(false);
 	}
+	
 
 	private void addTableColumn(Table table, String text, int width) {
 		TableColumn newColumn = new TableColumn(table, SWT.NONE);
 		newColumn.setText(text);
 		newColumn.setWidth(width);
 		newColumn.setMoveable(true);
+	}
+	
+	private TreeItemType getTreeItemType(TreeItem item) {
+		return (TreeItemType) item.getData("Type");
 	}
 
 	private ISessionInfo getSessionInfoFromLockConnectionId(IObjectLockInfo lockInfo, List<ISessionInfo> sessionsInfo) {
@@ -1154,6 +1374,7 @@ public class ViewerArea extends Composite {
 		}
 		return null;
 	}
+	
 
 	private IInfoBaseConnectionShort getConnectionInfoFromLockConnectionId(IObjectLockInfo lockInfo, List<IInfoBaseConnectionShort> connections) {
 //		IInfoBaseConnectionShort connectionFound = null;
@@ -1165,64 +1386,88 @@ public class ViewerArea extends Composite {
 		return null;
 	}
 
-	private Server getServerConfigFromItem(TreeItem item) {
+	private TreeItem getParentItem(TreeItem currentItem, TreeItemType itemType) {
 		
-		if (item.getData("Type") == "Server")
-			return (Server) item.getData("ServerConfig");
+		if (getTreeItemType(currentItem) == itemType)
+			return currentItem;
 		
-		TreeItem parentItem = item.getParentItem();
+		TreeItem parentItem = currentItem.getParentItem();
 		while (parentItem != null) {
 			
-			if (parentItem.getData("Type") == "Server")
-				return (Server) parentItem.getData("ServerConfig");
+			if (getTreeItemType(parentItem) == itemType)
+				return parentItem;
 			else 
 				parentItem = parentItem.getParentItem();
 		}
-		return null;
+		throw new IllegalStateException("Error get ParentItem from currentItem.");
+//		return null;
 	}
+	
 
-	private IClusterInfo getClusterInfoFromItem(TreeItem item) {
+	private Server getCurrentServerConfig(TreeItem item) {
 		
-		if (item.getData("Type") == "Cluster")
-			return (IClusterInfo) item.getData("ClusterInfo");
+		if (getTreeItemType(item) == TreeItemType.SERVER)
+			return (Server) item.getData(SERVER_CONFIG);
 		
 		TreeItem parentItem = item.getParentItem();
 		while (parentItem != null) {
 			
-			if (parentItem.getData("Type") == "Cluster")
-				return (IClusterInfo) parentItem.getData("ClusterInfo");
+			if (getTreeItemType(parentItem) == TreeItemType.SERVER)
+				return (Server) parentItem.getData(SERVER_CONFIG);
+			else 
+				parentItem = parentItem.getParentItem();
+		}
+		throw new IllegalStateException("Error get ServerConfig from item.");
+//		return null;
+	}
+	
+
+	private UUID getCurrentClusterId(TreeItem item) {
+		
+		if (getTreeItemType(item) == TreeItemType.CLUSTER)
+			return (UUID) item.getData(CLUSTER_ID);
+		
+		TreeItem parentItem = item.getParentItem();
+		while (parentItem != null) {
+			
+			if (getTreeItemType(parentItem) == TreeItemType.CLUSTER)
+				return (UUID) parentItem.getData(CLUSTER_ID);
 			else 
 				parentItem = parentItem.getParentItem();
 		}
 		return null;
 	}
 	
-	private IWorkingProcessInfo getWorkingProcessInfoFromItem(TreeItem item) {
+	
+	private UUID getWorkingProcessInfoFromItem(TreeItem item) {
 		
-		if (item.getData("Type") == "WorkingProcess")
-			return (IWorkingProcessInfo) item.getData("WorkingProcessInfo");
+		if (getTreeItemType(item) == TreeItemType.WORKINGPROCESS)
+			return (UUID) item.getData(WORKINGPROCESS_ID);
 		
 		TreeItem parentItem = item.getParentItem();
 		while (parentItem != null) {
 			
-			if (parentItem.getData("Type") == "WorkingProcess")
-				return (IWorkingProcessInfo) parentItem.getData("WorkingProcessInfo");
+			if (getTreeItemType(parentItem) == TreeItemType.WORKINGPROCESS)
+				return (UUID) parentItem.getData(WORKINGPROCESS_ID);
 			else 
 				parentItem = parentItem.getParentItem();
 		}
 		return null;
 	}
 	
-	private IInfoBaseInfoShort getInfoBaseInfoFromItem(TreeItem item) {
-		if (item.getData("Type") == "Infobase")
-			return (IInfoBaseInfoShort) item.getData("InfoBaseInfo");
+	
+	private UUID getInfoBaseInfoFromItem(TreeItem item) {
+		if (getTreeItemType(item) == TreeItemType.INFOBASE)
+			return (UUID) item.getData(INFOBASE_ID);
 		else 
 			return null;
 	}
 	
+	
 	private String convertUuidToString(UUID uuid) {
 		return uuid.equals(emptyUuid) ? "" : uuid.toString();
 	}
+	
 
 	private void disposeTreeItemWithChildren(TreeItem item) {
 		TreeItem[] childItems = item.getItems();
@@ -1233,32 +1478,35 @@ public class ViewerArea extends Composite {
 		item.dispose();
 	}
 	
+	
 	private Image getImage(String name) {
 		return new Image(getParent().getDisplay(), this.getClass().getResourceAsStream("/icons/".concat(name)));
 	}
+	
 
-	private void connectToAllServers() {
+	private void autoconnectToServers() {
 		
 //		clusterProvider.connectToServers(); // кажется надо переделать соединение внутрь цикла
 		TreeItem[] serversItem = serversTree.getItems();
 		
 		for (TreeItem serverItem : serversItem) {
-			Server config = (Server) serverItem.getData("ServerConfig");
+			Server config = getCurrentServerConfig(serverItem);
 			if (config.autoconnect)
 				connectServerItem(serverItem);
 		}
 	}
+	
 
 	private void connectServerItem(TreeItem serverItem) {
 		
-		// async
+		// async не работает асинхронно
 		serverItem.setImage(serverIconConnecting);
 		Display.getDefault().asyncExec(new Runnable() {
 			
 //			@Override
             public void run() {
 			
-				Server config = (Server) serverItem.getData("ServerConfig");
+				Server config = getCurrentServerConfig(serverItem);
 				config.connectAndAuthenticate(false);
 		
 				serverItem.setImage(config.isConnected() ? serverIconUp : serverIconDown);
@@ -1266,13 +1514,10 @@ public class ViewerArea extends Composite {
 				fillClustersInTree(serverItem);
 			}
 		});
-		
-		
-		
 	}
 	
 	private void disconnectServerItem(TreeItem serverItem) {
-		Server config = (Server) serverItem.getData("ServerConfig");
+		Server config = getCurrentServerConfig(serverItem);
 		config.disconnectFromAgent();
 		serverItem.setImage(serverIconDown);
 		
@@ -1281,112 +1526,116 @@ public class ViewerArea extends Composite {
 			disposeTreeItemWithChildren(clusterItem);
 		}
 	}
-
-	private void selectItemInTreeHandler(TreeItem treeItem) {
+	
+	private void selectItemInTree(TreeItem treeItem) {
+		
+		highlightTreeItem(treeItem);
+		
 		Server serverConfig;
-		IClusterInfo clusterInfo;
-		IWorkingProcessInfo wpInfo;
-		IInfoBaseInfoShort infoBaseInfo;
+		UUID clusterId;
+		UUID infobaseId;
+		UUID workingProcessId;
 
 		List<ISessionInfo> sessions;
 		List<IInfoBaseConnectionShort> connections;
 		List<IObjectLockInfo> locks;
 		
-//		FontData fontData = new FontData(name, 14, style);
-//		treeItem.setFont(new Font(getDisplay(), fontData));
-//		treeItem.setBackground(getBackground());
-
-		switch ((String) treeItem.getData("Type")) {
-			case "Server":
-//				serversTree.setMenu(serverMenu);
-
-//				tableSessions.removeAll();
-//				tableConnections.removeAll();
-//				tableLocks.removeAll();
-				clearTabs();
+		clearTabs();
+		switch (getTreeItemType(treeItem)) {
+			case SERVER:
+//				clearTabs();
 				return;
-			case "Cluster":
-			case "InfobaseNode":
-			case "WorkingProcessNode":
-//				serversTree.setMenu(clusterMenu);
+				
+			case CLUSTER:
+			case INFOBASE_NODE:
+			case WORKINGPROCESS_NODE:
 
-				serverConfig = getServerConfigFromItem(treeItem);
-				clusterInfo = getClusterInfoFromItem(treeItem);
-				infoBaseInfo = null;
+				serverConfig = getCurrentServerConfig(treeItem);
+				clusterId = getCurrentClusterId(treeItem);
+				infobaseId = null;
 
-				sessions = serverConfig.getSessions(clusterInfo.getClusterId());
-				connections = serverConfig.getConnectionsShort(clusterInfo.getClusterId());
-				locks = serverConfig.getLocks(clusterInfo.getClusterId());
+				sessions = serverConfig.getSessions(clusterId);
+				connections = serverConfig.getConnectionsShort(clusterId);
+				locks = serverConfig.getLocks(clusterId);
 				break;
-			case "WorkingProcess":
-//				serversTree.setMenu(null);
+				
+			case WORKINGPROCESS:
 
-				serverConfig = getServerConfigFromItem(treeItem);
-				clusterInfo = getClusterInfoFromItem(treeItem);
-				wpInfo = getWorkingProcessInfoFromItem(treeItem);
-				infoBaseInfo = null;
-//				infoBaseInfo 	= (IInfoBaseInfo) treeItem.getData("InfoBaseInfo");
+				serverConfig = getCurrentServerConfig(treeItem);
+				clusterId = getCurrentClusterId(treeItem);
+				infobaseId = null;
+				workingProcessId = getWorkingProcessInfoFromItem(treeItem);
 
-				sessions = serverConfig.getWorkingProcessSessions(clusterInfo.getClusterId(),
-						wpInfo.getWorkingProcessId());
-				connections = serverConfig.getWorkingProcessConnectionsShort(clusterInfo.getClusterId(),
-						wpInfo.getWorkingProcessId());
-//				connections = wpInfo.getConnections();
+				sessions = serverConfig.getWorkingProcessSessions(clusterId, workingProcessId);
+				connections = serverConfig.getWorkingProcessConnectionsShort(clusterId, workingProcessId);
 				locks = new ArrayList<>();
 //				locks 		= serverConfig.getInfoBaseLocks(clusterInfo.getClusterId(), infoBaseInfo.getInfoBaseId());
 				break;
-			case "Infobase":
-//				serversTree.setMenu(infobaseMenu);
+				
+			case INFOBASE:
+				serverConfig = getCurrentServerConfig(treeItem);
+				clusterId = getCurrentClusterId(treeItem);
+				infobaseId = getInfoBaseInfoFromItem(treeItem);
 
-				serverConfig = getServerConfigFromItem(treeItem);
-				clusterInfo = getClusterInfoFromItem(treeItem);
-				infoBaseInfo = (IInfoBaseInfoShort) treeItem.getData("InfoBaseInfo");
-
-				sessions = serverConfig.getInfoBaseSessions(clusterInfo.getClusterId(), infoBaseInfo.getInfoBaseId());
-				connections = serverConfig.getInfoBaseConnectionsShort(clusterInfo.getClusterId(),
-						infoBaseInfo.getInfoBaseId());
-				locks = serverConfig.getInfoBaseLocks(clusterInfo.getClusterId(), infoBaseInfo.getInfoBaseId());
+				sessions = serverConfig.getInfoBaseSessions(clusterId, infobaseId);
+				connections = serverConfig.getInfoBaseConnectionsShort(clusterId, infobaseId);
+				locks = serverConfig.getInfoBaseLocks(clusterId, infobaseId);
 				break;
+				
 			default:
-//				serversTree.setMenu(null);
-				clearTabs();
+//				clearTabs();
 				return;
 		}
 
-		tableSessions.removeAll();
+//		tableSessions.removeAll();
 		tabSessions.setText(String.format("Sessions (%s)", sessions.size()));
 		sessions.forEach(session -> {
-			addSessionInTable(serverConfig, clusterInfo, infoBaseInfo, session);
+			addSessionInTable(serverConfig, clusterId, infobaseId, session, connections);
 		});
 
-		tableConnections.removeAll();
+//		tableConnections.removeAll();
 		tabConnections.setText(String.format("Connections (%s)", connections.size()));
 		connections.forEach(connection -> {
-			addConnectionInTable(serverConfig, clusterInfo, infoBaseInfo, connection);
+			addConnectionInTable(serverConfig, clusterId, infobaseId, connection);
 		});
 
-		tableLocks.removeAll();
+//		tableLocks.removeAll();
 		tabLocks.setText(String.format("Locks (%s)", locks.size()));
 		locks.forEach(lock -> {
-			addLocksInTable(serverConfig, clusterInfo, infoBaseInfo, lock, sessions, connections);
+			addLocksInTable(serverConfig, clusterId, infobaseId, lock, sessions, connections);
 		});
 	}
 
+	private void highlightTreeItem(TreeItem treeItem) {
+		if (Objects.isNull(currentTreeItem) || !currentTreeItem.equals(treeItem)) {
+			
+			if (Objects.nonNull(currentTreeItem)) {
+				var font = new Font(getDisplay(), systemFontData.getName(), systemFontData.getHeight(), SWT.NORMAL);
+				currentTreeItem.setFont(font);
+			}
+			
+			var font = new Font(getDisplay(), systemFontData.getName(), systemFontData.getHeight(), SWT.BOLD);
+			treeItem.setFont(font);
+			
+			currentTreeItem = treeItem;
+		}
+	}
+	
 	private void setContestMenuInTree(TreeItem treeItem) {
 		
-		switch ((String) treeItem.getData("Type")) {
-			case "Server":
+		switch (getTreeItemType(treeItem)) {
+			case SERVER:
 				serversTree.setMenu(serverMenu);
 				return;
-			case "Cluster":
-			case "InfobaseNode":
-			case "WorkingProcessNode":
+			case CLUSTER:
+			case INFOBASE_NODE:
+			case WORKINGPROCESS_NODE:
 				serversTree.setMenu(clusterMenu);
 				break;
-			case "WorkingProcess":
+			case WORKINGPROCESS:
 				serversTree.setMenu(null);
 				break;
-			case "Infobase":
+			case INFOBASE:
 				serversTree.setMenu(infobaseMenu);
 				break;
 			default:

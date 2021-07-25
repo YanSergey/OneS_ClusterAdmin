@@ -22,14 +22,15 @@ import org.eclipse.swt.events.SelectionEvent;
 
 public class DropInfobaseDialog extends Dialog {
 	
-	private IClusterInfo clusterInfo;
+//	private IClusterInfo clusterInfo;
+	private UUID clusterId;
 	private Server server;
 	private Button btnClearTheDatabase;
 	private Button btnNotDelete;
 	private Button btnDeleteTheDatabase;
 	
 	private int databaseDropMode;
-	private UUID infoBaseID;
+	private UUID infobaseID;
 
 
 	/**
@@ -37,15 +38,15 @@ public class DropInfobaseDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public DropInfobaseDialog(Shell parentShell, Server server, IClusterInfo clusterInfo, UUID infoBaseID) {
+	public DropInfobaseDialog(Shell parentShell, Server server, UUID clusterId, UUID infobaseID) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
 //		super.configureShell(parentShell);
 //		parentShell.setText("Parameters of the 1C:Enterprise infobase");
 	    
-		this.infoBaseID = infoBaseID;
-		this.clusterInfo = clusterInfo;
+		this.infobaseID = infobaseID;
+		this.clusterId = clusterId;
 		this.server = server;
 		
 	}
@@ -114,7 +115,7 @@ public class DropInfobaseDialog extends Dialog {
 	private void runRemoveInfobase() {
 
 		try {
-			server.dropInfoBase(clusterInfo.getClusterId(), infoBaseID, databaseDropMode);
+			server.dropInfoBase(clusterId, infobaseID, databaseDropMode);
 			close();
 		} catch (Exception excp) {
 			excp.printStackTrace();

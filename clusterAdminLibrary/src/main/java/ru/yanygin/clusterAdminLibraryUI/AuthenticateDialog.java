@@ -79,7 +79,7 @@ public class AuthenticateDialog extends Dialog {
 		Label lblPassword = new Label(container, SWT.NONE);
 		lblPassword.setText("Password");
 		
-		txtPassword = new Text(container, SWT.BORDER);
+		txtPassword = new Text(container, SWT.BORDER | SWT.PASSWORD);
 		txtPassword.setToolTipText("Password");
 		txtPassword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
