@@ -161,6 +161,7 @@ public class CreateInfobaseDialog extends Dialog {
 			public void widgetSelected(SelectionEvent e) {
 				boolean dateOffsetEnabled = comboServerDBType.getText().equals("MSSQLServer");
 				comboDateOffset.setEnabled(dateOffsetEnabled);
+				comboDateOffset.setText("0");
 			}
 		});
 		
@@ -232,6 +233,8 @@ public class CreateInfobaseDialog extends Dialog {
 
 	private void saveInfobaseProperties() {
 
+		extractInfobaseVariablesFromControls();
+		
 		IInfoBaseInfo infoBaseInfo = new InfoBaseInfo(securityLevel);
 
 		// Common properties
@@ -255,12 +258,13 @@ public class CreateInfobaseDialog extends Dialog {
 			newInfobaseUUID = server.createInfoBase(clusterId, infoBaseInfo,
 					(infobaseCreationMode ? 1 : 0));
 		} catch (Exception excp) {
-			excp.printStackTrace();
+			//excp.printStackTrace();
 			MessageBox messageBox = new MessageBox(getParentShell());
 			messageBox.setMessage(excp.getLocalizedMessage());
 			messageBox.open();
+			return;
 		}
-
+		close();
 	}
 
 	private void extractInfobaseVariablesFromControls() {
@@ -310,9 +314,8 @@ public class CreateInfobaseDialog extends Dialog {
 		button.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				extractInfobaseVariablesFromControls();
 				saveInfobaseProperties();
-				close();
+//				close();
 			}
 		});
 		
