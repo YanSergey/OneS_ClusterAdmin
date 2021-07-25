@@ -49,6 +49,7 @@ public class EditServerDialog extends Dialog {
 	private String localRasPath;
 	private int localRasPort;
 	private boolean autoconnect;
+	private boolean saveCredentials;
 	private String agentUser;
 	private String agentPassword;
 	
@@ -70,6 +71,7 @@ public class EditServerDialog extends Dialog {
 	private Table tableCredentials;
 	private Button radioUseRemoteRAS;
 	private Button radioUseLocalRAS;
+	private Button btnSaveCredentials;
 	
 	/**
 	 * Create the dialog.
@@ -216,10 +218,10 @@ public class EditServerDialog extends Dialog {
 		tabCredentials.setControl(credentialsContainer);
 		credentialsContainer.setLayout(new GridLayout(1, false));
 		
-		Button btnSaveCredentialsInConfig = new Button(credentialsContainer, SWT.CHECK);
-		btnSaveCredentialsInConfig.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
-		btnSaveCredentialsInConfig.setSize(155, 16);
-		btnSaveCredentialsInConfig.setText("Save credentials");
+		btnSaveCredentials = new Button(credentialsContainer, SWT.CHECK);
+		btnSaveCredentials.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
+		btnSaveCredentials.setSize(155, 16);
+		btnSaveCredentials.setText("Save credentials");
 		
 //		grpCredentials = new Group(credentialsContainer, SWT.NONE);
 //		GridData gd_grpCredentials = new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1);
@@ -240,7 +242,9 @@ public class EditServerDialog extends Dialog {
 		lblAgentUser.setText("User");
 		
 		txtAgentUser = new Text(grpCentralServerCredential, SWT.BORDER);
-		txtAgentUser.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
+		GridData gd_txtAgentUser = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gd_txtAgentUser.widthHint = 200;
+		txtAgentUser.setLayoutData(gd_txtAgentUser);
 		txtAgentUser.setSize(76, 21);
 		txtAgentUser.setToolTipText("Agent host");
 		
@@ -248,8 +252,10 @@ public class EditServerDialog extends Dialog {
 		lblAgentPwd.setSize(50, 15);
 		lblAgentPwd.setText("Password");
 		
-		txtAgentPasswors = new Text(grpCentralServerCredential, SWT.BORDER);
-		txtAgentPasswors.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
+		txtAgentPasswors = new Text(grpCentralServerCredential, SWT.BORDER | SWT.PASSWORD);
+		GridData gd_txtAgentPasswors = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gd_txtAgentPasswors.widthHint = 100;
+		txtAgentPasswors.setLayoutData(gd_txtAgentPasswors);
 		txtAgentPasswors.setSize(76, 21);
 		txtAgentPasswors.setToolTipText("Agent password");
 		
@@ -262,11 +268,11 @@ public class EditServerDialog extends Dialog {
 		tableCredentials.setLinesVisible(true);
 		
 		TableColumn tblclmnType = new TableColumn(tableCredentials, SWT.NONE);
-		tblclmnType.setWidth(100);
+		tblclmnType.setWidth(60);
 		tblclmnType.setText("Type");
 		
 		TableColumn tblclmnName = new TableColumn(tableCredentials, SWT.NONE);
-		tblclmnName.setWidth(100);
+		tblclmnName.setWidth(160);
 		tblclmnName.setText("Name");
 		
 		TableColumn tblclmnID = new TableColumn(tableCredentials, SWT.NONE);
@@ -301,6 +307,7 @@ public class EditServerDialog extends Dialog {
 			this.txtLocalRasPort.setText(serverParams.getLocalRasPortAsString());
 			
 			this.btnAutoconnect.setSelection(serverParams.autoconnect);
+			this.btnSaveCredentials.setSelection(serverParams.saveCredentials);
 			this.txtAgentUser.setText(serverParams.agentUserName);
 			this.txtAgentPasswors.setText(serverParams.agentPassword);
 			
@@ -333,15 +340,17 @@ public class EditServerDialog extends Dialog {
 		localRasPath 	= txtLocalRASPath.getText();
 		
 		autoconnect 	= btnAutoconnect.getSelection();
+		saveCredentials = btnSaveCredentials.getSelection();
 		agentUser 		= txtAgentUser.getText();
 		agentPassword 	= txtAgentPasswors.getText();
 		
 		credentialsClustersCashe = new HashMap<>();
-		TableItem[] credentials = tableCredentials.getItems();
-		for (TableItem credential : credentials) {
-			UUID uuid = (UUID) credential.getData("UUID");
-			credentialsClustersCashe.put(uuid,
-					new String[] { credential.getText(3), credential.getText(4), credential.getText(1) });
+		if (saveCredentials) {
+			TableItem[] credentials = tableCredentials.getItems();
+			for (TableItem credential : credentials) {
+				UUID uuid = (UUID) credential.getData("UUID");
+				credentialsClustersCashe.put(uuid, new String[] { credential.getText(3), credential.getText(4), credential.getText(1) });
+			}
 		}
 		
 	}
@@ -357,6 +366,7 @@ public class EditServerDialog extends Dialog {
 					localRasV8version,
 					localRasPath,
 					autoconnect,
+					saveCredentials,
 					agentUser,
 					agentPassword,
 					credentialsClustersCashe);

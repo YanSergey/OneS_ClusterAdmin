@@ -386,7 +386,7 @@ public class ViewerArea extends Composite {
 					return;
 
 				TreeItem serverItem = item[0];
-				Server serverConfig = (Server) serverItem.getData("ServerConfig");
+				Server serverConfig = getCurrentServerConfig(serverItem);// (Server) serverItem.getData("ServerConfig");
 
 				MenuItem[] menuItems = serverMenu.getItems();
 
@@ -541,7 +541,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemUpdateServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemUpdateServer.setText("Update");
+		menuItemUpdateServer.setText("Update server info");
 //		menuItemUpdateCluster.setImage(editIcon);
 		menuItemUpdateServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -589,7 +589,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemUpdateCluster = new MenuItem(clusterMenu, SWT.NONE);
-		menuItemUpdateCluster.setText("Update");
+		menuItemUpdateCluster.setText("Update cluster info");
 //		menuItemUpdateCluster.setImage(editIcon);
 		menuItemUpdateCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -1148,7 +1148,7 @@ public class ViewerArea extends Composite {
 		if (infobaseId == null)
 			infobaseId = sessionInfo.getInfoBaseId();
 		
-		String infobaseName = serverConfig.getInfoBaseShortInfo(clusterId, infobaseId).getName();
+		String infobaseName = serverConfig.getInfoBaseName(clusterId, infobaseId);
 		
 		var connectionNumber = "";
 		if (!sessionInfo.getConnectionId().equals(emptyUuid)) {
@@ -1268,7 +1268,7 @@ public class ViewerArea extends Composite {
 		
 		if (infobaseId == null && !connectionInfo.getInfoBaseId().equals(emptyUuid)) {
 			infobaseId = connectionInfo.getInfoBaseId();
-			infobaseName = serverConfig.getInfoBaseShortInfo(clusterId, infobaseId).getName();
+			infobaseName = serverConfig.getInfoBaseName(clusterId, infobaseId);
 		}
 		
 		String[] itemText = {

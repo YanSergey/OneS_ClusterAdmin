@@ -306,13 +306,29 @@ public class EditInfobaseDialog extends Dialog {
 			// Lock properties
 			this.btnSessionsDenied.setSelection(infoBaseInfo.isSessionsDenied());
 			
+			// TODO: Надо разбираться с датами/ Пустая дата не устанавливается в контрол
+			Date emptyDate =  new Date(70, 0, 1, 3, 0, 0);
 			Date deniedFrom = infoBaseInfo.getDeniedFrom();
-			this.deniedFromDate.setDate(1900 + deniedFrom.getYear(), deniedFrom.getMonth(), deniedFrom.getDate());
-			this.deniedFromTime.setTime(deniedFrom.getHours(), deniedFrom.getMinutes(), deniedFrom.getSeconds());
+			if (deniedFrom.equals(emptyDate)) {
+				this.deniedFromDate.setDate(0, 0, 0);
+				this.deniedFromDate.setTime(0, 0, 0);
+				this.deniedFromTime.setDate(0, 0, 0);
+				this.deniedFromTime.setTime(0, 0, 0);
+			} else {	
+				this.deniedFromDate.setDate(1900 + deniedFrom.getYear(), deniedFrom.getMonth(), deniedFrom.getDate());
+				this.deniedFromTime.setTime(deniedFrom.getHours(), deniedFrom.getMinutes(), deniedFrom.getSeconds());
+			}
 			
 			Date deniedTo  	= infoBaseInfo.getDeniedTo();
-			this.deniedToDate.setDate(1900 + deniedTo.getYear(), deniedTo.getMonth(), deniedTo.getDate());
-			this.deniedToTime.setTime(deniedTo.getHours(), deniedTo.getMinutes(), deniedTo.getSeconds());
+			if (deniedTo.equals(emptyDate)) {
+				this.deniedToDate.setDate(0, 0, 0);
+				this.deniedToDate.setTime(0, 0, 0);
+				this.deniedToTime.setDate(0, 0, 0);
+				this.deniedToTime.setTime(0, 0, 0);
+			} else {	
+				this.deniedToDate.setDate(1900 + deniedTo.getYear(), deniedTo.getMonth(), deniedTo.getDate());
+				this.deniedToTime.setTime(deniedTo.getHours(), deniedTo.getMinutes(), deniedTo.getSeconds());
+			}
 			
 			this.txtDeniedMessage.setText(infoBaseInfo.getDeniedMessage());
 			this.txtPermissionCode.setText(infoBaseInfo.getPermissionCode());
