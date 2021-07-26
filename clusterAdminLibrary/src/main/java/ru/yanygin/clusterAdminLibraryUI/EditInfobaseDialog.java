@@ -45,7 +45,7 @@ public class EditInfobaseDialog extends Dialog {
 	private Text txtDatabaseDbUser;
 	private Text txtDatabaseDbPassword;
 	private Text txtInfobaseDescription;
-	private Text txtSecurityLevel;
+	private Combo comboSecurityLevel;
 	private Text txtPermissionCode;
 	private Text txtDeniedParameter;
 	private Text txtExternalSessionManagerConnectionString;
@@ -135,11 +135,19 @@ public class EditInfobaseDialog extends Dialog {
 //		lblSecurityLevel.setToolTipText("");
 		lblSecurityLevel.setText("Security level");
 		
-		txtSecurityLevel = new Text(container, SWT.BORDER);
-		txtSecurityLevel.setEditable(false);
-		txtSecurityLevel.setTouchEnabled(true);
-		txtSecurityLevel.setToolTipText("Security level");
-		txtSecurityLevel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		comboSecurityLevel = new Combo(container, SWT.READ_ONLY);
+		comboSecurityLevel.setEnabled(false);
+		comboSecurityLevel.setToolTipText("Security level");
+		comboSecurityLevel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		comboSecurityLevel.setText("Disable");
+		
+		comboSecurityLevel.add("Disable");
+		comboSecurityLevel.setData("Disable", 0);
+		comboSecurityLevel.add("Connection only");
+		comboSecurityLevel.setData("Connection only", 1);
+		comboSecurityLevel.add("Constantly");
+		comboSecurityLevel.setData("Constantly", 2);
+		comboSecurityLevel.select(0);
 		
 		Label lblServerDBName = new Label(container, SWT.NONE);
 		lblServerDBName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -292,7 +300,7 @@ public class EditInfobaseDialog extends Dialog {
 			// Common properties
 			this.txtInfobaseName.setText(infoBaseInfo.getName());
 			this.txtInfobaseDescription.setText(infoBaseInfo.getDescr());
-			this.txtSecurityLevel.setText(Integer.toString(infoBaseInfo.getSecurityLevel()));
+			this.comboSecurityLevel.setText(Integer.toString(infoBaseInfo.getSecurityLevel()));
 			this.btnAllowDistributeLicense.setSelection(infoBaseInfo.getLicenseDistributionAllowed() == 1);
 			this.btnSheduledJobsDenied.setSelection(infoBaseInfo.isScheduledJobsDenied());
 			
