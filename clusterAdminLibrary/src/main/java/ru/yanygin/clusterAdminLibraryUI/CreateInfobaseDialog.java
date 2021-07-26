@@ -1,9 +1,11 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.util.Date;
 import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -66,6 +68,9 @@ public class CreateInfobaseDialog extends Dialog {
 	
 	private UUID newInfobaseUUID;
 	
+	private UUID sampleInfobaseId;
+
+	
 	public UUID getNewInfobaseUUID() {
 		return newInfobaseUUID;
 	}
@@ -84,6 +89,20 @@ public class CreateInfobaseDialog extends Dialog {
 	    
 		this.server = server;
 		this.clusterId = clusterId;
+		this.sampleInfobaseId = null;
+		
+	}
+	
+	public CreateInfobaseDialog(Shell parentShell, Server server, UUID clusterId, UUID sampleInfobaseId) {
+		super(parentShell);
+		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+
+//		super.configureShell(parentShell);
+//		parentShell.setText("Parameters of the 1C:Enterprise infobase");
+	    
+		this.server = server;
+		this.clusterId = clusterId;
+		this.sampleInfobaseId = sampleInfobaseId;
 		
 	}
 
@@ -123,14 +142,12 @@ public class CreateInfobaseDialog extends Dialog {
 		comboSecurityLevel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		comboSecurityLevel.setText("Disable");
 		
-//		securityLevels.forEach(version -> {
 		comboSecurityLevel.add("Disable");
 		comboSecurityLevel.setData("Disable", 0);
 		comboSecurityLevel.add("Connection only");
 		comboSecurityLevel.setData("Connection only", 1);
 		comboSecurityLevel.add("Constantly");
 		comboSecurityLevel.setData("Constantly", 2);
-//		});
 		comboSecurityLevel.select(0);
 		
 		
@@ -228,7 +245,34 @@ public class CreateInfobaseDialog extends Dialog {
 	}
 
 	private void initInfobaseProperties() {
+		if (sampleInfobaseId != null) {
+			
+			IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, sampleInfobaseId);
+			if (infoBaseInfo == null) {
+				close();
+				return;
+			}
 
+			// Common properties
+			this.txtInfobaseName.setText(infoBaseInfo.getName().concat("_1"));
+			this.txtInfobaseDescription.setText(infoBaseInfo.getDescr());
+			this.comboSecurityLevel.setText(Integer.toString(infoBaseInfo.getSecurityLevel()));
+			this.btnAllowDistributeLicense.setSelection(infoBaseInfo.getLicenseDistributionAllowed() == 1);
+			this.btnSheduledJobsDenied.setSelection(infoBaseInfo.isScheduledJobsDenied());
+			
+			// DB properties
+			this.txtServerDBName.setText(infoBaseInfo.getDbServerName());
+			this.comboServerDBType.setText(infoBaseInfo.getDbms());
+			this.txtDatabaseDbName.setText(infoBaseInfo.getDbName().concat("_1"));
+			this.txtDatabaseDbUser.setText(infoBaseInfo.getDbUser());
+			this.txtDatabaseDbPassword.setText("");
+			this.txtDatabaseDbPassword.setToolTipText("you need to enter");
+			
+			this.txtInfobaseName.setForeground(new Color(255, 0, 0));
+			this.txtDatabaseDbName.setForeground(new Color(255, 0, 0));
+			this.btnInfobaseCreationMode.setForeground(new Color(255, 0, 0));
+			this.txtDatabaseDbPassword.setForeground(new Color(255, 0, 0));
+		}
 	}
 
 	private void saveInfobaseProperties() {
@@ -242,8 +286,6 @@ public class CreateInfobaseDialog extends Dialog {
 		infoBaseInfo.setDescr(infobaseDescription);
 		infoBaseInfo.setLicenseDistributionAllowed(allowDistributeLicense);
 		infoBaseInfo.setScheduledJobsDenied(sheduledJobsDenied);
-
-//		if (securityLevel != infoBaseInfo.getSecurityLevel()) // не понятно как устанавливается
 
 		// DB properties
 		infoBaseInfo.setDbServerName(serverDBName);
@@ -274,20 +316,6 @@ public class CreateInfobaseDialog extends Dialog {
 		infobaseDescription 	= txtInfobaseDescription.getText();
 		
 		securityLevel 	= (int) comboSecurityLevel.getData(comboSecurityLevel.getText());
-//		switch (comboSecurityLevel.getText()) {
-//		case "Disable":
-//			securityLevel 		= 0;
-//			break;
-//		case "Connection only":
-//			securityLevel 		= 1;
-//			break;
-//		case "Constantly":
-//			securityLevel 		= 2;
-//			break;
-//		default:
-//			securityLevel 		= 0;
-//			break;
-//		}
 		
 		allowDistributeLicense 	= btnAllowDistributeLicense.getSelection() ? 1 : 0;
 		sheduledJobsDenied 		= btnSheduledJobsDenied.getSelection();
