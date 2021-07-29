@@ -1,5 +1,7 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +25,7 @@ import com._1c.v8.ibis.admin.IObjectLockInfo;
 import com._1c.v8.ibis.admin.IRegUserInfo;
 import com._1c.v8.ibis.admin.ISessionInfo;
 import com._1c.v8.ibis.admin.IWorkingProcessInfo;
+import com._1c.v8.ibis.admin.IWorkingServerInfo;
 import com._1c.v8.ibis.admin.client.AgentAdminConnectorFactory;
 import com._1c.v8.ibis.admin.client.IAgentAdminConnector;
 import com._1c.v8.ibis.admin.client.IAgentAdminConnectorFactory;
@@ -87,11 +90,12 @@ public class Server {
 	
 	@SerializedName("ClustersCredentials")
 	@Expose
-	public Map<UUID, String[]> credentialsClustersCashe;
+	public Map<UUID, String[]> credentialsClustersCashe; // TODO Креды инфобаз хранить тут же или в отдельном списке?
 	
 	public Map<UUID, String[]> credentialsInfobasesCashe;
 	
 	public boolean available;
+	private Process localRASProcess;
 	
 	public String connectionError;
 	
@@ -100,7 +104,7 @@ public class Server {
 	
 	private IAgentAdminConnector agentConnector;
 	private IAgentAdminConnection agentConnection;
-	private String agentVersion = "";
+	public String agentVersion = "";
 	
 	public static final String THIN_CLIENT = "1CV8C";
 	public static final String THICK_CLIENT = "1CV8";
@@ -188,7 +192,7 @@ public class Server {
 		return agentHost.concat(":").concat(Integer.toString(agentPort));
 	}
 	
-	public String getServerDescription() {
+	public String getServerDescriptionOld() {
 		var rasPortString = "";
 		if (useLocalRas) {
 			rasPortString = "(*".concat(Integer.toString(localRasPort)).concat(")");
@@ -196,9 +200,25 @@ public class Server {
 			rasPortString = Integer.toString(this.rasPort);
 		}
 		
-		var descriptionFormat = isConnected() ? "%s:%s-%s (%s)" : "%s:%s-%s";
+		var serverDescriptionPattern = isConnected() ? "%s:%s-%s (%s)" : "%s:%s-%s";
 		
-		return String.format(descriptionFormat, agentHost, Integer.toString(agentPort), rasPortString, agentVersion);
+		return String.format(serverDescriptionPattern, agentHost, Integer.toString(agentPort), rasPortString, agentVersion);
+		
+	}
+	
+	public String getServerDescription() {
+
+		String serverDescriptionPattern;
+		String serverDescription;
+		
+		if (useLocalRas) {
+			serverDescriptionPattern = isConnected() ? "(local-RAS:%s)->%s:%s (%s)" : "(local-RAS:%s)->%s:%s";
+			serverDescription = String.format(serverDescriptionPattern, getLocalRasPortAsString(), agentHost, getAgentPortAsString(), agentVersion);
+		} else {
+			serverDescriptionPattern = isConnected() ? "%s:%s (%s)" : "%s:%s";
+			serverDescription = String.format(serverDescriptionPattern, agentHost, getAgentPortAsString(), agentVersion);
+		}
+		return serverDescription;
 		
 	}
 	
@@ -333,6 +353,9 @@ public class Server {
 			return true;
 		}
 		
+		if (!checkAndRunLocalRAS())
+			return false;
+		
 		String rasHost 	= useLocalRas ? "localhost" : this.rasHost;
 		int rasPort 	= useLocalRas ? localRasPort : this.rasPort;
 		
@@ -351,6 +374,59 @@ public class Server {
 		
 	}
 	
+	private boolean checkAndRunLocalRAS() {
+		if (!useLocalRas)
+			return true;
+		
+		if (localRasPath.isBlank() || localRasPort == 0) {
+			var message = String.format("Local RAS path or port for Server %s is empty", this.getServerKey());
+			LOGGER.error(message);
+			
+			var messageBox = new MessageBox(Display.getDefault().getActiveShell());
+			messageBox.setMessage(message);
+			messageBox.open();
+			
+			return false;
+		}
+		
+		///////////////////////////// пока только Windows
+		var processBuilder = new ProcessBuilder();
+		var processOutput = "";
+
+		Map<String, String> env = processBuilder.environment();
+
+		env.put("RAS_PATH",		localRasPath);
+		env.put("RAS_PORT",		getLocalRasPortAsString());
+		env.put("AGENT_HOST",	agentHost);
+		env.put("AGENT_PORT",	getAgentPortAsString());
+
+		processBuilder.command("cmd.exe", "/c", "%RAS_PATH% cluster %AGENT_HOST%:%AGENT_PORT% --port=%RAS_PORT%");
+		try {
+			localRASProcess = processBuilder.start();
+//			BufferedReader reader = new BufferedReader(new InputStreamReader(localRASProcess.getInputStream(), "windows-1251"));
+			// TODO utf-8 ???
+//			String line;
+//			while ((line = reader.readLine()) != null) {
+//				processOutput = processOutput.concat(System.lineSeparator()).concat(line);
+//			}
+//			int exitCode = process.waitFor();
+//			if (exitCode != 0) {
+//				LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey());
+//				LOGGER.error("Error: <{}>", processOutput);
+//			}
+		} catch (Exception excp) {
+			LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey());
+			LOGGER.error("Error: <{}>", processOutput, excp);
+			return false;
+		}
+		
+		/////////////////////////////
+//		localRASpid = localRASProcess.pid();
+		
+		return true;
+	}
+	
+
 	/**
 	 * Establishes connection with the administration server of 1C:Enterprise server
 	 * cluster
@@ -389,6 +465,10 @@ public class Server {
 		if (!isConnected()) {
 			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
 			return;
+		}
+		
+		if (useLocalRas && localRASProcess.isAlive()) {
+			localRASProcess.destroy();
 		}
 		
 		try {
@@ -443,6 +523,7 @@ public class Server {
 		
 		return runAuthProcessWithRequestToUser(authDescription, agentUserName, agentPassword, authMethod);
 	}
+	
 
 	/**
 	 * Проверяет не истекла ли авторизация на кластере
@@ -566,7 +647,7 @@ public class Server {
 	 * @param userName  infobase administrator name
 	 * @param password  infobase administrator password
 	 */
-	public void addInfoBaseCredentials(UUID clusterId, String userName, String password) {
+	public void addInfobaseCredentials(UUID clusterId, String userName, String password) {
 		if (agentConnection == null)
 			throw new IllegalStateException("The connection is not established.");
 		
@@ -822,7 +903,7 @@ public class Server {
 					userName = authenticateDialog.getUsername();
 					String password = authenticateDialog.getPassword();
 					try {
-						addInfoBaseCredentials(clusterId, userName, password);
+						addInfobaseCredentials(clusterId, userName, password);
 						infobaseInfo = agentConnection.getInfoBaseInfo(clusterId, infobaseId);
 						break;
 					} catch (Exception exc) {
@@ -1224,6 +1305,51 @@ public class Server {
 			return agentConnection.getServerWorkingProcesses(clusterId, serverId);
 		
 		return new ArrayList<>();
+	}
+	
+	public List<IWorkingServerInfo> getWorkingServers(UUID clusterId) {
+		if (!isConnected())
+			return new ArrayList<>();
+		
+		if (!checkAutenticateCluster(clusterId))
+			return new ArrayList<>();
+		
+		List<IWorkingServerInfo> workingServers;
+		try {
+			LOGGER.debug("Gets the list of descriptions of working servers registered in the cluster <{}>", clusterId);
+			workingServers = agentConnection.getWorkingServers(clusterId);
+		} catch (Exception excp) {
+			LOGGER.error("Error get the list of descriptions of working servers", excp);
+			throw new IllegalStateException("Error get working servers");
+		}
+		workingServers.forEach(ws -> {
+			LOGGER.debug("\tWorking server: host name=<{}>, main port=<{}>", ws.getHostName(), ws.getMainPort());
+		});
+		
+		LOGGER.debug("Get the list of descriptions of working servers succesful");
+		return workingServers;
+	}
+	
+	public IWorkingServerInfo getWorkingServerInfo(UUID clusterId, UUID serverId) {
+		if (!isConnected())
+			return null;
+		
+		if (!checkAutenticateCluster(clusterId))
+			return null;
+		
+		IWorkingServerInfo workingServerInfo;
+		try {
+			LOGGER.debug("Gets the description of working server <{}> registered in the cluster <{}>", serverId, clusterId);
+			workingServerInfo = agentConnection.getWorkingServerInfo(clusterId, serverId);
+		} catch (Exception excp) {
+			LOGGER.error("Error get the list of descriptions of working server", excp);
+			throw new IllegalStateException("Error get working server");
+		}
+			
+		LOGGER.debug("\tWorking server: host name=<{}>, main port=<{}>", workingServerInfo.getHostName(), workingServerInfo.getMainPort());
+		
+		LOGGER.debug("Get the list of short descriptions of working processes succesful");
+		return workingServerInfo;
 	}
 	
 }
