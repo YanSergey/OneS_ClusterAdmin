@@ -176,7 +176,7 @@ public class EditClusterDialog extends Dialog {
 		txtWpMaxMemorySize.setBounds(0, 0, 76, 21);
 		
 		lblIntervalExceedingAllowedAmountOfMemory = new Label(groupWorkProcessesParams, SWT.WRAP);
-		lblIntervalExceedingAllowedAmountOfMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, false, true, 1, 1));
+		lblIntervalExceedingAllowedAmountOfMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
 		lblIntervalExceedingAllowedAmountOfMemory.setText("Interval exceeding allowed\r\namount of memory (second)");
 		lblIntervalExceedingAllowedAmountOfMemory.setBounds(0, 0, 35, 15);
 		
@@ -186,7 +186,7 @@ public class EditClusterDialog extends Dialog {
 		txtWpMaxMemoryTimeLimit.setBounds(0, 0, 76, 21);
 		
 		lblAcceptableDeviationOfNumberOfServerErrors = new Label(groupWorkProcessesParams, SWT.WRAP);
-		lblAcceptableDeviationOfNumberOfServerErrors.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, false, true, 1, 1));
+		lblAcceptableDeviationOfNumberOfServerErrors.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
 		lblAcceptableDeviationOfNumberOfServerErrors.setText("Acceptable deviation\r\nof the number of server errors (%)");
 		lblAcceptableDeviationOfNumberOfServerErrors.setBounds(0, 0, 35, 30);
 		
