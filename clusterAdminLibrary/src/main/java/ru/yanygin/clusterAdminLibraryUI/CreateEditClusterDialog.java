@@ -27,7 +27,7 @@ import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.widgets.Group;
 
-public class EditClusterDialog extends Dialog {
+public class CreateEditClusterDialog extends Dialog {
 	
 //	private IClusterInfo clusterInfo;
 	private UUID clusterId;
@@ -50,27 +50,20 @@ public class EditClusterDialog extends Dialog {
 	private int wpMaxMemoryTimeLimit;
 	private int clusterRecyclingErrorsCountThreshold;
 	private boolean clusterRecyclingKillProblemProcesses;
+	private boolean clusterRecyclingKillByMemoryWithDump;
 	
 	private int expirationTimeout;
 	private int faultToleranceLevel;
 	private int loadBalancingMode;
-	
-	private Label lblComputerName;
 	private Group groupWorkProcessesParams;
-	private Label lblRestartInterval;
-	private Text txtWpLifeTimeLimit;
-	private Label lblAllowedAmountOfMemory;
-	private Text txtWpMaxMemorySize;
-	private Label lblIntervalExceedingAllowedAmountOfMemory;
-	private Text txtWpMaxMemoryTimeLimit;
-	private Label lblAcceptableDeviationOfNumberOfServerErrors;
+	private Text txtLifeTimeLimit;
+	private Text txtMaxMemorySize;
+	private Text txtMaxMemoryTimeLimit;
 	private Text txtClusterRecyclingErrorsCountThreshold;
-	private Label lblShutDownProcessesStopAfter;
 	private Text txtExpirationTimeout;
-	private Label lblFaultToleranceLevel;
 	private Text txtSessionFaultToleranceLevel;
-	private Label lblLoadBalancingMode;
 	private Combo comboLoadBalancingMode;
+	private Button btnClusterRecyclingKillByMemoryWithDump;
 	
 
 	/**
@@ -78,7 +71,7 @@ public class EditClusterDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public EditClusterDialog(Shell parentShell, Server server, UUID clusterId) {
+	public CreateEditClusterDialog(Shell parentShell, Server server, UUID clusterId) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
@@ -114,7 +107,7 @@ public class EditClusterDialog extends Dialog {
 		txtClusterName.setToolTipText("Cluster name");
 		txtClusterName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
-		lblComputerName = new Label(container, SWT.NONE);
+		Label lblComputerName = new Label(container, SWT.NONE);
 		lblComputerName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblComputerName.setText("Computer name");
 		
@@ -157,35 +150,35 @@ public class EditClusterDialog extends Dialog {
 		gd_groupWorkProcessesParams.widthHint = 450;
 		groupWorkProcessesParams.setLayoutData(gd_groupWorkProcessesParams);
 		
-		lblRestartInterval = new Label(groupWorkProcessesParams, SWT.NONE);
-		lblRestartInterval.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblRestartInterval.setText("Restart interval (second)");
+		Label lblLifeTimeLimit = new Label(groupWorkProcessesParams, SWT.NONE);
+		lblLifeTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+		lblLifeTimeLimit.setText("Restart interval (second)");
 		
-		txtWpLifeTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
-		txtWpLifeTimeLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		txtWpLifeTimeLimit.setToolTipText("Restart Interval");
+		txtLifeTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
+		txtLifeTimeLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		txtLifeTimeLimit.setToolTipText("Restart Interval");
 		
-		lblAllowedAmountOfMemory = new Label(groupWorkProcessesParams, SWT.NONE);
-		lblAllowedAmountOfMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblAllowedAmountOfMemory.setText("Allowed amount\r\nof memory (KB)");
-		lblAllowedAmountOfMemory.setBounds(0, 0, 35, 15);
+		Label lblMaxMemorySize = new Label(groupWorkProcessesParams, SWT.NONE);
+		lblMaxMemorySize.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+		lblMaxMemorySize.setText("Allowed amount\r\nof memory (KB)");
+		lblMaxMemorySize.setBounds(0, 0, 35, 15);
 		
-		txtWpMaxMemorySize = new Text(groupWorkProcessesParams, SWT.BORDER);
-		txtWpMaxMemorySize.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		txtWpMaxMemorySize.setToolTipText("Allowed Amount Of Memory");
-		txtWpMaxMemorySize.setBounds(0, 0, 76, 21);
+		txtMaxMemorySize = new Text(groupWorkProcessesParams, SWT.BORDER);
+		txtMaxMemorySize.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		txtMaxMemorySize.setToolTipText("Allowed Amount Of Memory");
+		txtMaxMemorySize.setBounds(0, 0, 76, 21);
 		
-		lblIntervalExceedingAllowedAmountOfMemory = new Label(groupWorkProcessesParams, SWT.WRAP);
-		lblIntervalExceedingAllowedAmountOfMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
-		lblIntervalExceedingAllowedAmountOfMemory.setText("Interval exceeding allowed\r\namount of memory (second)");
-		lblIntervalExceedingAllowedAmountOfMemory.setBounds(0, 0, 35, 15);
+		Label lblMaxMemoryTimeLimit = new Label(groupWorkProcessesParams, SWT.WRAP);
+		lblMaxMemoryTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
+		lblMaxMemoryTimeLimit.setText("Interval exceeding allowed\r\namount of memory (second)");
+		lblMaxMemoryTimeLimit.setBounds(0, 0, 35, 15);
 		
-		txtWpMaxMemoryTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
-		txtWpMaxMemoryTimeLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		txtWpMaxMemoryTimeLimit.setToolTipText("Interval Exceeding Allowed Amount Of Memory");
-		txtWpMaxMemoryTimeLimit.setBounds(0, 0, 76, 21);
+		txtMaxMemoryTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
+		txtMaxMemoryTimeLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		txtMaxMemoryTimeLimit.setToolTipText("Interval Exceeding Allowed Amount Of Memory");
+		txtMaxMemoryTimeLimit.setBounds(0, 0, 76, 21);
 		
-		lblAcceptableDeviationOfNumberOfServerErrors = new Label(groupWorkProcessesParams, SWT.WRAP);
+		Label lblAcceptableDeviationOfNumberOfServerErrors = new Label(groupWorkProcessesParams, SWT.WRAP);
 		lblAcceptableDeviationOfNumberOfServerErrors.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
 		lblAcceptableDeviationOfNumberOfServerErrors.setText("Acceptable deviation\r\nof the number of server errors (%)");
 		lblAcceptableDeviationOfNumberOfServerErrors.setBounds(0, 0, 35, 30);
@@ -199,24 +192,28 @@ public class EditClusterDialog extends Dialog {
 		btnClusterRecyclingKillProblemProcesses = new Button(groupWorkProcessesParams, SWT.CHECK);
 		btnClusterRecyclingKillProblemProcesses.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true, 1, 1));
 		btnClusterRecyclingKillProblemProcesses.setText("Force shutdown of problematic processes");
+		new Label(groupWorkProcessesParams, SWT.NONE);
 		
-		lblShutDownProcessesStopAfter = new Label(container, SWT.NONE);
-		lblShutDownProcessesStopAfter.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblShutDownProcessesStopAfter.setText("Shut down processes stop after (second)");
+		btnClusterRecyclingKillByMemoryWithDump = new Button(groupWorkProcessesParams, SWT.CHECK);
+		btnClusterRecyclingKillByMemoryWithDump.setText("Cluster recycling kill by memory with dump");
+		
+		Label lblExpirationTimeout = new Label(container, SWT.NONE);
+		lblExpirationTimeout.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+		lblExpirationTimeout.setText("Shut down processes stop after (second)");
 		
 		txtExpirationTimeout = new Text(container, SWT.BORDER);
 		txtExpirationTimeout.setToolTipText("Shut down processes stop after");
 		txtExpirationTimeout.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
-		lblFaultToleranceLevel = new Label(container, SWT.NONE);
-		lblFaultToleranceLevel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblFaultToleranceLevel.setText("Fault tolerance level");
+		Label lblSessionFaultToleranceLevel = new Label(container, SWT.NONE);
+		lblSessionFaultToleranceLevel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+		lblSessionFaultToleranceLevel.setText("Fault tolerance level");
 		
 		txtSessionFaultToleranceLevel = new Text(container, SWT.BORDER);
 		txtSessionFaultToleranceLevel.setToolTipText("Fault tolerance level");
 		txtSessionFaultToleranceLevel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
-		lblLoadBalancingMode = new Label(container, SWT.NONE);
+		Label lblLoadBalancingMode = new Label(container, SWT.NONE);
 		lblLoadBalancingMode.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblLoadBalancingMode.setText("Load balancing mode");
 		
@@ -254,18 +251,31 @@ public class EditClusterDialog extends Dialog {
 			this.txtIPPort.setText(Integer.toString(clusterInfo.getMainPort()));
 			this.comboSecurityLevel.select(clusterInfo.getSecurityLevel());
 			
-			this.txtWpLifeTimeLimit.setText(Integer.toString(clusterInfo.getLifeTimeLimit()));
-			this.txtWpMaxMemorySize.setText(Integer.toString(clusterInfo.getMaxMemorySize()));
-			this.txtWpMaxMemoryTimeLimit.setText(Integer.toString(clusterInfo.getMaxMemoryTimeLimit()));
-			this.txtClusterRecyclingErrorsCountThreshold.setText(Integer.toString(clusterInfo.getClusterRecyclingErrorsCountThreshold()));
+			this.txtLifeTimeLimit.setText(Integer.toString(clusterInfo.getLifeTimeLimit()));
+			this.txtMaxMemorySize.setText(Integer.toString(clusterInfo.getMaxMemorySize())); // 8.3.15-
+			this.txtMaxMemoryTimeLimit.setText(Integer.toString(clusterInfo.getMaxMemoryTimeLimit())); // 8.3.15-
+			this.txtClusterRecyclingErrorsCountThreshold.setText(Integer.toString(clusterInfo.getClusterRecyclingErrorsCountThreshold())); // 8.3.15-
 			this.btnClusterRecyclingKillProblemProcesses.setSelection(clusterInfo.isClusterRecyclingKillProblemProcesses());
-
-//			this.btnClusterRecyclingKillByMemoryWithDump.setSelection(clusterInfo.isClusterRecyclingKillByMemoryWithDump()); // что это?
+			this.btnClusterRecyclingKillByMemoryWithDump.setSelection(clusterInfo.isClusterRecyclingKillByMemoryWithDump()); // 8.3.15+
 						
 			this.txtExpirationTimeout.setText(Integer.toString(clusterInfo.getExpirationTimeout()));
 			this.txtSessionFaultToleranceLevel.setText(Integer.toString(clusterInfo.getSessionFaultToleranceLevel()));
 			this.comboLoadBalancingMode.select(clusterInfo.getLoadBalancingMode());
 			
+			if (server.agentVersion.compareTo("8.3.15") < 0) {
+				this.btnClusterRecyclingKillByMemoryWithDump.setEnabled(false);
+				
+				this.btnClusterRecyclingKillByMemoryWithDump.setToolTipText("8.3.15+");
+			} else {
+				this.txtMaxMemorySize.setEditable(false);
+				this.txtMaxMemoryTimeLimit.setEditable(false);
+				this.txtClusterRecyclingErrorsCountThreshold.setEditable(false);
+				
+				this.txtMaxMemorySize.setToolTipText("deprecated in 8.3.15");
+				this.txtMaxMemoryTimeLimit.setToolTipText("deprecated in 8.3.15");
+				this.txtClusterRecyclingErrorsCountThreshold.setToolTipText("deprecated in 8.3.15");
+			}
+		
 		}
 	}
 
@@ -274,6 +284,8 @@ public class EditClusterDialog extends Dialog {
 	}
 	
 	private void saveNewClusterProperties() {
+
+		extractClusterVariablesFromControls();
 		
 		IClusterInfo clusterInfo;
 		
@@ -295,7 +307,7 @@ public class EditClusterDialog extends Dialog {
 		clusterInfo.setClusterRecyclingErrorsCountThreshold(clusterRecyclingErrorsCountThreshold);
 		clusterInfo.setClusterRecyclingKillProblemProcesses(clusterRecyclingKillProblemProcesses);
 
-//		clusterInfo.setClusterRecyclingKillByMemoryWithDump(clusterRecyclingKillByMemoryWithDump);
+		clusterInfo.setClusterRecyclingKillByMemoryWithDump(clusterRecyclingKillByMemoryWithDump); // 8.3.15+
 
 		clusterInfo.setExpirationTimeout(expirationTimeout);
 		clusterInfo.setSessionFaultToleranceLevel(faultToleranceLevel);
@@ -306,28 +318,30 @@ public class EditClusterDialog extends Dialog {
 			try {
 				server.regCluster(clusterInfo);
 			} catch (Exception excp) {
-				excp.printStackTrace();
-				MessageBox messageBox = new MessageBox(getParentShell());
+//				excp.printStackTrace();
+				var messageBox = new MessageBox(getParentShell());
 				messageBox.setMessage(excp.getLocalizedMessage());
 				messageBox.open();
+				return;
 			}
+			close();
 		}
 	}
 
-	private void extractClusterVariablesFromControls() {
+	private void extractClusterVariablesFromControls() { // TODO избавиться от метода???
 		
 		clusterName 	= txtClusterName.getText();
 		computerName 	= txtComputerName.getText();
 		ipPort 			= Integer.parseInt(txtIPPort.getText());
 		securityLevel 	= (int) comboSecurityLevel.getData(comboSecurityLevel.getText());
 		
-		wpLifeTimeLimit			= Integer.parseInt(txtWpLifeTimeLimit.getText());
-		wpMaxMemorySize			= Integer.parseInt(txtWpMaxMemorySize.getText());
-		wpMaxMemoryTimeLimit	= Integer.parseInt(txtWpMaxMemoryTimeLimit.getText());
-		clusterRecyclingErrorsCountThreshold = Integer.parseInt(txtClusterRecyclingErrorsCountThreshold.getText());
+		wpLifeTimeLimit			= Integer.parseInt(txtLifeTimeLimit.getText());
+		wpMaxMemorySize			= Integer.parseInt(txtMaxMemorySize.getText());
+		wpMaxMemoryTimeLimit	= Integer.parseInt(txtMaxMemoryTimeLimit.getText());
+		clusterRecyclingErrorsCountThreshold = Integer.parseInt(txtClusterRecyclingErrorsCountThreshold.getText()); // 8.3.15-
 		clusterRecyclingKillProblemProcesses = btnClusterRecyclingKillProblemProcesses.getSelection();
 		
-//		clusterRecyclingKillByMemoryWithDump = btnClusterRecyclingKillByMemoryWithDump.getSelection(); // ?
+		clusterRecyclingKillByMemoryWithDump = btnClusterRecyclingKillByMemoryWithDump.getSelection();  // 8.3.15+
 		
 		expirationTimeout 	= Integer.parseInt(txtExpirationTimeout.getText());
 		faultToleranceLevel = Integer.parseInt(txtSessionFaultToleranceLevel.getText());
@@ -345,9 +359,8 @@ public class EditClusterDialog extends Dialog {
 		buttonOK.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				extractClusterVariablesFromControls();
 				saveNewClusterProperties();
-				close();
+//				close();
 			}
 		});
 		
@@ -357,7 +370,6 @@ public class EditClusterDialog extends Dialog {
 		buttonApply.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				extractClusterVariablesFromControls();
 				saveNewClusterProperties();
 			}
 		});
@@ -385,7 +397,7 @@ public class EditClusterDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(520, 500);
+		return new Point(520, 550);
 	}
 
 }
