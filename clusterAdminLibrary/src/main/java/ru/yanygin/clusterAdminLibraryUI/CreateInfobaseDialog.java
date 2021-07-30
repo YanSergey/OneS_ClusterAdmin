@@ -80,18 +80,18 @@ public class CreateInfobaseDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public CreateInfobaseDialog(Shell parentShell, Server server, UUID clusterId) {
-		super(parentShell);
-		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
-
-//		super.configureShell(parentShell);
-//		parentShell.setText("Parameters of the 1C:Enterprise infobase");
-	    
-		this.server = server;
-		this.clusterId = clusterId;
-		this.sampleInfobaseId = null;
-		
-	}
+//	public CreateInfobaseDialog(Shell parentShell, Server server, UUID clusterId) {
+//		super(parentShell);
+//		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+//
+////		super.configureShell(parentShell);
+////		parentShell.setText("Parameters of the 1C:Enterprise infobase");
+//	    
+//		this.server = server;
+//		this.clusterId = clusterId;
+//		this.sampleInfobaseId = null;
+//		
+//	}
 	
 	public CreateInfobaseDialog(Shell parentShell, Server server, UUID clusterId, UUID sampleInfobaseId) {
 		super(parentShell);
@@ -301,7 +301,7 @@ public class CreateInfobaseDialog extends Dialog {
 					(infobaseCreationMode ? 1 : 0));
 		} catch (Exception excp) {
 			//excp.printStackTrace();
-			MessageBox messageBox = new MessageBox(getParentShell());
+			var messageBox = new MessageBox(getParentShell());
 			messageBox.setMessage(excp.getLocalizedMessage());
 			messageBox.open();
 			return;

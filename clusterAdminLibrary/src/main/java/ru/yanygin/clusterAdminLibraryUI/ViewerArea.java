@@ -31,6 +31,7 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Table;
@@ -471,9 +472,9 @@ public class ViewerArea extends Composite {
 			public void widgetSelected(SelectionEvent event) {
 
 				Server newServer = clusterProvider.createNewServer();
-				EditServerDialog connectionDialog;
+				CreateEditServerDialog connectionDialog;
 				try {
-					connectionDialog = new EditServerDialog(getParent().getDisplay().getActiveShell(), newServer);
+					connectionDialog = new CreateEditServerDialog(getParent().getDisplay().getActiveShell(), newServer);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					LOGGER.error("Error init EditServerDialog for new server", excp);
@@ -506,9 +507,9 @@ public class ViewerArea extends Composite {
 					return;
 				TreeItem serverItem = item[0];
 				Server serverConfig = getCurrentServerConfig(serverItem);
-				EditServerDialog connectionDialog;
+				CreateEditServerDialog connectionDialog;
 				try {
-					connectionDialog = new EditServerDialog(getParent().getDisplay().getActiveShell(), serverConfig);
+					connectionDialog = new CreateEditServerDialog(getParent().getDisplay().getActiveShell(), serverConfig);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					LOGGER.error("Error init EditServerDialog for server {}", serverConfig.getServerDescription(), excp);
@@ -580,21 +581,21 @@ public class ViewerArea extends Composite {
 				if (item.length == 0)
 					return;
 				
-//				Server config = getCurrentServerConfig(item[0]);
-//				UUID clusterId = getCurrentClusterId(item[0]);
-//				
-//				EditClusterDialog editClusterDialog;
-//				try {
-//					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterId);
-//				} catch (Exception excp) {
-//					excp.printStackTrace();
-//					LOGGER.error("Error init EditClusterDialog for cluster id {}", clusterId, excp);
-//					return;
-//				}
-//				
-//				int dialogResult = editClusterDialog.open();
-//				if (dialogResult == 0) {
-//				}
+				Server config = getCurrentServerConfig(item[0]);
+				UUID clusterId = getCurrentClusterId(item[0]);
+				
+				CreateEditClusterDialog editClusterDialog;
+				try {
+					editClusterDialog = new CreateEditClusterDialog(getParent().getDisplay().getActiveShell(), config, null);
+				} catch (Exception excp) {
+					excp.printStackTrace();
+					LOGGER.error("Error init EditClusterDialog for cluster id {}", clusterId, excp);
+					return;
+				}
+				
+				int dialogResult = editClusterDialog.open();
+				if (dialogResult == 0) {
+				}
 			}
 		});
 		
@@ -611,9 +612,9 @@ public class ViewerArea extends Composite {
 				var config = getCurrentServerConfig(item[0]);
 				UUID clusterId = getCurrentClusterId(item[0]);
 				
-				EditClusterDialog editClusterDialog;
+				CreateEditClusterDialog editClusterDialog;
 				try {
-					editClusterDialog = new EditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterId);
+					editClusterDialog = new CreateEditClusterDialog(getParent().getDisplay().getActiveShell(), config, clusterId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					LOGGER.error("Error init EditClusterDialog for cluster id {}", clusterId, excp);
@@ -642,7 +643,33 @@ public class ViewerArea extends Composite {
 				fillClustersInTree(getParentItem(item[0], TreeItemType.SERVER)); // здесь надо обновить инфу по одному кластеру
 			}
 		});
+		
+		new MenuItem(clusterMenu, SWT.SEPARATOR);
+		
+		MenuItem menuItemDeleteCluster = new MenuItem(clusterMenu, SWT.NONE);
+		menuItemDeleteCluster.setText("Delete cluster");
+//		menuItemUpdateCluster.setImage(editIcon);
+		menuItemDeleteCluster.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+				TreeItem[] item = serversTree.getSelection();
+				if (item.length == 0)
+					return;
+				
+				Server config = getCurrentServerConfig(item[0]);
+				UUID clusterId = getCurrentClusterId(item[0]);
+				
+				var messageBox = new MessageBox(Display.getDefault().getActiveShell(), SWT.ICON_QUESTION |SWT.YES | SWT.NO);
+				messageBox.setMessage("”даление кластера приведет к удалению его настроек и списка зарегистрированных информационных баз. ¬ы действительно хотите удалить кластер?");
+//				messageBox.setMessage("Deleting a cluster will delete its settings and the list of registered information databases. Do you really want to delete the cluster?");
+				int rc = messageBox.open();
 
+				if (rc == SWT.YES && config.unregCluster(clusterId))
+					item[0].dispose();
+				
+			}
+		});
+		
 		new MenuItem(clusterMenu, SWT.SEPARATOR);
 
 		MenuItem menuItemNewInfobase = new MenuItem(clusterMenu, SWT.NONE);
@@ -660,7 +687,7 @@ public class ViewerArea extends Composite {
 
 				CreateInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId);
+					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, null);
 				} catch (Exception excp) {
 					LOGGER.error("Error in CreateInfobaseDialog", excp);
 					return;
@@ -683,8 +710,41 @@ public class ViewerArea extends Composite {
 		
 		workingServerMenu = new Menu(serversTree);
 		
+		MenuItem menuItemCreateWorkingServer = new MenuItem(workingServerMenu, SWT.NONE);
+		menuItemCreateWorkingServer.setText("Create working server");
+		menuItemCreateWorkingServer.setImage(editIcon);
+		menuItemCreateWorkingServer.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+				TreeItem[] item = serversTree.getSelection();
+				if (item.length == 0)
+					return;
+				
+				var config = getCurrentServerConfig(item[0]);
+//				UUID workingServerId = getCurrentWorkingServerId(item[0]);
+				UUID clusterId = getCurrentClusterId(item[0]);
+				
+				CreateEditWorkingServerDialog editWorkingServerDialog;
+				try {
+					editWorkingServerDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), config, clusterId, null);
+				} catch (Exception excp) {
+					LOGGER.error("Error init WorkingServerDialog for cluster id {}", clusterId, excp);
+					return;
+				}
+				
+				int dialogResult = editWorkingServerDialog.open();
+				if (dialogResult == 0) {
+					var newWorkingServerUuid = editWorkingServerDialog.getNewWorkingServerId();
+					if (newWorkingServerUuid != null) {
+						IWorkingServerInfo workingServerInfo = config.getWorkingServerInfo(clusterId, newWorkingServerUuid);
+						addWorkingServerItemInWSNode(item[0].getParentItem(), workingServerInfo);
+					}
+				}
+			}
+		});
+		
 		MenuItem menuItemEditWorkingServer = new MenuItem(workingServerMenu, SWT.NONE);
-		menuItemEditWorkingServer.setText("Edit Working Server");
+		menuItemEditWorkingServer.setText("Edit working server");
 		menuItemEditWorkingServer.setImage(editIcon);
 		menuItemEditWorkingServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -697,9 +757,9 @@ public class ViewerArea extends Composite {
 				UUID workingServerId = getCurrentWorkingServerId(item[0]);
 				UUID clusterId = getCurrentClusterId(item[0]);
 				
-				EditWorkingServerDialog editClusterDialog;
+				CreateEditWorkingServerDialog editClusterDialog;
 				try {
-					editClusterDialog = new EditWorkingServerDialog(getParent().getDisplay().getActiveShell(), config, clusterId, workingServerId);
+					editClusterDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), config, clusterId, workingServerId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
 					LOGGER.error("Error init WorkingServerDialog for cluster id {}", workingServerId, excp);
@@ -711,7 +771,6 @@ public class ViewerArea extends Composite {
 				}
 			}
 		});
-			
 	}
 
 	private void initDatabaseMenu() {
@@ -733,7 +792,7 @@ public class ViewerArea extends Composite {
 
 				CreateInfobaseDialog infobaseDialog;
 				try {
-					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId);
+					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, null);
 				} catch (Exception excp) {
 					LOGGER.error("Error in CreateInfobaseDialog", excp);
 					return;

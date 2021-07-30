@@ -1352,4 +1352,29 @@ public class Server {
 		return workingServerInfo;
 	}
 	
+	public boolean regWorkingServer(UUID clusterId, IWorkingServerInfo serverInfo, boolean createNew) {
+		if (!isConnected())
+			return false;
+		
+		if (!checkAutenticateCluster(clusterId))
+			return false;
+		
+		if (createNew)
+			LOGGER.debug("Registration NEW working server");
+		
+		try {
+			LOGGER.debug("Registration working server <{}> registered in the cluster <{}>", serverInfo.getName(), clusterId);
+			agentConnection.regWorkingServer(clusterId, serverInfo);
+		} catch (Exception excp) {
+			LOGGER.error("Error registration working server", excp);
+			throw excp;
+		}
+			
+		LOGGER.debug("\tRegistration working server: name=<{}>, host name=<{}>, main port=<{}>",
+				serverInfo.getName(), serverInfo.getHostName(), serverInfo.getMainPort());
+		
+		LOGGER.debug("Registration working server succesful");
+		return true;
+	}
+	
 }

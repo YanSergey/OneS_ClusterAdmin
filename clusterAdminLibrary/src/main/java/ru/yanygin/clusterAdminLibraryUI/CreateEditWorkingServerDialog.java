@@ -1,5 +1,7 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
@@ -9,11 +11,15 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com._1c.v8.ibis.admin.ClusterInfo;
 import com._1c.v8.ibis.admin.IClusterInfo;
 import com._1c.v8.ibis.admin.IPortRangeInfo;
 import com._1c.v8.ibis.admin.IWorkingServerInfo;
+import com._1c.v8.ibis.admin.PortRangeInfo;
+import com._1c.v8.ibis.admin.WorkingServerInfo;
 
 import ru.yanygin.clusterAdminLibrary.Server;
 
@@ -29,8 +35,9 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.wb.swt.SWTResourceManager;
 
-public class EditWorkingServerDialog extends Dialog {
+public class CreateEditWorkingServerDialog extends Dialog {
 	
 //	private IClusterInfo clusterInfo;
 	private UUID clusterId;
@@ -68,14 +75,17 @@ public class EditWorkingServerDialog extends Dialog {
 	private Text txtTemporaryAllowedProcessesTotalMemory;
 	private Text txtTemporaryAllowedProcessesTotalMemoryTimeLimit;
 	private Text txtSafeWorkingProcessesMemoryLimit;
-	
+
+	public UUID getNewWorkingServerId() {
+		return workingServerId;
+	}
 
 	/**
 	 * Create the dialog.
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public EditWorkingServerDialog(Shell parentShell, Server server, UUID clusterId, UUID workingServerId) {
+	public CreateEditWorkingServerDialog(Shell parentShell, Server server, UUID clusterId, UUID workingServerId) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
@@ -109,7 +119,6 @@ public class EditWorkingServerDialog extends Dialog {
 		lblServerName.setText("Server name");
 		
 		txtServerName = new Text(container, SWT.BORDER);
-		txtServerName.setEditable(false);
 		txtServerName.setToolTipText("Server name");
 		txtServerName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		new Label(container, SWT.NONE);
@@ -119,7 +128,6 @@ public class EditWorkingServerDialog extends Dialog {
 		lblComputerName.setText("Computer name");
 		
 		txtComputerName = new Text(container, SWT.BORDER);
-		txtComputerName.setEditable(false);
 		txtComputerName.setToolTipText("Computer Name");
 		txtComputerName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		new Label(container, SWT.NONE);
@@ -129,7 +137,6 @@ public class EditWorkingServerDialog extends Dialog {
 		lblIPPort.setText("IP Port");
 		
 		txtIPPort = new Text(container, SWT.BORDER);
-		txtIPPort.setEditable(false);
 		txtIPPort.setToolTipText("IP Port");
 		txtIPPort.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		new Label(container, SWT.NONE);
@@ -251,7 +258,6 @@ public class EditWorkingServerDialog extends Dialog {
 		lblIPPortMainManager.setText("IP Port main cluster manager");
 		
 		txtIPPortMainManager = new Text(container, SWT.BORDER);
-		txtIPPortMainManager.setEditable(false);
 		txtIPPortMainManager.setToolTipText("IP Port main manager");
 		txtIPPortMainManager.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		new Label(container, SWT.NONE);
@@ -274,134 +280,176 @@ public class EditWorkingServerDialog extends Dialog {
 			txtServerName.setEditable(false);
 			txtComputerName.setEditable(false);
 			txtIPPort.setEditable(false);
-			txtIPPortMainManager.setEditable(false);
+//			txtIPPortMainManager.setEditable(false);
 		} else {
 			// Новому серверу запрещено сразу ставить галочку Центральный сервер?
+			txtIPPortMainManager.setText("<auto>");
 		}
+		txtIPPortMainManager.setEditable(false);
 		
 		return container;
 	}
 
 	private void initServerProperties() {
+		IWorkingServerInfo serverInfo;
 		
 		if (workingServerId != null) {
+			serverInfo = server.getWorkingServerInfo(clusterId, workingServerId);
 			
-			IWorkingServerInfo serverInfo = server.getWorkingServerInfo(clusterId, workingServerId);
-			
-			// Common properties
 			this.txtServerName.setText(serverInfo.getName());
 			this.txtComputerName.setText(serverInfo.getHostName());
-			this.txtIPPort.setText(Integer.toString(serverInfo.getMainPort()));
 			
 			IPortRangeInfo portRangesInfo = serverInfo.getPortRanges().get(0);
 			String portRanges = Integer.toString(portRangesInfo.getLowBound()).concat(":").concat(Integer.toString(portRangesInfo.getHighBound()));
-			this.txtPortRange.setText(portRanges); // TODO
-			
+			this.txtPortRange.setText(portRanges);
+		
 			this.txtInfoBasesPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getInfoBasesPerWorkingProcessLimit()));
 			this.txtConnectionsPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getConnectionsPerWorkingProcessLimit()));
 			
-			this.txtSafeWorkingProcessesMemoryLimit.setText(String.valueOf(serverInfo.getSafeWorkingProcessesMemoryLimit()));
-			this.txtSafeCallMemoryLimit.setText(String.valueOf(serverInfo.getSafeCallMemoryLimit()));
-			this.txtCriticalProcessesTotalMemory.setText(String.valueOf(serverInfo.getCriticalProcessesTotalMemory()));
-			this.txtTemporaryAllowedProcessesTotalMemory.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemory()));
-			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit()));
-			this.txtWorkingProcessMemoryLimit.setText(String.valueOf(serverInfo.getWorkingProcessMemoryLimit()));
+		} else {
+			serverInfo = new WorkingServerInfo();
 			
-			this.txtIPPortMainManager.setText(Integer.toString(serverInfo.getClusterMainPort()));
-			this.btnIsDedicatedManagers.setSelection(serverInfo.isDedicatedManagers());
-			this.btnIsMainServer.setSelection(serverInfo.isMainServer());
-			
-			if (server.agentVersion.compareTo("8.3.15") < 0) {
-				this.txtCriticalProcessesTotalMemory.setEditable(false);
-				this.txtTemporaryAllowedProcessesTotalMemory.setEditable(false);
-				this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setEditable(false);
-			} else {
-				this.txtSafeWorkingProcessesMemoryLimit.setEditable(false);
-				this.txtWorkingProcessMemoryLimit.setEditable(false);
-			}
-			
-			serverInfo.getSafeWorkingProcessesMemoryLimit(); // (8.3.15-)	// максимальный объем памяти рабочих процессов (до 8.3.15)
-			
-			serverInfo.getSafeCallMemoryLimit(); 							// безопасный расход памяти за один вызов (c 8.3.15 находится первым в группе)
-			
-			serverInfo.getWorkingProcessMemoryLimit();		 // (8.3.15-)	// объем памяти рабочих процессов, до которого сервер считается производительным (до 8.3.15)
-			
-			serverInfo.getCriticalProcessesTotalMemory(); 					// критический объем памяти процессов (c 8.3.15+)
-			
-			serverInfo.getTemporaryAllowedProcessesTotalMemory(); 			// временно допустимый объем памяти процессов (c 8.3.15+)
-			
-			serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit(); // интервал превышения допустимомо объема памяти процессов (c 8.3.15+)
-			
-			
-			
+			this.txtServerName.setText("");
+			this.txtPortRange.setText("");
+			this.txtComputerName.setText("");
+		
+			this.txtInfoBasesPerWorkingProcessLimit.setText("8");
+			this.txtConnectionsPerWorkingProcessLimit.setText("128");
 		}
+		
+		// Common properties
+		this.txtIPPort.setText(Integer.toString(serverInfo.getMainPort()));
+		
+		this.txtSafeWorkingProcessesMemoryLimit.setText(String.valueOf(serverInfo.getSafeWorkingProcessesMemoryLimit()));
+		this.txtSafeCallMemoryLimit.setText(String.valueOf(serverInfo.getSafeCallMemoryLimit()));
+		this.txtCriticalProcessesTotalMemory.setText(String.valueOf(serverInfo.getCriticalProcessesTotalMemory()));
+		this.txtTemporaryAllowedProcessesTotalMemory.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemory()));
+		this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit()));
+		this.txtWorkingProcessMemoryLimit.setText(String.valueOf(serverInfo.getWorkingProcessMemoryLimit()));
+		
+		this.txtIPPortMainManager.setText(Integer.toString(serverInfo.getClusterMainPort()));
+		this.btnIsDedicatedManagers.setSelection(serverInfo.isDedicatedManagers());
+		this.btnIsMainServer.setSelection(serverInfo.isMainServer());
+		
+		if (server.agentVersion.compareTo("8.3.15") < 0) {
+			this.txtCriticalProcessesTotalMemory.setEditable(false);
+			this.txtTemporaryAllowedProcessesTotalMemory.setEditable(false);
+			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setEditable(false);
+			
+			this.txtCriticalProcessesTotalMemory.setToolTipText("8.3.15+");
+			this.txtTemporaryAllowedProcessesTotalMemory.setToolTipText("8.3.15+");
+			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText("8.3.15+");
+		} else {
+			this.txtSafeWorkingProcessesMemoryLimit.setEditable(false);
+			this.txtWorkingProcessMemoryLimit.setEditable(false);
+			
+			this.txtSafeWorkingProcessesMemoryLimit.setToolTipText("deprecated in 8.3.15");
+			this.txtWorkingProcessMemoryLimit.setToolTipText("deprecated in 8.3.15");
+		}
+			
+		serverInfo.getSafeWorkingProcessesMemoryLimit(); // (8.3.15-)	// максимальный объем памяти рабочих процессов (до 8.3.15)
+		serverInfo.getSafeCallMemoryLimit(); 							// безопасный расход памяти за один вызов (c 8.3.15 находится первым в группе)
+		serverInfo.getWorkingProcessMemoryLimit();		 // (8.3.15-)	// объем памяти рабочих процессов, до которого сервер считается производительным (до 8.3.15)
+		serverInfo.getCriticalProcessesTotalMemory(); 					// критический объем памяти процессов (c 8.3.15+)
+		serverInfo.getTemporaryAllowedProcessesTotalMemory(); 			// временно допустимый объем памяти процессов (c 8.3.15+)
+		serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit();	// интервал превышения допустимомо объема памяти процессов (c 8.3.15+)
+			
+		
 	}
 
 	private void resetToProf() {
 //		this.comboLoadBalancingMode.select(0);
 	}
+
+	private boolean checkClusterVariablesFromControls() {
+		
+		var existsError = false;
+		
+		List<Text> checksControls = new ArrayList<>();
+		checksControls.add(txtServerName);
+		checksControls.add(txtComputerName);
+		checksControls.add(txtIPPort);
+		checksControls.add(txtPortRange);
+		
+		for (Text control : checksControls) {
+			if (control.getText().isBlank()) {
+				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				existsError = true;
+			} else {
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			}			
+		}
+		
+		try {
+			Integer.parseInt(txtIPPort.getText());
+			txtIPPort.setBackground(SWTResourceManager.getColor(255, 255, 255));
+		} catch (Exception e) {
+			txtIPPort.setBackground(SWTResourceManager.getColor(255, 204, 204));
+			existsError = true;
+		}
+		
+		try {
+			String[] portRange = txtPortRange.getText().split(":");
+			new PortRangeInfo(Integer.parseInt(portRange[1]), Integer.parseInt(portRange[0]));		
+			txtPortRange.setBackground(SWTResourceManager.getColor(255, 255, 255));
+		} catch (Exception e) {
+			txtPortRange.setBackground(SWTResourceManager.getColor(255, 204, 204));
+			existsError = true;
+		}
+				
+		return existsError;
+	}
 	
 	private void saveNewClusterProperties() {
-		extractClusterVariablesFromControls();
+		if (checkClusterVariablesFromControls())
+			return;
 		
-//		IClusterInfo clusterInfo;
-//		
-//		if (clusterId == null) {
-//			clusterInfo = new ClusterInfo();
-//	
-//			clusterInfo.setHostName(computerName); 	// разрешено только при создании нового
-//			clusterInfo.setMainPort(ipPort); 		// разрешено только при создании нового
-//		} else {		
-//			clusterInfo = server.getClusterInfo(clusterId);
-//		}
-//		
-//		clusterInfo.setName(clusterName);
-//		clusterInfo.setSecurityLevel(securityLevel);
-//
-//		clusterInfo.setLifeTimeLimit(wpLifeTimeLimit);
-//		clusterInfo.setMaxMemorySize(wpMaxMemorySize);
-//		clusterInfo.setMaxMemoryTimeLimit(wpMaxMemoryTimeLimit);
-//		clusterInfo.setClusterRecyclingErrorsCountThreshold(clusterRecyclingErrorsCountThreshold);
-//		clusterInfo.setClusterRecyclingKillProblemProcesses(clusterRecyclingKillProblemProcesses);
-//
-////		clusterInfo.setClusterRecyclingKillByMemoryWithDump(clusterRecyclingKillByMemoryWithDump);
-//
-//		clusterInfo.setExpirationTimeout(expirationTimeout);
-//		clusterInfo.setSessionFaultToleranceLevel(faultToleranceLevel);
-//		clusterInfo.setLoadBalancingMode(loadBalancingMode);
-//		
-//		if (server.authenticateAgent()) { // перенести в server.regCluster
-//
-//			try {
-//				server.regCluster(clusterInfo);
-//			} catch (Exception excp) {
-//				excp.printStackTrace();
-//				MessageBox messageBox = new MessageBox(getParentShell());
-//				messageBox.setMessage(excp.getLocalizedMessage());
-//				messageBox.open();
-//			}
-//		}
-	}
+		IWorkingServerInfo workingServerInfo;
+		
+		if (workingServerId == null) {
+			workingServerInfo = new WorkingServerInfo();
+	
+			workingServerInfo.setHostName(txtComputerName.getText()); 				// разрешено только при создании нового
+			workingServerInfo.setMainPort(Integer.parseInt(txtIPPort.getText())); 	// разрешено только при создании нового			
+		} else {		
+			workingServerInfo = server.getWorkingServerInfo(clusterId, workingServerId);
+		}
+		
+		String[] portRange = txtPortRange.getText().split(":");
+		IPortRangeInfo portRangesInfo = new PortRangeInfo(Integer.parseInt(portRange[1]), Integer.parseInt(portRange[0]));		
+		List<IPortRangeInfo> portRangeList = new ArrayList<>();
+		portRangeList.add(portRangesInfo);
+		workingServerInfo.setPortRanges(portRangeList);
+		
+		workingServerInfo.setInfoBasesPerWorkingProcessLimit(Integer.parseInt(txtInfoBasesPerWorkingProcessLimit.getText()));
+		workingServerInfo.setConnectionsPerWorkingProcessLimit(Integer.parseInt(txtConnectionsPerWorkingProcessLimit.getText()));
+		
+		workingServerInfo.setSafeCallMemoryLimit(Long.parseLong(txtSafeCallMemoryLimit.getText()));
+		
+		workingServerInfo.setDedicatedManagers(btnIsDedicatedManagers.getSelection());
+		workingServerInfo.setMainServer(btnIsMainServer.getSelection());
+		
+		if (server.agentVersion.compareTo("8.3.15") < 0) {
+			workingServerInfo.setSafeWorkingProcessesMemoryLimit(Long.parseLong(txtSafeWorkingProcessesMemoryLimit.getText()));
+			workingServerInfo.setWorkingProcessMemoryLimit(Long.parseLong(txtWorkingProcessMemoryLimit.getText()));
+		} else {
+			workingServerInfo.setCriticalProcessesTotalMemory(Long.parseLong(txtCriticalProcessesTotalMemory.getText()));
+			workingServerInfo.setTemporaryAllowedProcessesTotalMemory(Long.parseLong(txtTemporaryAllowedProcessesTotalMemory.getText()));
+			workingServerInfo.setTemporaryAllowedProcessesTotalMemoryTimeLimit(Long.parseLong(txtTemporaryAllowedProcessesTotalMemoryTimeLimit.getText()));
+		}
+		
+		try {
+			server.regWorkingServer(clusterId, workingServerInfo, workingServerId == null);
+		} catch (Exception excp) {
+			var messageBox = new MessageBox(getParentShell());
+			messageBox.setMessage(excp.getLocalizedMessage());
+			messageBox.open();
+			return;
+		}
+		
+		workingServerId = workingServerInfo.getWorkingServerId();
+		close();
 
-	private void extractClusterVariablesFromControls() {
-		
-//		clusterName 	= txtServerName.getText();
-//		computerName 	= txtComputerName.getText();
-//		ipPort 			= Integer.parseInt(txtIPPort.getText());
-//		securityLevel 	= (int) txtPortRange.getData(txtPortRange.getText());
-//		
-//		wpLifeTimeLimit			= Integer.parseInt(txtWpLifeTimeLimit.getText());
-//		wpMaxMemorySize			= Integer.parseInt(txtInfoBasesPerWorkingProcessLimit.getText());
-//		wpMaxMemoryTimeLimit	= Integer.parseInt(txtConnectionsPerWorkingProcessLimit.getText());
-//		clusterRecyclingErrorsCountThreshold = Integer.parseInt(txtClusterRecyclingErrorsCountThreshold.getText());
-//		clusterRecyclingKillProblemProcesses = btnIsDedicatedManagers.getSelection();
-//		
-////		clusterRecyclingKillByMemoryWithDump = btnClusterRecyclingKillByMemoryWithDump.getSelection(); // ?
-//		
-//		expirationTimeout 	= Integer.parseInt(txtExpirationTimeout.getText());
-//		faultToleranceLevel = Integer.parseInt(txtSessionFaultToleranceLevel.getText());
-//		loadBalancingMode 	= (int) comboLoadBalancingMode.getData(comboLoadBalancingMode.getText());
-		
 	}
 	
 	/**

@@ -36,7 +36,7 @@ import org.eclipse.wb.swt.SWTResourceManager;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.widgets.Display;
 
-public class EditServerDialog extends Dialog {
+public class CreateEditServerDialog extends Dialog {
 	
 	private Server serverParams;
 	
@@ -79,7 +79,7 @@ public class EditServerDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams
 	 */
-	public EditServerDialog(Shell parentShell, Server serverParams) {
+	public CreateEditServerDialog(Shell parentShell, Server serverParams) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM);
 		
