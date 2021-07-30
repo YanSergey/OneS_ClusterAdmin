@@ -82,6 +82,7 @@ public class ViewerArea extends Composite {
 	Image addIcon;
 	Image deleteIcon;
 	Image lockUsersIcon;
+	Image updateIcon;
 	
 	Tree serversTree;
 	TreeItem currentTreeItem;
@@ -90,6 +91,7 @@ public class ViewerArea extends Composite {
 	MenuItem menuItemDisconnectServer;
 	Menu clusterMenu;
 	Menu workingServerMenu;
+	Menu infobaseNodeMenu;
 	Menu infobaseMenu;
 	
 	TabItem tabSessions;
@@ -202,6 +204,7 @@ public class ViewerArea extends Composite {
 		addIcon					= getImage("add_16.png");
 		deleteIcon				= getImage("delete_16.png");
 		lockUsersIcon			= getImage("lock_users_16.png");
+		updateIcon				= getImage("updateIcon.png");
 		
 		LOGGER.info("Start init succesfully");
 	}
@@ -418,7 +421,8 @@ public class ViewerArea extends Composite {
 		initServerMenu();
 		initClusterMenu();
 		initWorkingServerMenu();
-		initDatabaseMenu();
+		initInfobaseNodeMenu();
+		initInfobaseMenu();
 		
 		// set active menu
 		serversTree.setMenu(serverMenu);
@@ -530,7 +534,7 @@ public class ViewerArea extends Composite {
 		
 		MenuItem menuItemUpdateServer = new MenuItem(serverMenu, SWT.NONE);
 		menuItemUpdateServer.setText("Update server info");
-//		menuItemUpdateCluster.setImage(editIcon);
+		menuItemUpdateServer.setImage(updateIcon);
 		menuItemUpdateServer.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
@@ -573,7 +577,7 @@ public class ViewerArea extends Composite {
 		
 		MenuItem menuItemCreateCluster = new MenuItem(clusterMenu, SWT.NONE);
 		menuItemCreateCluster.setText("Create Cluster");
-		menuItemCreateCluster.setImage(editIcon);
+		menuItemCreateCluster.setImage(addIcon);
 		menuItemCreateCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
@@ -629,7 +633,7 @@ public class ViewerArea extends Composite {
 		
 		MenuItem menuItemUpdateCluster = new MenuItem(clusterMenu, SWT.NONE);
 		menuItemUpdateCluster.setText("Update cluster info");
-//		menuItemUpdateCluster.setImage(editIcon);
+		menuItemUpdateCluster.setImage(updateIcon);
 		menuItemUpdateCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
@@ -648,7 +652,7 @@ public class ViewerArea extends Composite {
 		
 		MenuItem menuItemDeleteCluster = new MenuItem(clusterMenu, SWT.NONE);
 		menuItemDeleteCluster.setText("Delete cluster");
-//		menuItemUpdateCluster.setImage(editIcon);
+		menuItemDeleteCluster.setImage(deleteIcon);
 		menuItemDeleteCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
@@ -670,40 +674,6 @@ public class ViewerArea extends Composite {
 			}
 		});
 		
-		new MenuItem(clusterMenu, SWT.SEPARATOR);
-
-		MenuItem menuItemNewInfobase = new MenuItem(clusterMenu, SWT.NONE);
-		menuItemNewInfobase.setText("Create Infobase");
-		menuItemNewInfobase.setImage(addIcon);
-		menuItemNewInfobase.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent event) {
-				TreeItem[] item = serversTree.getSelection();
-				if (item.length == 0)
-					return;
-				
-				Server config = getCurrentServerConfig(item[0]);
-				UUID clusterId = getCurrentClusterId(item[0]);
-
-				CreateInfobaseDialog infobaseDialog;
-				try {
-					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, null);
-				} catch (Exception excp) {
-					LOGGER.error("Error in CreateInfobaseDialog", excp);
-					return;
-				}
-				
-				int dialogResult = infobaseDialog.open();
-				if (dialogResult == 0) {
-					var newInfobaseUuid = infobaseDialog.getNewInfobaseUUID();
-					if (newInfobaseUuid != null) {
-						IInfoBaseInfoShort infoBaseInfo = config.getInfoBaseShortInfo(clusterId, newInfobaseUuid);
-						addInfobaseItemInInfobaseNode(item[0], infoBaseInfo);
-					}
-				}
-			}
-		});
-
 	}
 	
 	private void initWorkingServerMenu() {
@@ -773,11 +743,11 @@ public class ViewerArea extends Composite {
 		});
 	}
 
-	private void initDatabaseMenu() {
-		// Database Menu
-		infobaseMenu = new Menu(serversTree);
+	private void initInfobaseNodeMenu() {
 
-		MenuItem menuItemNewInfobase = new MenuItem(infobaseMenu, SWT.NONE);
+		infobaseNodeMenu = new Menu(serversTree);
+
+		MenuItem menuItemNewInfobase = new MenuItem(infobaseNodeMenu, SWT.NONE);
 		menuItemNewInfobase.setText("Create Infobase");
 		menuItemNewInfobase.setImage(addIcon);
 		menuItemNewInfobase.addSelectionListener(new SelectionAdapter() {
@@ -789,7 +759,7 @@ public class ViewerArea extends Composite {
 				
 				var config = getCurrentServerConfig(item[0]);
 				UUID clusterId = getCurrentClusterId(item[0]);
-
+				
 				CreateInfobaseDialog infobaseDialog;
 				try {
 					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, null);
@@ -803,11 +773,48 @@ public class ViewerArea extends Composite {
 					var newInfobaseUuid = infobaseDialog.getNewInfobaseUUID();
 					if (newInfobaseUuid != null) {
 						IInfoBaseInfoShort infoBaseInfo = config.getInfoBaseShortInfo(clusterId, newInfobaseUuid);
-						addInfobaseItemInInfobaseNode(item[0].getParentItem(), infoBaseInfo);
+						addInfobaseItemInInfobaseNode(item[0], infoBaseInfo);
 					}
 				}
 			}
 		});
+		
+		MenuItem menuItemUpdateInfobases = new MenuItem(infobaseNodeMenu, SWT.NONE);
+		menuItemUpdateInfobases.setText("Update infobases");
+		menuItemUpdateInfobases.setImage(updateIcon);
+		menuItemUpdateInfobases.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+				TreeItem[] item = serversTree.getSelection();
+				if (item.length == 0)
+					return;
+				
+//				var config = getCurrentServerConfig(item[0]);
+//				UUID clusterId = getCurrentClusterId(item[0]);
+//				
+//				CreateInfobaseDialog infobaseDialog;
+//				try {
+//					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, null);
+//				} catch (Exception excp) {
+//					LOGGER.error("Error in CreateInfobaseDialog", excp);
+//					return;
+//				}
+//				
+//				int dialogResult = infobaseDialog.open();
+//				if (dialogResult == 0) {
+//					var newInfobaseUuid = infobaseDialog.getNewInfobaseUUID();
+//					if (newInfobaseUuid != null) {
+//						IInfoBaseInfoShort infoBaseInfo = config.getInfoBaseShortInfo(clusterId, newInfobaseUuid);
+//						addInfobaseItemInInfobaseNode(item[0], infoBaseInfo);
+//					}
+//				}
+			}
+		});
+	}
+	
+	private void initInfobaseMenu() {
+
+		infobaseMenu = new Menu(serversTree);
 		
 		MenuItem menuItemCopyInfobase = new MenuItem(infobaseMenu, SWT.NONE);
 		menuItemCopyInfobase.setText("Create a new Infobase using this");
@@ -1908,18 +1915,20 @@ public class ViewerArea extends Composite {
 				serversTree.setMenu(serverMenu);
 				return;
 			case CLUSTER:
-			case INFOBASE_NODE:
-			case WORKINGPROCESS_NODE:
+//			case WORKINGPROCESS_NODE:
 				serversTree.setMenu(clusterMenu);
+				break;
+			case INFOBASE_NODE:
+				serversTree.setMenu(infobaseNodeMenu);
+				break;
+			case INFOBASE:
+				serversTree.setMenu(infobaseMenu);
 				break;
 			case WORKINGPROCESS:
 				serversTree.setMenu(null);
 				break;
 			case WORKINGSERVER:
 				serversTree.setMenu(workingServerMenu);
-				break;
-			case INFOBASE:
-				serversTree.setMenu(infobaseMenu);
 				break;
 			default:
 				serversTree.setMenu(null);
