@@ -204,7 +204,7 @@ public class ViewerArea extends Composite {
 		addIcon					= getImage("add_16.png");
 		deleteIcon				= getImage("delete_16.png");
 		lockUsersIcon			= getImage("lock_users_16.png");
-		updateIcon				= getImage("updateIcon.png");
+		updateIcon				= getImage("update.png");
 		
 		LOGGER.info("Start init succesfully");
 	}

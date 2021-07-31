@@ -142,18 +142,8 @@ public class Server {
 		}
 	}
 	
-	public void getAgentVersion() {
-		
-		if (!isConnected())
-			return;
-		
-		try {
-			agentVersion = agentConnection.getAgentVersion();
-			LOGGER.debug("Agent version of server <{}> is <{}>", this.getServerKey(), agentVersion);
-		} catch (Exception e) {
-			agentVersion = "Unknown";
-			LOGGER.error("Unknown agent version of server <{}>", this.getServerKey());
-		}
+	public String getAgentVersion() {
+		return agentVersion;
 	}
 	
 	public Server(String serverName) {
@@ -220,6 +210,24 @@ public class Server {
 		}
 		return serverDescription;
 		
+	}
+	
+	private void readAgentVersion() {
+		
+		if (!isConnected())
+			return;
+		
+		try {
+			agentVersion = agentConnection.getAgentVersion();
+			LOGGER.debug("Agent version of server <{}> is <{}>", this.getServerKey(), agentVersion);
+		} catch (Exception e) {
+			agentVersion = "Unknown";
+			LOGGER.error("Unknown agent version of server <{}>", this.getServerKey());
+		}
+	}
+	
+	public boolean isFifteen() {
+		return agentVersion.compareTo("8.3.15") >= 0;
 	}
 	
 	public String getAgentPortAsString() {
@@ -403,17 +411,6 @@ public class Server {
 		processBuilder.command("cmd.exe", "/c", "%RAS_PATH% cluster %AGENT_HOST%:%AGENT_PORT% --port=%RAS_PORT%");
 		try {
 			localRASProcess = processBuilder.start();
-//			BufferedReader reader = new BufferedReader(new InputStreamReader(localRASProcess.getInputStream(), "windows-1251"));
-			// TODO utf-8 ???
-//			String line;
-//			while ((line = reader.readLine()) != null) {
-//				processOutput = processOutput.concat(System.lineSeparator()).concat(line);
-//			}
-//			int exitCode = process.waitFor();
-//			if (exitCode != 0) {
-//				LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey());
-//				LOGGER.error("Error: <{}>", processOutput);
-//			}
 		} catch (Exception excp) {
 			LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey());
 			LOGGER.error("Error: <{}>", processOutput, excp);
@@ -423,7 +420,7 @@ public class Server {
 		/////////////////////////////
 //		localRASpid = localRASProcess.pid();
 		
-		return true;
+		return localRASProcess.isAlive();
 	}
 	
 
@@ -450,8 +447,9 @@ public class Server {
 		IAgentAdminConnectorFactory factory = new AgentAdminConnectorFactory();
 		agentConnector = factory.createConnector(timeout);
 		agentConnection = agentConnector.connect(address, port);
+		
 		available = true;
-		getAgentVersion();
+		readAgentVersion();
 		
 		LOGGER.debug("Server <{}> is connected now", this.getServerKey());
 	}
@@ -463,7 +461,7 @@ public class Server {
 	 */
 	public void disconnectFromAgent() {
 		if (!isConnected()) {
-			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
+//			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
 			return;
 		}
 		
@@ -492,6 +490,9 @@ public class Server {
 //		if (isConnected)
 //			LOGGER.debug("Server {} is already connected", this.getServerKey()); // засор€ет лог
 		
+		if (!isConnected)
+			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
+		
 		return isConnected;
 	}
 	
@@ -502,8 +503,11 @@ public class Server {
 	 * @return {@code true} if authenticated, {@code false} overwise
 	 */
 	public boolean authenticateAgent() {
-		if (agentConnection == null)
-			throw new IllegalStateException("The connection is not established.");
+//		if (agentConnection == null)
+//			throw new IllegalStateException("The connection is not established.");
+		
+		if (!isConnected())
+			return false;
 		
 		IRunAuthenticate authMethod = (String userName, String password, boolean saveNewUserpass) -> {
 			
@@ -526,32 +530,59 @@ public class Server {
 	
 
 	/**
-	 * ѕровер€ет не истекла ли авторизаци€ на кластере
-	 * и если истекла запускает процесс авторизации.
+	 * ѕровер€ет действительна ли еще авторизаци€ на кластере
+	 * и если нет - запускает процесс авторизации.
 	 *
 	 * @param clusterId cluster ID
-	 * @return boolean истекла/не истекла
+	 * @return boolean действительна/не действительна
 	 */
 	private boolean checkAutenticateCluster(UUID clusterId) {
 		
-		var needAuthenticateCluster = false;
+		var needAuthenticate = false;
 		try {
 			LOGGER.debug("Gets the list of cluster <{}> administrators", clusterId);
 			agentConnection.getClusterAdmins(clusterId);
 			return true;
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of of cluster administrators <{}>", excp.getLocalizedMessage());
+			LOGGER.error("Error get the list of of cluster administrators: <{}>", excp.getLocalizedMessage());
 			if (excp.getLocalizedMessage().contains("Ќедостаточно прав пользовател€ на управление кластером") ||
 					excp.getLocalizedMessage().contains("јдминистратор кластера не аутентифицирован")) // TODO учесть английский вариант
-				needAuthenticateCluster = true;
+				needAuthenticate = true;
 		}
 		
-		if (needAuthenticateCluster)
+		if (needAuthenticate)
 			return authenticateCluster(clusterId);
 		
 		return false;
 	}
-	
+
+	/**
+	 * ѕровер€ет действительна ли еще авторизаци€ на центральном сервере
+	 * и если нет - запускает процесс авторизации.
+	 *
+	 * @param clusterId cluster ID
+	 * @return boolean истекла/не истекла
+	 */
+	private boolean checkAutenticateAgent() {
+		
+		var needAuthenticate = false;
+		try {
+			LOGGER.debug("Gets the list administrators of server <{}>:<{}>", agentHost, agentPort);
+			agentConnection.getAgentAdmins();
+			return true;
+		} catch (Exception excp) {
+			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage());
+			if (excp.getLocalizedMessage().contains("Ќедостаточно прав пользовател€ на управление кластером") ||
+					excp.getLocalizedMessage().contains("јдминистратор кластера не аутентифицирован")) // TODO учесть английский вариант
+				needAuthenticate = true;
+		}
+		
+		if (needAuthenticate)
+			return authenticateAgent();
+		
+		return false;
+	}
+
 	/**
 	 * Authethicates a server cluster administrator
 	 * 
@@ -560,9 +591,12 @@ public class Server {
 	 * @param password  cluster administrator password
 	 */
 	public boolean authenticateCluster(UUID clusterId) {
-		if (agentConnection == null)
-			throw new IllegalStateException("The connection is not established.");
+//		if (agentConnection == null)
+//			throw new IllegalStateException("The connection is not established.");
 		
+		if (!isConnected())
+			return false;
+
 		IRunAuthenticate authMethod = (String userName, String password, boolean saveNewUserpass) -> {
 			
 			String clusterName = getClusterInfo(clusterId).getName();
@@ -710,13 +744,30 @@ public class Server {
 	 *
 	 * @return cluster descriptions
 	 */
-	public UUID regCluster(IClusterInfo clusterInfo) {
-		if (agentConnection == null) {
-			throw new IllegalStateException("The connection is not established.");
+	public boolean regCluster(IClusterInfo clusterInfo, boolean registrationNewCluster) {
+		if (registrationNewCluster)
+			LOGGER.debug("Registration new cluster <{}>", clusterInfo.getClusterId());
+		else
+			LOGGER.debug("Registration changes a cluster <{}>", clusterInfo.getClusterId());
+		
+		if (!isConnected()) {
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterInfo.getClusterId());
+			return false;
 		}
 		
-		LOGGER.debug("Register new description of cluster <{}>", clusterInfo.getName());
-		return agentConnection.regCluster(clusterInfo);
+		if (!checkAutenticateAgent())
+			return false;
+
+		UUID clusterId;
+		try {
+			clusterId = agentConnection.regCluster(clusterInfo);
+		} catch (Exception excp) {
+			LOGGER.error("Error registraion cluster", excp);
+			throw excp;
+		}
+
+		LOGGER.debug("Registration cluster <{}> succesful", clusterInfo.getClusterId());
+		return true;
 	}
     
     /**

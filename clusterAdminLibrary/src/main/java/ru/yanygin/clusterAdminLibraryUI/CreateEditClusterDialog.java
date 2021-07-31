@@ -262,11 +262,7 @@ public class CreateEditClusterDialog extends Dialog {
 			this.txtSessionFaultToleranceLevel.setText(Integer.toString(clusterInfo.getSessionFaultToleranceLevel()));
 			this.comboLoadBalancingMode.select(clusterInfo.getLoadBalancingMode());
 			
-			if (server.agentVersion.compareTo("8.3.15") < 0) {
-				this.btnClusterRecyclingKillByMemoryWithDump.setEnabled(false);
-				
-				this.btnClusterRecyclingKillByMemoryWithDump.setToolTipText("8.3.15+");
-			} else {
+			if (server.isFifteen()) {
 				this.txtMaxMemorySize.setEditable(false);
 				this.txtMaxMemoryTimeLimit.setEditable(false);
 				this.txtClusterRecyclingErrorsCountThreshold.setEditable(false);
@@ -274,6 +270,10 @@ public class CreateEditClusterDialog extends Dialog {
 				this.txtMaxMemorySize.setToolTipText("deprecated in 8.3.15");
 				this.txtMaxMemoryTimeLimit.setToolTipText("deprecated in 8.3.15");
 				this.txtClusterRecyclingErrorsCountThreshold.setToolTipText("deprecated in 8.3.15");
+			} else {
+				this.btnClusterRecyclingKillByMemoryWithDump.setEnabled(false);
+				
+				this.btnClusterRecyclingKillByMemoryWithDump.setToolTipText("8.3.15+");
 			}
 		
 		}
@@ -302,29 +302,28 @@ public class CreateEditClusterDialog extends Dialog {
 		clusterInfo.setSecurityLevel(securityLevel);
 
 		clusterInfo.setLifeTimeLimit(wpLifeTimeLimit);
-		clusterInfo.setMaxMemorySize(wpMaxMemorySize);
-		clusterInfo.setMaxMemoryTimeLimit(wpMaxMemoryTimeLimit);
-		clusterInfo.setClusterRecyclingErrorsCountThreshold(clusterRecyclingErrorsCountThreshold);
 		clusterInfo.setClusterRecyclingKillProblemProcesses(clusterRecyclingKillProblemProcesses);
 
-		clusterInfo.setClusterRecyclingKillByMemoryWithDump(clusterRecyclingKillByMemoryWithDump); // 8.3.15+
+		if (server.isFifteen())
+			clusterInfo.setClusterRecyclingKillByMemoryWithDump(clusterRecyclingKillByMemoryWithDump); // 8.3.15+
+		else {
+			clusterInfo.setMaxMemorySize(wpMaxMemorySize);
+			clusterInfo.setMaxMemoryTimeLimit(wpMaxMemoryTimeLimit);
+			clusterInfo.setClusterRecyclingErrorsCountThreshold(clusterRecyclingErrorsCountThreshold);
+		}
 
 		clusterInfo.setExpirationTimeout(expirationTimeout);
 		clusterInfo.setSessionFaultToleranceLevel(faultToleranceLevel);
 		clusterInfo.setLoadBalancingMode(loadBalancingMode);
 		
-		if (server.authenticateAgent()) { // перенести в server.regCluster
 
-			try {
-				server.regCluster(clusterInfo);
-			} catch (Exception excp) {
-//				excp.printStackTrace();
-				var messageBox = new MessageBox(getParentShell());
-				messageBox.setMessage(excp.getLocalizedMessage());
-				messageBox.open();
-				return;
-			}
-			close();
+		try {
+			if (server.regCluster(clusterInfo, clusterId == null))
+				close();
+		} catch (Exception excp) {
+			var messageBox = new MessageBox(getParentShell());
+			messageBox.setMessage(excp.getLocalizedMessage());
+			messageBox.open();
 		}
 	}
 
