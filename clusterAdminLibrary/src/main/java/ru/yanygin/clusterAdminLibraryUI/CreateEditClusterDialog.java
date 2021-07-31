@@ -262,7 +262,7 @@ public class CreateEditClusterDialog extends Dialog {
 			this.txtSessionFaultToleranceLevel.setText(Integer.toString(clusterInfo.getSessionFaultToleranceLevel()));
 			this.comboLoadBalancingMode.select(clusterInfo.getLoadBalancingMode());
 			
-			if (server.isFifteen()) {
+			if (server.isFifteenOrOlderAgentVersion()) {
 				this.txtMaxMemorySize.setEditable(false);
 				this.txtMaxMemoryTimeLimit.setEditable(false);
 				this.txtClusterRecyclingErrorsCountThreshold.setEditable(false);
@@ -304,7 +304,7 @@ public class CreateEditClusterDialog extends Dialog {
 		clusterInfo.setLifeTimeLimit(wpLifeTimeLimit);
 		clusterInfo.setClusterRecyclingKillProblemProcesses(clusterRecyclingKillProblemProcesses);
 
-		if (server.isFifteen())
+		if (server.isFifteenOrOlderAgentVersion())
 			clusterInfo.setClusterRecyclingKillByMemoryWithDump(clusterRecyclingKillByMemoryWithDump); // 8.3.15+
 		else {
 			clusterInfo.setMaxMemorySize(wpMaxMemorySize);

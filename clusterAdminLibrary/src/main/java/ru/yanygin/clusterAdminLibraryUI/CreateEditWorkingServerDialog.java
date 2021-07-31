@@ -331,7 +331,13 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		this.btnIsDedicatedManagers.setSelection(serverInfo.isDedicatedManagers());
 		this.btnIsMainServer.setSelection(serverInfo.isMainServer());
 		
-		if (server.agentVersion.compareTo("8.3.15") < 0) {
+		if (server.isFifteenOrOlderAgentVersion()) {
+			this.txtSafeWorkingProcessesMemoryLimit.setEditable(false);
+			this.txtWorkingProcessMemoryLimit.setEditable(false);
+			
+			this.txtSafeWorkingProcessesMemoryLimit.setToolTipText("deprecated in 8.3.15");
+			this.txtWorkingProcessMemoryLimit.setToolTipText("deprecated in 8.3.15");
+		} else {
 			this.txtCriticalProcessesTotalMemory.setEditable(false);
 			this.txtTemporaryAllowedProcessesTotalMemory.setEditable(false);
 			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setEditable(false);
@@ -339,12 +345,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			this.txtCriticalProcessesTotalMemory.setToolTipText("8.3.15+");
 			this.txtTemporaryAllowedProcessesTotalMemory.setToolTipText("8.3.15+");
 			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText("8.3.15+");
-		} else {
-			this.txtSafeWorkingProcessesMemoryLimit.setEditable(false);
-			this.txtWorkingProcessMemoryLimit.setEditable(false);
-			
-			this.txtSafeWorkingProcessesMemoryLimit.setToolTipText("deprecated in 8.3.15");
-			this.txtWorkingProcessMemoryLimit.setToolTipText("deprecated in 8.3.15");
 		}
 			
 		serverInfo.getSafeWorkingProcessesMemoryLimit(); // (8.3.15-)	// максимальный объем памяти рабочих процессов (до 8.3.15)
@@ -429,13 +429,13 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		workingServerInfo.setDedicatedManagers(btnIsDedicatedManagers.getSelection());
 		workingServerInfo.setMainServer(btnIsMainServer.getSelection());
 		
-		if (server.agentVersion.compareTo("8.3.15") < 0) {
-			workingServerInfo.setSafeWorkingProcessesMemoryLimit(Long.parseLong(txtSafeWorkingProcessesMemoryLimit.getText()));
-			workingServerInfo.setWorkingProcessMemoryLimit(Long.parseLong(txtWorkingProcessMemoryLimit.getText()));
-		} else {
+		if (server.isFifteenOrOlderAgentVersion()) {
 			workingServerInfo.setCriticalProcessesTotalMemory(Long.parseLong(txtCriticalProcessesTotalMemory.getText()));
 			workingServerInfo.setTemporaryAllowedProcessesTotalMemory(Long.parseLong(txtTemporaryAllowedProcessesTotalMemory.getText()));
 			workingServerInfo.setTemporaryAllowedProcessesTotalMemoryTimeLimit(Long.parseLong(txtTemporaryAllowedProcessesTotalMemoryTimeLimit.getText()));
+		} else {
+			workingServerInfo.setSafeWorkingProcessesMemoryLimit(Long.parseLong(txtSafeWorkingProcessesMemoryLimit.getText()));
+			workingServerInfo.setWorkingProcessMemoryLimit(Long.parseLong(txtWorkingProcessMemoryLimit.getText()));
 		}
 		
 		try {
