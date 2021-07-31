@@ -1,9 +1,8 @@
 package ru.yanygin.clusterAdminLibrary;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,13 +15,26 @@ import org.slf4j.LoggerFactory;
 
 import com._1c.v8.ibis.admin.AgentAdminException;
 import com._1c.v8.ibis.admin.IAgentAdminConnection;
+import com._1c.v8.ibis.admin.IAssignmentRuleInfo;
 import com._1c.v8.ibis.admin.IClusterInfo;
+import com._1c.v8.ibis.admin.IClusterManagerInfo;
+import com._1c.v8.ibis.admin.IClusterServiceInfo;
 import com._1c.v8.ibis.admin.IInfoBaseConnectionInfo;
 import com._1c.v8.ibis.admin.IInfoBaseConnectionShort;
 import com._1c.v8.ibis.admin.IInfoBaseInfo;
 import com._1c.v8.ibis.admin.IInfoBaseInfoShort;
 import com._1c.v8.ibis.admin.IObjectLockInfo;
 import com._1c.v8.ibis.admin.IRegUserInfo;
+import com._1c.v8.ibis.admin.IResourceConsumptionCounter;
+import com._1c.v8.ibis.admin.IResourceConsumptionCounterValue;
+import com._1c.v8.ibis.admin.IResourceConsumptionLimit;
+import com._1c.v8.ibis.admin.ISecurityProfile;
+import com._1c.v8.ibis.admin.ISecurityProfileAddIn;
+import com._1c.v8.ibis.admin.ISecurityProfileApplication;
+import com._1c.v8.ibis.admin.ISecurityProfileCOMClass;
+import com._1c.v8.ibis.admin.ISecurityProfileExternalModule;
+import com._1c.v8.ibis.admin.ISecurityProfileInternetResource;
+import com._1c.v8.ibis.admin.ISecurityProfileVirtualDirectory;
 import com._1c.v8.ibis.admin.ISessionInfo;
 import com._1c.v8.ibis.admin.IWorkingProcessInfo;
 import com._1c.v8.ibis.admin.IWorkingServerInfo;
@@ -104,7 +116,7 @@ public class Server {
 	
 	private IAgentAdminConnector agentConnector;
 	private IAgentAdminConnection agentConnection;
-	public String agentVersion = "";
+	private String agentVersion = "";
 	
 	public static final String THIN_CLIENT = "1CV8C";
 	public static final String THICK_CLIENT = "1CV8";
@@ -226,7 +238,7 @@ public class Server {
 		}
 	}
 	
-	public boolean isFifteen() {
+	public boolean isFifteenOrOlderAgentVersion() {
 		return agentVersion.compareTo("8.3.15") >= 0;
 	}
 	
@@ -354,12 +366,27 @@ public class Server {
 		
 	}
 	
-	public boolean connectAndAuthenticate(boolean disconnectAfter) {
+	/**
+	 * Checks whether connection to the administration server is established
+	 *
+	 * @return {@code true} if connected, {@code false} overwise
+	 */
+	public boolean isConnected() {
+		boolean isConnected = (agentConnection != null);
+//		if (isConnected)
+//			LOGGER.debug("Server {} is already connected", this.getServerKey()); // засоряет лог
+		
+		if (!isConnected)
+			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
+		
+		return isConnected;
+	}
+	
+	public boolean connectAndAuthenticate(boolean disconnectAfter) { // TODO здесь аутентификации не делается же?
 		LOGGER.debug("Server <{}> start connection", this.getServerKey());
 		
-		if (isConnected()) {
+		if (isConnected())
 			return true;
-		}
 		
 		if (!checkAndRunLocalRAS())
 			return false;
@@ -382,6 +409,11 @@ public class Server {
 		
 	}
 	
+	/**
+	 * Проверяет включено ли использование локального RAS и запускает его
+	 *
+	 * @return {@code true} если локальный RAS выключен либо включен и удачно запустился, {@code false} если локальный RAS включен и не удалось его запустить
+	 */
 	private boolean checkAndRunLocalRAS() {
 		if (!useLocalRas)
 			return true;
@@ -423,6 +455,32 @@ public class Server {
 		return localRASProcess.isAlive();
 	}
 	
+	/**
+	 * Проверяет действительна ли еще авторизация на центральном сервере
+	 * и если нет - запускает процесс авторизации.
+	 *
+	 * @param clusterId cluster ID
+	 * @return boolean истекла/не истекла
+	 */
+	private boolean checkAutenticateAgent() {
+		
+		var needAuthenticate = false;
+		try {
+			LOGGER.debug("Gets the list administrators of server <{}>:<{}>", agentHost, agentPort);
+			agentConnection.getAgentAdmins();
+			return true;
+		} catch (Exception excp) {
+			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage());
+			if (excp.getLocalizedMessage().contains("Недостаточно прав пользователя на управление кластером") ||
+					excp.getLocalizedMessage().contains("Администратор кластера не аутентифицирован")) // TODO учесть английский вариант
+				needAuthenticate = true;
+		}
+		
+		if (needAuthenticate)
+			return authenticateAgent();
+		
+		return false;
+	}
 
 	/**
 	 * Establishes connection with the administration server of 1C:Enterprise server
@@ -435,7 +493,7 @@ public class Server {
 	 * @throws AgentAdminException in the case of errors.
 	 */
 	public void connectToAgent(String address, int port, long timeout) {
-		if (agentConnection != null) {
+		if (isConnected()) {
 			LOGGER.debug("The connection to server <{}> is already established", this.getServerKey());
 			available = true;
 			return;
@@ -460,13 +518,12 @@ public class Server {
 	 * @throws AgentAdminException in the case of errors.
 	 */
 	public void disconnectFromAgent() {
-		if (!isConnected()) {
-//			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
+		if (!isConnected())
 			return;
-		}
 		
 		if (useLocalRas && localRASProcess.isAlive()) {
 			localRASProcess.destroy();
+			LOGGER.info("Local RAS of Server <{}> is shutdown now", this.getServerKey());
 		}
 		
 		try {
@@ -478,22 +535,6 @@ public class Server {
 			agentConnection = null;
 			agentConnector = null;
 		}
-	}
-	
-	/**
-	 * Checks whether connection to the administration server is established
-	 *
-	 * @return {@code true} if connected, {@code false} overwise
-	 */
-	public boolean isConnected() {
-		boolean isConnected = (agentConnection != null);
-//		if (isConnected)
-//			LOGGER.debug("Server {} is already connected", this.getServerKey()); // засоряет лог
-		
-		if (!isConnected)
-			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
-		
-		return isConnected;
 	}
 	
 	/**
@@ -528,7 +569,6 @@ public class Server {
 		return runAuthProcessWithRequestToUser(authDescription, agentUserName, agentPassword, authMethod);
 	}
 	
-
 	/**
 	 * Проверяет действительна ли еще авторизация на кластере
 	 * и если нет - запускает процесс авторизации.
@@ -552,33 +592,6 @@ public class Server {
 		
 		if (needAuthenticate)
 			return authenticateCluster(clusterId);
-		
-		return false;
-	}
-
-	/**
-	 * Проверяет действительна ли еще авторизация на центральном сервере
-	 * и если нет - запускает процесс авторизации.
-	 *
-	 * @param clusterId cluster ID
-	 * @return boolean истекла/не истекла
-	 */
-	private boolean checkAutenticateAgent() {
-		
-		var needAuthenticate = false;
-		try {
-			LOGGER.debug("Gets the list administrators of server <{}>:<{}>", agentHost, agentPort);
-			agentConnection.getAgentAdmins();
-			return true;
-		} catch (Exception excp) {
-			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage());
-			if (excp.getLocalizedMessage().contains("Недостаточно прав пользователя на управление кластером") ||
-					excp.getLocalizedMessage().contains("Администратор кластера не аутентифицирован")) // TODO учесть английский вариант
-				needAuthenticate = true;
-		}
-		
-		if (needAuthenticate)
-			return authenticateAgent();
 		
 		return false;
 	}
@@ -682,14 +695,14 @@ public class Server {
 	 * @param password  infobase administrator password
 	 */
 	public void addInfobaseCredentials(UUID clusterId, String userName, String password) {
-		if (agentConnection == null)
-			throw new IllegalStateException("The connection is not established.");
+		if (!isConnected())
+			return;
 		
 //		String clusterName = getClusterInfo(clusterId).getName();
-		LOGGER.debug("Add new infobase credentials for the cluster <{}> of server <{}>", clusterId,
-				this.getServerKey());
 		
 		agentConnection.addAuthentication(clusterId, userName, password);
+		LOGGER.debug("Add new infobase credentials for the cluster <{}> of server <{}>", clusterId,
+				this.getServerKey());
 		
 	}
 	
@@ -699,26 +712,44 @@ public class Server {
 	 * @return list of cluster descriptions
 	 */
 	public List<IClusterInfo> getClusters() {
-		if (agentConnection == null) {
-			throw new IllegalStateException("The connection is not established.");
-		}
+		if (!isConnected())
+			return new ArrayList<>();
 		
 		LOGGER.debug("Get the list of cluster descriptions registered on the central server <{}>", this.getServerKey());
 		List<IClusterInfo> clusters = agentConnection.getClusters();
 		
-		// кеширование имен кластеров для окна настроек
-//		clustersNameCashe.clear();
-		clusters.forEach(cluster -> {
-//			clustersNameCashe.put(cluster.getClusterId(), cluster.getName());
-			
+		boolean needSaveConfig = false;
+//		clusters.forEach(cluster -> {
+//			
+//			LOGGER.debug("\tCluster: name=<{}>, ID=<{}>, host:port=<{}:{}>",
+//					cluster.getName(), cluster.getClusterId(), cluster.getHostName(), cluster.getMainPort());
+//			
+//			// обновление имени кластера в кеше credentials
+//			if (saveCredentials) {
+//				String[] credentialClustersCashe = credentialsClustersCashe.get(cluster.getClusterId());
+//				if (credentialClustersCashe != null && credentialClustersCashe[2] != cluster.getName()) {
+//					credentialClustersCashe[2] = cluster.getName();
+//					needSaveConfig = true;
+//				}
+//			}
+//		});
+		
+		for (IClusterInfo cluster : clusters) {
 			LOGGER.debug("\tCluster: name=<{}>, ID=<{}>, host:port=<{}:{}>",
 					cluster.getName(), cluster.getClusterId(), cluster.getHostName(), cluster.getMainPort());
 			
 			// обновление имени кластера в кеше credentials
-			String[] credentialClustersCashe = credentialsClustersCashe.get(cluster.getClusterId());
-			if (credentialClustersCashe != null)
-				credentialClustersCashe[2] = cluster.getName();
-		});
+			if (saveCredentials) {
+				String[] credentialClustersCashe = credentialsClustersCashe.get(cluster.getClusterId());
+				if (credentialClustersCashe != null && !credentialClustersCashe[2].equals(cluster.getName())) {
+					credentialClustersCashe[2] = cluster.getName();
+					needSaveConfig = true;
+				}
+			}
+		}
+		if (needSaveConfig) {
+			// TODO надо сохранить
+		}
 		
 		return clusters;
 	}
@@ -730,12 +761,70 @@ public class Server {
 	 * @return cluster descriptions
 	 */
 	public IClusterInfo getClusterInfo(UUID clusterId) {
-		if (agentConnection == null) {
-			throw new IllegalStateException("The connection is not established.");
-		}
+		if (!isConnected())
+			return null;
 		
 		LOGGER.debug("Get the cluster <{}> descriptions", clusterId);
-		return agentConnection.getClusterInfo(clusterId);
+		
+		IClusterInfo clusterInfo;
+		try {
+			clusterInfo = agentConnection.getClusterInfo(clusterId); //TODO debug
+		} catch (Exception excp) {
+			LOGGER.error("Error get the cluster descriptions", excp);
+			return null;
+		}
+
+		LOGGER.debug("Get the cluster descriptions succesful");
+		return clusterInfo;
+	}
+	
+	/**
+	 * Gets the list of cluster manager descriptions.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId cluster ID
+	 * @return cluster descriptions
+	 */
+	public List<IClusterManagerInfo> getClusterManagers(UUID clusterId) {
+		if (!isConnected())
+			return null;
+		
+		LOGGER.debug("Get the cluster <{}> descriptions", clusterId);
+		
+		try {
+			agentConnection.getClusterManagers(clusterId); //TODO debug
+		} catch (Exception excp) {
+			LOGGER.error("Error get the cluster descriptions", excp);
+			return null;
+		}
+
+		LOGGER.debug("Get the cluster descriptions succesful");
+		return agentConnection.getClusterManagers(clusterId); //TODO
+	}
+	
+	/**
+	 * Gets a cluster manager description.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId cluster ID
+	 * @return cluster descriptions
+	 */
+	public IClusterManagerInfo getClusterManagerInfo(UUID clusterId, UUID managerId) {
+		if (!isConnected())
+			return null;
+		
+		LOGGER.debug("Get the cluster manager <{}> descriptions of cluster  <{}>", managerId, clusterId);
+		
+		IClusterManagerInfo clusterManagerInfo;
+		try {
+			clusterManagerInfo = agentConnection.getClusterManagerInfo(clusterId, managerId); //TODO debug
+		} catch (Exception excp) {
+			LOGGER.error("Error get the cluster descriptions", excp);
+			return null;
+		}
+
+		LOGGER.debug("Get the cluster descriptions succesful");
+		return clusterManagerInfo;
 	}
 	
 	/**
@@ -745,7 +834,7 @@ public class Server {
 	 * @return cluster descriptions
 	 */
 	public boolean regCluster(IClusterInfo clusterInfo, boolean registrationNewCluster) {
-		if (registrationNewCluster)
+		if (registrationNewCluster) // TODO clusterInfo.getClusterId() == null ???
 			LOGGER.debug("Registration new cluster <{}>", clusterInfo.getClusterId());
 		else
 			LOGGER.debug("Registration changes a cluster <{}>", clusterInfo.getClusterId());
@@ -758,9 +847,8 @@ public class Server {
 		if (!checkAutenticateAgent())
 			return false;
 
-		UUID clusterId;
 		try {
-			clusterId = agentConnection.regCluster(clusterInfo);
+			agentConnection.regCluster(clusterInfo);
 		} catch (Exception excp) {
 			LOGGER.error("Error registraion cluster", excp);
 			throw excp;
@@ -802,6 +890,44 @@ public class Server {
 		}
 		
 		return unregSuccesful;
+	}
+	
+	/**
+	 * Gets the list of cluster administrators.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId cluster ID
+	 * @return list of cluster administrators
+	 */
+	public List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
+		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId);
+		if (!isConnected()) {
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			return new ArrayList<>();
+		}
+		
+		// TODO
+		return null;
+		
+	}
+	
+	/**
+	 * Deletes a cluster administrator.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId cluster ID
+	 * @return list of cluster administrators
+	 */
+	public void unregClusterAdmin(UUID clusterId, String name) {
+		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId);
+		if (!isConnected()) {
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			return;
+		}
+		
+		// TODO
+		return;
+		
 	}
 	
 	/**
@@ -1024,7 +1150,7 @@ public class Server {
 	
 	/**
 	 * Changes short infobase description.
-	 * Infobase authentication is required
+	 * Cluster authentication is required.
 	 *
 	 * @param clusterId cluster ID
 	 * @param info      infobase parameters
@@ -1034,7 +1160,7 @@ public class Server {
 			throw new IllegalStateException("The connection is not established.");
 		}
 		
-		agentConnection.updateInfoBaseShort(clusterId, info);
+		agentConnection.updateInfoBaseShort(clusterId, info); // TODO debug
 	}
 	
 	/**
@@ -1052,7 +1178,7 @@ public class Server {
 		
 		agentConnection.addAuthentication(clusterId, "", "");
 		
-		agentConnection.updateInfoBase(clusterId, info);
+		agentConnection.updateInfoBase(clusterId, info); // TODO debug
 	}
 	
 	/**
@@ -1072,7 +1198,7 @@ public class Server {
 			throw new IllegalStateException("The connection is not established.");
 		}
 		
-		agentConnection.dropInfoBase(clusterId, infobaseId, dropMode);
+		agentConnection.dropInfoBase(clusterId, infobaseId, dropMode); // TODO debug
 	}
 	
 	/**
@@ -1107,6 +1233,39 @@ public class Server {
 		
 		LOGGER.debug("Get the list of cluster session descriptions succesful");
 		return sessions;
+		
+	}
+	
+	/**
+	 * Gets a session description.
+	 * Cluster authentication is required
+	 *
+	 * @param clusterId cluster ID
+	 * @return List of session descriptions
+	 */
+	public ISessionInfo getSessionInfo(UUID clusterId, UUID sid) {
+		LOGGER.debug("Gets a session <{}> description in the cluster <{}>", sid, clusterId);
+		if (!isConnected()) {
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			return null;
+		}
+		
+		if (!checkAutenticateCluster(clusterId))
+			return null;
+		
+		ISessionInfo sessionInfo;
+		try {
+			sessionInfo = agentConnection.getSessionInfo(clusterId, sid); // TODO debug
+		} catch (Exception excp) {
+			LOGGER.error("Error get the list of cluster session descriptions", excp);
+			return null;
+//			throw new IllegalStateException("Error get list of cluster session descriptions");
+		}
+		LOGGER.debug("\tSession: application name=<{}>, session ID=<{}>",
+				getApplicationName(sessionInfo.getAppId()), sessionInfo.getSessionId());
+		
+		LOGGER.debug("Get the list of cluster session descriptions succesful");
+		return sessionInfo;
 		
 	}
 	
@@ -1169,6 +1328,7 @@ public class Server {
 	
 	/**
 	 * Terminates a session in the cluster with default message.
+	 * Cluster authentication is required.
 	 *
 	 * @param clusterId cluster ID
 	 * @param sessionId infobase ID
@@ -1176,11 +1336,12 @@ public class Server {
 	 */
 	public void terminateSession(UUID clusterId, UUID sessionId) {
 		terminateSession(clusterId, sessionId, "Your session was interrupted by the administrator");
+		// TODO оказывается есть две перегрузки метода
 	}
 	
 	/**
 	 * Terminates a session in the cluster.
-	 * Cluster authentication is required
+	 * Cluster authentication is required.
 	 *
 	 * @param clusterId cluster ID
 	 * @param sessionId infobase ID
@@ -1243,43 +1404,100 @@ public class Server {
 		return appName.equals(THIN_CLIENT) || appName.equals(THICK_CLIENT);
 	}
 	
+	/**
+	 * Gets the list of short descriptions of cluster connections.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */	
 	public List<IInfoBaseConnectionShort> getConnectionsShort(UUID clusterId) {
 		if (isConnected())
 			return agentConnection.getConnectionsShort(clusterId);
-		
+		// TODO
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets a short description of a connection.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param connectionId  connection ID
+	 * @return infobase full infobase description
+	 */	
+	public IInfoBaseConnectionShort getConnectionInfoShort(UUID clusterId, UUID connectionId) {
+		if (isConnected())
+			return agentConnection.getConnectionInfoShort(clusterId, connectionId);
+		// TODO
+		return null;
+	}
+	
+	/**
+	 * Gets the list of short descriptions of infobase connections. 
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param infobaseId infobase ID
+	 * @return infobase full infobase description
+	 */	
 	public List<IInfoBaseConnectionShort> getInfoBaseConnectionsShort(UUID clusterId, UUID infobaseId) {
 		if (isConnected())
 			return agentConnection.getInfoBaseConnectionsShort(clusterId, infobaseId);
-		
+		// TODO
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets the list of infobase connection descriptions for a working process.
+	 * Cluster authentication is required.
+	 * Infobase authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param infobaseId infobase ID
+	 * @return infobase full infobase description
+	 */	
 	public List<IInfoBaseConnectionInfo> getInfoBaseConnections(UUID clusterId, UUID processId, UUID infobaseId) {
 		if (isConnected())
 			return agentConnection.getInfoBaseConnections(clusterId, processId, infobaseId);
-		
+		// TODO
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Closes an infobase connection.
+	 * Cluster authentication is required.
+	 * Infobase authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param processId working process ID
+	 * @param connectionId connection ID
+	 * @return infobase full infobase description
+	 */	
 	public void disconnectConnection(UUID clusterId, UUID processId, UUID connectionId) {
 		if (isConnected())
 			agentConnection.disconnect(clusterId, processId, connectionId);
-		
+		// TODO
+	}
+	
+	/**
+	 * Interrupt current server call.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param processId working process ID
+	 * @param connectionId connection ID
+	 * @return infobase full infobase description
+	 */	
+	public void interruptCurrentServerCall(UUID clusterId, UUID sid, String message) {
+		if (isConnected())
+			agentConnection.interruptCurrentServerCall(clusterId, sid, message);
+		// TODO
 	}
 	
 	public List<IInfoBaseConnectionShort> getWorkingProcessConnectionsShort(UUID clusterId, UUID workingProcessId) {
 		if (isConnected()) {
-//			List<IInfoBaseConnectionShort> clusterConnections = agentConnection.getConnectionsShort(clusterId);
-////			List<IInfoBaseConnectionShort> wpConnections = new ArrayList<>();
-////			clusterConnections.forEach(connection -> {
-////				if (connection.getWorkingProcessId().equals(wpID))
-////					wpConnections.add(connection);
-////			});
-////			return wpConnections;
-			
+
 			return agentConnection.getConnectionsShort(clusterId)
 					.stream()
 					.filter(c -> c.getWorkingProcessId().equals(workingProcessId))
@@ -1290,34 +1508,72 @@ public class Server {
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets the list of object locks.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public List<IObjectLockInfo> getLocks(UUID clusterId) {
 		if (isConnected())
 			return agentConnection.getLocks(clusterId);
-		
+		// TODO
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets the list of infobase object locks.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public List<IObjectLockInfo> getInfoBaseLocks(UUID clusterId, UUID infobaseId) {
 		if (isConnected())
 			return agentConnection.getInfoBaseLocks(clusterId, infobaseId);
+		// TODO
 		
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets the list of connection object locks.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public List<IObjectLockInfo> getConnectionLocks(UUID clusterId, UUID connectionId) {
 		if (isConnected())
 			return agentConnection.getConnectionLocks(clusterId, connectionId);
+		// TODO
 		
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets the list of session object locks.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public List<IObjectLockInfo> getSessionLocks(UUID clusterId, UUID infobaseId, UUID sid) {
 		if (isConnected())
 			return agentConnection.getSessionLocks(clusterId, infobaseId, sid);
+		// TODO
 		
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets the list of descriptions of working processes registered in the cluster.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public List<IWorkingProcessInfo> getWorkingProcesses(UUID clusterId) {
 		if (!isConnected())
 			return new ArrayList<>();
@@ -1328,7 +1584,7 @@ public class Server {
 		List<IWorkingProcessInfo> workingProcesses;
 		try {
 			LOGGER.debug("Gets the list of descriptions of working processes registered in the cluster <{}>", clusterId);
-			workingProcesses = agentConnection.getWorkingProcesses(clusterId);
+			workingProcesses = agentConnection.getWorkingProcesses(clusterId); // TODO debug
 		} catch (Exception excp) {
 			LOGGER.error("Error get the list of short descriptions of working processes", excp);
 			throw new IllegalStateException("Error get working processes");
@@ -1341,23 +1597,44 @@ public class Server {
 		return workingProcesses;
 	}
 	
+	/**
+	 * Gets a working server description.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public IWorkingProcessInfo getWorkingProcessInfo(UUID clusterId, UUID processId) {
 		
 		if (agentConnection == null) {
 			throw new IllegalStateException("The connection is not established.");
 		}
-		
+		 // TODO 
 //		if (isConnected())
 		return agentConnection.getWorkingProcessInfo(clusterId, processId);
 	}
 	
+	/**
+	 * Gets the list of descriptions of working processes of a working server.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public List<IWorkingProcessInfo> getServerWorkingProcesses(UUID clusterId, UUID serverId) {
 		if (isConnected())
 			return agentConnection.getServerWorkingProcesses(clusterId, serverId);
-		
+		 // TODO 
 		return new ArrayList<>();
 	}
 	
+	/**
+	 * Gets the list of descriptions of working servers registered in the cluster.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public List<IWorkingServerInfo> getWorkingServers(UUID clusterId) {
 		if (!isConnected())
 			return new ArrayList<>();
@@ -1368,7 +1645,7 @@ public class Server {
 		List<IWorkingServerInfo> workingServers;
 		try {
 			LOGGER.debug("Gets the list of descriptions of working servers registered in the cluster <{}>", clusterId);
-			workingServers = agentConnection.getWorkingServers(clusterId);
+			workingServers = agentConnection.getWorkingServers(clusterId); // TODO debug
 		} catch (Exception excp) {
 			LOGGER.error("Error get the list of descriptions of working servers", excp);
 			throw new IllegalStateException("Error get working servers");
@@ -1381,6 +1658,13 @@ public class Server {
 		return workingServers;
 	}
 	
+	/**
+	 * Gets a description of a working server registered in the cluster.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public IWorkingServerInfo getWorkingServerInfo(UUID clusterId, UUID serverId) {
 		if (!isConnected())
 			return null;
@@ -1391,7 +1675,7 @@ public class Server {
 		IWorkingServerInfo workingServerInfo;
 		try {
 			LOGGER.debug("Gets the description of working server <{}> registered in the cluster <{}>", serverId, clusterId);
-			workingServerInfo = agentConnection.getWorkingServerInfo(clusterId, serverId);
+			workingServerInfo = agentConnection.getWorkingServerInfo(clusterId, serverId); // TODO debug
 		} catch (Exception excp) {
 			LOGGER.error("Error get the list of descriptions of working server", excp);
 			throw new IllegalStateException("Error get working server");
@@ -1403,6 +1687,13 @@ public class Server {
 		return workingServerInfo;
 	}
 	
+	/**
+	 * Creates a working server or changes the description of an existing one.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @return infobase full infobase description
+	 */
 	public boolean regWorkingServer(UUID clusterId, IWorkingServerInfo serverInfo, boolean createNew) {
 		if (!isConnected())
 			return false;
@@ -1415,7 +1706,7 @@ public class Server {
 		
 		try {
 			LOGGER.debug("Registration working server <{}> registered in the cluster <{}>", serverInfo.getName(), clusterId);
-			agentConnection.regWorkingServer(clusterId, serverInfo);
+			agentConnection.regWorkingServer(clusterId, serverInfo); // TODO debug
 		} catch (Exception excp) {
 			LOGGER.error("Error registration working server", excp);
 			throw excp;
@@ -1427,5 +1718,500 @@ public class Server {
 		LOGGER.debug("Registration working server succesful");
 		return true;
 	}
+	
+	/**
+	 * Deletes a working server and removes its cluster registration.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public boolean unregWorkingServer(UUID clusterId, UUID serverId) {
+		if (!isConnected())
+			return false;
+		
+		if (!checkAutenticateCluster(clusterId))
+			return false;
+		
+		try {
+			LOGGER.debug("Deletes a working server <{}> from the cluster <{}>", serverId, clusterId);
+			agentConnection.unregWorkingServer(clusterId, serverId); // TODO debug
+		} catch (Exception excp) {
+			LOGGER.error("Error registration working server", excp);
+			throw excp;
+		}
+		
+		LOGGER.debug("Registration working server succesful");
+		return true;
+	}
+	
+	/**
+	 * Gets the list of cluster service descriptions.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<IClusterServiceInfo> getClusterServices(UUID clusterId) {
+		return null; //TODO
+		
+	}
+	
+	/**
+	 * Applies assignment rules.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void applyAssignmentRules(UUID clusterId, int full) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of descriptions of working server assignment rules.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<IAssignmentRuleInfo> getAssignmentRules(UUID clusterId, UUID serverId) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates an assignment rule, changes an existing one, or moves an existing rule to a new position.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public UUID regAssignmentRule(UUID clusterId, UUID serverId, IAssignmentRuleInfo info, int position) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Deletes an assignment rule from the list of working server rules.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void unregAssignmentRule(UUID clusterId, UUID serverId, UUID ruleId) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets an assignment rule description.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public IAssignmentRuleInfo getAssignmentRuleInfo(UUID clusterId, UUID serverId, UUID ruleId) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Gets the list of cluster security profiles.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<ISecurityProfile> getSecurityProfiles(UUID clusterId) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates a cluster security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void createSecurityProfile(UUID clusterId, ISecurityProfile profile) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void dropSecurityProfile(UUID clusterId, String spName) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of virtual directories of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<ISecurityProfileVirtualDirectory> getSecurityProfileVirtualDirectories(UUID clusterId, String spName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates a virtual directory of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void createSecurityProfileVirtualDirectory(UUID clusterId, ISecurityProfileVirtualDirectory directory) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes a virtual directory of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void dropSecurityProfileVirtualDirectory(UUID clusterId, String spName, String alias) {
+		return; //TODO
+	}
+	
+	
+	/**
+	 * Gets the list of allowed COM classes of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<ISecurityProfileCOMClass> getSecurityProfileComClasses(UUID clusterId, String spName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates an allowed COM class of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void createSecurityProfileComClass(UUID clusterId, ISecurityProfileCOMClass comClass) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes an allowed COM class of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void dropSecurityProfileComClass(UUID clusterId, String spName, String name) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of allowed add-ins of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<ISecurityProfileAddIn> getSecurityProfileAddIns(UUID clusterId, String spName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates an allowed add-in of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void createSecurityProfileAddIn(UUID clusterId, ISecurityProfileAddIn addIn) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes an allowed add-in of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void dropSecurityProfileAddIn(UUID clusterId, String spName, String name) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of allowed unsafe external modules of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<ISecurityProfileExternalModule> getSecurityProfileUnsafeExternalModules(UUID clusterId, String spName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates an allowed unsafe external module of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void createSecurityProfileUnsafeExternalModule(UUID clusterId, ISecurityProfileExternalModule module) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes an allowed unsafe external module of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void dropSecurityProfileUnsafeExternalModule(UUID clusterId, String spName, String name) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of allowed applications of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<ISecurityProfileApplication> getSecurityProfileApplications(UUID clusterId, String spName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates an allowed application of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void createSecurityProfileApplication(UUID clusterId, ISecurityProfileApplication app) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes an allowed application of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void dropSecurityProfileApplication(UUID clusterId, String spName, String name) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of Internet resources of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<ISecurityProfileInternetResource> getSecurityProfileInternetResources(UUID clusterId, String spName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates an Internet resource of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void createSecurityProfileInternetResource(UUID clusterId, ISecurityProfileInternetResource resource) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes an Internet resource of a security profile.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void dropSecurityProfileInternetResource(UUID clusterId, String spName, String name) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of resource counters.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<IResourceConsumptionCounter> getResourceConsumptionCounters(UUID clusterId) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Gets resource counters description.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public IResourceConsumptionCounter getResourceConsumptionCounterInfo(UUID clusterId, String counterName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates a resource counter.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void regResourceConsumptionCounter(UUID clusterId, IResourceConsumptionCounter counter) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes a resource counter
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void unregResourceConsumptionCounter(UUID clusterId, String counterName) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of resource limits.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public List<IResourceConsumptionLimit> getResourceConsumptionLimits(UUID clusterId) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Gets resource limits description
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public IResourceConsumptionLimit getResourceConsumptionLimitInfo(UUID clusterId, String limitName) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Creates or updates a resource limit.
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param serverId  server ID
+	 * @return infobase full infobase description
+	 */
+	public void regResourceConsumptionLimit(UUID clusterId, IResourceConsumptionLimit limit) {
+		return; //TODO
+	}
+	
+	/**
+	 * Deletes a resource limits
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param limitName  limit name
+	 */
+	public void unregResourceConsumptionLimit(UUID clusterId, String limitName) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of resource counter values
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param counterName  counterName
+	 * @param object  object
+	 * @return list of resource counter values
+	 */
+	public List<IResourceConsumptionCounterValue> getResourceConsumptionCounterValues(UUID clusterId, String counterName, String object) {
+		return null; //TODO
+	}
+	
+	/**
+	 * Deletes a resource counter values
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param counterName  counterName
+	 * @param object  object
+	 */
+	public void clearResourceConsumptionCounterAccumulatedValues(UUID clusterId, String counterName, String object) {
+		return; //TODO
+	}
+	
+	/**
+	 * Gets the list of resource counter accumulated values
+	 * Cluster authentication is required.
+	 *
+	 * @param clusterId  cluster ID
+	 * @param counterName  counterName
+	 * @param object  object
+	 * @return ist of resource counter accumulated values
+	 */
+	public List<IResourceConsumptionCounterValue> getResourceConsumptionCounterAccumulatedValues(UUID clusterId, String counterName, String object) {
+		return null; //TODO
+	}
+
+	
+	
+	
+	
+	
+	
+	
+	
 	
 }
