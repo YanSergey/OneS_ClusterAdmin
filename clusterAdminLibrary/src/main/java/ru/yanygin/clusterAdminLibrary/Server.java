@@ -112,7 +112,7 @@ public class Server {
 	public String connectionError;
 	
 	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary");
-	private UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
+	private static UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
 	
 	private IAgentAdminConnector agentConnector;
 	private IAgentAdminConnection agentConnection;
@@ -208,7 +208,7 @@ public class Server {
 		
 	}
 	
-	public String getServerDescription() {
+	public String getDescription() {
 
 		String serverDescriptionPattern;
 		String serverDescription;
@@ -471,8 +471,8 @@ public class Server {
 			return true;
 		} catch (Exception excp) {
 			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage());
-			if (excp.getLocalizedMessage().contains("Ќедостаточно прав пользовател€ на управление кластером") ||
-					excp.getLocalizedMessage().contains("јдминистратор кластера не аутентифицирован")) // TODO учесть английский вариант
+			if (excp.getLocalizedMessage().contains("Ќедостаточно прав пользовател€ на управление центральным сервером") ||
+					excp.getLocalizedMessage().contains("јдминистратор центрального сервера не аутентифицирован")) // TODO учесть английский вариант
 				needAuthenticate = true;
 		}
 		
@@ -564,7 +564,7 @@ public class Server {
 			}
 			
 		};
-		String authDescription = "Authentication of the Central server administrator Agent";
+		String authDescription = String.format("Authentication of the Central server administrator <%s:%s>", agentHost, agentPort);
 		
 		return runAuthProcessWithRequestToUser(authDescription, agentUserName, agentPassword, authMethod);
 	}
@@ -580,11 +580,12 @@ public class Server {
 		
 		var needAuthenticate = false;
 		try {
-			LOGGER.debug("Gets the list of cluster <{}> administrators", clusterId);
+			LOGGER.debug("Check autenticate of cluster <{}>", clusterId);
 			agentConnection.getClusterAdmins(clusterId);
+			LOGGER.debug("Autenticate succesfil");
 			return true;
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of of cluster administrators: <{}>", excp.getLocalizedMessage());
+			LOGGER.error("Error autenticate of cluster: <{}>", excp.getLocalizedMessage());
 			if (excp.getLocalizedMessage().contains("Ќедостаточно прав пользовател€ на управление кластером") ||
 					excp.getLocalizedMessage().contains("јдминистратор кластера не аутентифицирован")) // TODO учесть английский вариант
 				needAuthenticate = true;
@@ -629,7 +630,7 @@ public class Server {
 		};
 		
 		String[] userAndPassword = credentialsClustersCashe.getOrDefault(clusterId, new String[] { "", "" });
-		String authDescription = "Authentication of the server cluster administrator";
+		String authDescription = String.format("Authentication of the server cluster administrator <%s>", getClusterInfo(clusterId).getName());
 		
 		return runAuthProcessWithRequestToUser(authDescription, userAndPassword[0], userAndPassword[1], authMethod);
 		
@@ -716,24 +717,16 @@ public class Server {
 			return new ArrayList<>();
 		
 		LOGGER.debug("Get the list of cluster descriptions registered on the central server <{}>", this.getServerKey());
-		List<IClusterInfo> clusters = agentConnection.getClusters();
+		
+		List<IClusterInfo> clusters;
+		try {
+			clusters = agentConnection.getClusters();
+		} catch (Exception excp) {
+			LOGGER.error("Error get of the list of cluster descriptions", excp.getLocalizedMessage());
+			return new ArrayList<>();
+		}
 		
 		boolean needSaveConfig = false;
-//		clusters.forEach(cluster -> {
-//			
-//			LOGGER.debug("\tCluster: name=<{}>, ID=<{}>, host:port=<{}:{}>",
-//					cluster.getName(), cluster.getClusterId(), cluster.getHostName(), cluster.getMainPort());
-//			
-//			// обновление имени кластера в кеше credentials
-//			if (saveCredentials) {
-//				String[] credentialClustersCashe = credentialsClustersCashe.get(cluster.getClusterId());
-//				if (credentialClustersCashe != null && credentialClustersCashe[2] != cluster.getName()) {
-//					credentialClustersCashe[2] = cluster.getName();
-//					needSaveConfig = true;
-//				}
-//			}
-//		});
-		
 		for (IClusterInfo cluster : clusters) {
 			LOGGER.debug("\tCluster: name=<{}>, ID=<{}>, host:port=<{}:{}>",
 					cluster.getName(), cluster.getClusterId(), cluster.getHostName(), cluster.getMainPort());
@@ -833,9 +826,9 @@ public class Server {
 	 *
 	 * @return cluster descriptions
 	 */
-	public boolean regCluster(IClusterInfo clusterInfo, boolean registrationNewCluster) {
-		if (registrationNewCluster) // TODO clusterInfo.getClusterId() == null ???
-			LOGGER.debug("Registration new cluster <{}>", clusterInfo.getClusterId());
+	public boolean regCluster(IClusterInfo clusterInfo) {
+		if (clusterInfo.getClusterId().equals(emptyUuid))
+			LOGGER.debug("Registration new cluster <{}>", clusterInfo.getName());
 		else
 			LOGGER.debug("Registration changes a cluster <{}>", clusterInfo.getClusterId());
 		
@@ -847,14 +840,18 @@ public class Server {
 		if (!checkAutenticateAgent())
 			return false;
 
+		UUID newClusterId;
 		try {
-			agentConnection.regCluster(clusterInfo);
+			newClusterId = agentConnection.regCluster(clusterInfo);
 		} catch (Exception excp) {
 			LOGGER.error("Error registraion cluster", excp);
 			throw excp;
 		}
 
-		LOGGER.debug("Registration cluster <{}> succesful", clusterInfo.getClusterId());
+		if (clusterInfo.getClusterId().equals(emptyUuid))
+			LOGGER.debug("Registration new cluster <{}> succesful", newClusterId);
+		else
+			LOGGER.debug("Registration changes a cluster <{}> succesful", clusterInfo.getClusterId());
 		return true;
 	}
     
@@ -1477,7 +1474,7 @@ public class Server {
 	public void disconnectConnection(UUID clusterId, UUID processId, UUID connectionId) {
 		if (isConnected())
 			agentConnection.disconnect(clusterId, processId, connectionId);
-		// TODO
+		// TODO debug
 	}
 	
 	/**

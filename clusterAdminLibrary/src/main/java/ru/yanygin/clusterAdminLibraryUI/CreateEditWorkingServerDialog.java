@@ -274,18 +274,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		new Label(container, SWT.NONE);
 
 		initServerProperties();
-
-		// У уже созданного кластера запрещено менять хост и порт
-		if (workingServerId != null) {
-			txtServerName.setEditable(false);
-			txtComputerName.setEditable(false);
-			txtIPPort.setEditable(false);
-//			txtIPPortMainManager.setEditable(false);
-		} else {
-			// Новому серверу запрещено сразу ставить галочку Центральный сервер?
-			txtIPPortMainManager.setText("<auto>");
-		}
-		txtIPPortMainManager.setEditable(false);
 		
 		return container;
 	}
@@ -293,7 +281,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	private void initServerProperties() {
 		IWorkingServerInfo serverInfo;
 		
-		if (workingServerId != null) {
+		if (workingServerId != null) { // Редактируем существующий рабочий сервер
 			serverInfo = server.getWorkingServerInfo(clusterId, workingServerId);
 			
 			this.txtServerName.setText(serverInfo.getName());
@@ -306,7 +294,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			this.txtInfoBasesPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getInfoBasesPerWorkingProcessLimit()));
 			this.txtConnectionsPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getConnectionsPerWorkingProcessLimit()));
 			
-		} else {
+		} else { // Создаем новый рабочий сервер
 			serverInfo = new WorkingServerInfo();
 			
 			this.txtServerName.setText("");
@@ -317,7 +305,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			this.txtConnectionsPerWorkingProcessLimit.setText("128");
 		}
 		
-		// Common properties
 		this.txtIPPort.setText(Integer.toString(serverInfo.getMainPort()));
 		
 		this.txtSafeWorkingProcessesMemoryLimit.setText(String.valueOf(serverInfo.getSafeWorkingProcessesMemoryLimit()));
@@ -331,7 +318,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		this.btnIsDedicatedManagers.setSelection(serverInfo.isDedicatedManagers());
 		this.btnIsMainServer.setSelection(serverInfo.isMainServer());
 		
-		if (server.isFifteenOrOlderAgentVersion()) {
+		if (server.isFifteenOrOlderAgentVersion()) { // 8.3.15+
 			this.txtSafeWorkingProcessesMemoryLimit.setEditable(false);
 			this.txtWorkingProcessMemoryLimit.setEditable(false);
 			
@@ -347,31 +334,41 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText("8.3.15+");
 		}
 			
-		serverInfo.getSafeWorkingProcessesMemoryLimit(); // (8.3.15-)	// максимальный объем памяти рабочих процессов (до 8.3.15)
-		serverInfo.getSafeCallMemoryLimit(); 							// безопасный расход памяти за один вызов (c 8.3.15 находится первым в группе)
-		serverInfo.getWorkingProcessMemoryLimit();		 // (8.3.15-)	// объем памяти рабочих процессов, до которого сервер считается производительным (до 8.3.15)
-		serverInfo.getCriticalProcessesTotalMemory(); 					// критический объем памяти процессов (c 8.3.15+)
-		serverInfo.getTemporaryAllowedProcessesTotalMemory(); 			// временно допустимый объем памяти процессов (c 8.3.15+)
-		serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit();	// интервал превышения допустимомо объема памяти процессов (c 8.3.15+)
-			
+//		serverInfo.getSafeWorkingProcessesMemoryLimit(); // (8.3.15-)	// максимальный объем памяти рабочих процессов (до 8.3.15)
+//		serverInfo.getSafeCallMemoryLimit(); 							// безопасный расход памяти за один вызов (c 8.3.15 находится первым в группе)
+//		serverInfo.getWorkingProcessMemoryLimit();		 // (8.3.15-)	// объем памяти рабочих процессов, до которого сервер считается производительным (до 8.3.15)
+//		serverInfo.getCriticalProcessesTotalMemory(); 					// критический объем памяти процессов (c 8.3.15+)
+//		serverInfo.getTemporaryAllowedProcessesTotalMemory(); 			// временно допустимый объем памяти процессов (c 8.3.15+)
+//		serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit();	// интервал превышения допустимомо объема памяти процессов (c 8.3.15+)
 		
+		if (workingServerId != null) { // У уже созданного кластера запрещено менять хост и порт
+			txtServerName.setEditable(false);
+			txtComputerName.setEditable(false);
+			txtIPPort.setEditable(false);
+		} else {
+			btnIsMainServer.setEnabled(false); // Новому серверу запрещено сразу ставить галочку Центральный сервер?
+			txtIPPortMainManager.setText("<auto>");
+		}
+		txtIPPortMainManager.setEditable(false);
+	
 	}
 
 	private void resetToProf() {
+		// TODO
 //		this.comboLoadBalancingMode.select(0);
 	}
 
-	private boolean checkClusterVariablesFromControls() {
+	private boolean checkVariablesFromControls() {
 		
 		var existsError = false;
 		
-		List<Text> checksControls = new ArrayList<>();
-		checksControls.add(txtServerName);
-		checksControls.add(txtComputerName);
-		checksControls.add(txtIPPort);
-		checksControls.add(txtPortRange);
+		List<Text> checksTextControls = new ArrayList<>();
+		checksTextControls.add(txtServerName);
+		checksTextControls.add(txtComputerName);
+		checksTextControls.add(txtIPPort);
+		checksTextControls.add(txtPortRange);
 		
-		for (Text control : checksControls) {
+		for (Text control : checksTextControls) {
 			if (control.getText().isBlank()) {
 				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
 				existsError = true;
@@ -379,15 +376,40 @@ public class CreateEditWorkingServerDialog extends Dialog {
 				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
 			}			
 		}
-		
-		try {
-			Integer.parseInt(txtIPPort.getText());
-			txtIPPort.setBackground(SWTResourceManager.getColor(255, 255, 255));
-		} catch (Exception e) {
-			txtIPPort.setBackground(SWTResourceManager.getColor(255, 204, 204));
-			existsError = true;
+
+		List<Text> checksIntControls = new ArrayList<>();
+		checksIntControls.add(txtIPPort);
+		checksIntControls.add(txtInfoBasesPerWorkingProcessLimit);
+		checksIntControls.add(txtConnectionsPerWorkingProcessLimit);
+
+		for (Text control : checksIntControls) {
+			try {
+				Integer.parseInt(control.getText());
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			} catch (Exception e) {
+				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				existsError = true;
+			}
 		}
-		
+
+		List<Text> checksLongControls = new ArrayList<>();
+		checksLongControls.add(txtSafeCallMemoryLimit);
+		checksLongControls.add(txtCriticalProcessesTotalMemory);
+		checksLongControls.add(txtTemporaryAllowedProcessesTotalMemory);
+		checksLongControls.add(txtTemporaryAllowedProcessesTotalMemoryTimeLimit);
+		checksLongControls.add(txtSafeWorkingProcessesMemoryLimit);
+		checksLongControls.add(txtWorkingProcessMemoryLimit);
+
+		for (Text control : checksLongControls) {
+			try {
+				Long.parseLong(control.getText());
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			} catch (Exception e) {
+				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				existsError = true;
+			}
+		}
+				
 		try {
 			String[] portRange = txtPortRange.getText().split(":");
 			new PortRangeInfo(Integer.parseInt(portRange[1]), Integer.parseInt(portRange[0]));		
@@ -400,17 +422,17 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		return existsError;
 	}
 	
-	private void saveNewClusterProperties() {
-		if (checkClusterVariablesFromControls())
-			return;
+	private boolean saveNewClusterProperties() {
+		if (checkVariablesFromControls())
+			return false;
 		
 		IWorkingServerInfo workingServerInfo;
 		
 		if (workingServerId == null) {
 			workingServerInfo = new WorkingServerInfo();
 	
-			workingServerInfo.setHostName(txtComputerName.getText()); 				// разрешено только при создании нового
-			workingServerInfo.setMainPort(Integer.parseInt(txtIPPort.getText())); 	// разрешено только при создании нового			
+			workingServerInfo.setHostName(txtComputerName.getText());
+			workingServerInfo.setMainPort(Integer.parseInt(txtIPPort.getText()));
 		} else {		
 			workingServerInfo = server.getWorkingServerInfo(clusterId, workingServerId);
 		}
@@ -439,17 +461,17 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		}
 		
 		try {
-			server.regWorkingServer(clusterId, workingServerInfo, workingServerId == null);
+			if (server.regWorkingServer(clusterId, workingServerInfo, workingServerId == null)) {
+				workingServerId = workingServerInfo.getWorkingServerId();
+				return true;
+			}
 		} catch (Exception excp) {
 			var messageBox = new MessageBox(getParentShell());
 			messageBox.setMessage(excp.getLocalizedMessage());
 			messageBox.open();
-			return;
 		}
+		return false;
 		
-		workingServerId = workingServerInfo.getWorkingServerId();
-		close();
-
 	}
 	
 	/**
@@ -462,8 +484,8 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		buttonOK.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				saveNewClusterProperties();
-				close();
+				if (saveNewClusterProperties())
+					close();
 			}
 		});
 		
