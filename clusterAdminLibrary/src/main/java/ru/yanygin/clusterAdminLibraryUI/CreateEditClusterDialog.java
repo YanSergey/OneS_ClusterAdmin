@@ -1,5 +1,7 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
@@ -9,6 +11,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.wb.swt.SWTResourceManager;
 
 import com._1c.v8.ibis.admin.ClusterInfo;
 import com._1c.v8.ibis.admin.IClusterInfo;
@@ -38,24 +41,6 @@ public class CreateEditClusterDialog extends Dialog {
 	private Text txtComputerName;
 	private Text txtIPPort;
 	private Combo comboSecurityLevel;
-
-	// fields of infobase
-	private String clusterName;
-	private String computerName;
-	private int ipPort;
-	private int securityLevel;
-	
-	private int wpLifeTimeLimit;
-	private int wpMaxMemorySize;
-	private int wpMaxMemoryTimeLimit;
-	private int clusterRecyclingErrorsCountThreshold;
-	private boolean clusterRecyclingKillProblemProcesses;
-	private boolean clusterRecyclingKillByMemoryWithDump;
-	
-	private int expirationTimeout;
-	private int faultToleranceLevel;
-	private int loadBalancingMode;
-	private Group groupWorkProcessesParams;
 	private Text txtLifeTimeLimit;
 	private Text txtMaxMemorySize;
 	private Text txtMaxMemoryTimeLimit;
@@ -88,11 +73,6 @@ public class CreateEditClusterDialog extends Dialog {
 	 */
 	@Override
 	protected Control createDialogArea(Composite parent) {
-		parent.addDisposeListener(new DisposeListener() {
-			public void widgetDisposed(DisposeEvent e) {
-//				extractClusterVariablesFromControls();
-			}
-		});
 		Composite container = (Composite) super.createDialogArea(parent);
 		GridLayout gridLayout = (GridLayout) container.getLayout();
 		gridLayout.marginWidth = 10;
@@ -141,7 +121,7 @@ public class CreateEditClusterDialog extends Dialog {
 		comboSecurityLevel.setData("Constantly", 2);
 		comboSecurityLevel.select(0);
 		
-		groupWorkProcessesParams = new Group(container, SWT.NONE);
+		Group groupWorkProcessesParams = new Group(container, SWT.NONE);
 		groupWorkProcessesParams.setText("Restart Work Processes");
 		GridLayout gl_groupWorkProcessesParams = new GridLayout(2, false);
 		gl_groupWorkProcessesParams.verticalSpacing = 8;
@@ -229,6 +209,53 @@ public class CreateEditClusterDialog extends Dialog {
 		comboLoadBalancingMode.select(0);
 
 		initServerProperties();
+		
+		return container;
+	}
+
+	private void initServerProperties() {
+		IClusterInfo clusterInfo;
+		
+		if (clusterId != null) {
+			clusterInfo = server.getClusterInfo(clusterId);
+			
+			txtClusterName.setText(clusterInfo.getName());
+			txtComputerName.setText(clusterInfo.getHostName());
+		} else {
+			clusterInfo = new ClusterInfo();
+			
+			txtClusterName.setText("");
+			txtComputerName.setText("");
+		}
+		
+		
+		txtIPPort.setText(Integer.toString(clusterInfo.getMainPort()));
+		comboSecurityLevel.select(clusterInfo.getSecurityLevel());
+		
+		txtLifeTimeLimit.setText(Integer.toString(clusterInfo.getLifeTimeLimit()));
+		txtMaxMemorySize.setText(Integer.toString(clusterInfo.getMaxMemorySize())); // 8.3.15-
+		txtMaxMemoryTimeLimit.setText(Integer.toString(clusterInfo.getMaxMemoryTimeLimit())); // 8.3.15-
+		txtClusterRecyclingErrorsCountThreshold.setText(Integer.toString(clusterInfo.getClusterRecyclingErrorsCountThreshold())); // 8.3.15-
+		btnClusterRecyclingKillProblemProcesses.setSelection(clusterInfo.isClusterRecyclingKillProblemProcesses());
+		btnClusterRecyclingKillByMemoryWithDump.setSelection(clusterInfo.isClusterRecyclingKillByMemoryWithDump()); // 8.3.15+
+					
+		txtExpirationTimeout.setText(Integer.toString(clusterInfo.getExpirationTimeout()));
+		txtSessionFaultToleranceLevel.setText(Integer.toString(clusterInfo.getSessionFaultToleranceLevel()));
+		comboLoadBalancingMode.select(clusterInfo.getLoadBalancingMode());
+		
+		if (server.isFifteenOrOlderAgentVersion()) { // 8.3.15+
+			txtMaxMemorySize.setEditable(false);
+			txtMaxMemoryTimeLimit.setEditable(false);
+			txtClusterRecyclingErrorsCountThreshold.setEditable(false);
+			
+			txtMaxMemorySize.setToolTipText("deprecated in 8.3.15");
+			txtMaxMemoryTimeLimit.setToolTipText("deprecated in 8.3.15");
+			txtClusterRecyclingErrorsCountThreshold.setToolTipText("deprecated in 8.3.15");
+		} else {
+			btnClusterRecyclingKillByMemoryWithDump.setEnabled(false);
+			
+			btnClusterRecyclingKillByMemoryWithDump.setToolTipText("8.3.15+");
+		}
 
 		// У уже созданного кластера запрещено менять хост и порт
 		if (clusterId != null) {
@@ -236,118 +263,98 @@ public class CreateEditClusterDialog extends Dialog {
 			txtIPPort.setEditable(false);
 		}
 		
-		return container;
-	}
-
-	private void initServerProperties() {
-		
-		if (clusterId != null) {
-			
-			IClusterInfo clusterInfo = server.getClusterInfo(clusterId);
-			
-			// Common properties
-			this.txtClusterName.setText(clusterInfo.getName());
-			this.txtComputerName.setText(clusterInfo.getHostName());
-			this.txtIPPort.setText(Integer.toString(clusterInfo.getMainPort()));
-			this.comboSecurityLevel.select(clusterInfo.getSecurityLevel());
-			
-			this.txtLifeTimeLimit.setText(Integer.toString(clusterInfo.getLifeTimeLimit()));
-			this.txtMaxMemorySize.setText(Integer.toString(clusterInfo.getMaxMemorySize())); // 8.3.15-
-			this.txtMaxMemoryTimeLimit.setText(Integer.toString(clusterInfo.getMaxMemoryTimeLimit())); // 8.3.15-
-			this.txtClusterRecyclingErrorsCountThreshold.setText(Integer.toString(clusterInfo.getClusterRecyclingErrorsCountThreshold())); // 8.3.15-
-			this.btnClusterRecyclingKillProblemProcesses.setSelection(clusterInfo.isClusterRecyclingKillProblemProcesses());
-			this.btnClusterRecyclingKillByMemoryWithDump.setSelection(clusterInfo.isClusterRecyclingKillByMemoryWithDump()); // 8.3.15+
-						
-			this.txtExpirationTimeout.setText(Integer.toString(clusterInfo.getExpirationTimeout()));
-			this.txtSessionFaultToleranceLevel.setText(Integer.toString(clusterInfo.getSessionFaultToleranceLevel()));
-			this.comboLoadBalancingMode.select(clusterInfo.getLoadBalancingMode());
-			
-			if (server.isFifteenOrOlderAgentVersion()) {
-				this.txtMaxMemorySize.setEditable(false);
-				this.txtMaxMemoryTimeLimit.setEditable(false);
-				this.txtClusterRecyclingErrorsCountThreshold.setEditable(false);
-				
-				this.txtMaxMemorySize.setToolTipText("deprecated in 8.3.15");
-				this.txtMaxMemoryTimeLimit.setToolTipText("deprecated in 8.3.15");
-				this.txtClusterRecyclingErrorsCountThreshold.setToolTipText("deprecated in 8.3.15");
-			} else {
-				this.btnClusterRecyclingKillByMemoryWithDump.setEnabled(false);
-				
-				this.btnClusterRecyclingKillByMemoryWithDump.setToolTipText("8.3.15+");
-			}
-		
-		}
 	}
 
 	private void resetToProf() {
-		this.comboLoadBalancingMode.select(0);
+		comboLoadBalancingMode.select(0);
 	}
 	
-	private void saveNewClusterProperties() {
+	private boolean checkVariablesFromControls() {
+		
+		var existsError = false;
+		
+		List<Text> checksTextControls = new ArrayList<>();
+		checksTextControls.add(txtClusterName);
+		checksTextControls.add(txtComputerName);
+		checksTextControls.add(txtIPPort);
+		
+		for (Text control : checksTextControls) {
+			if (control.getText().isBlank()) {
+				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				existsError = true;
+			} else {
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			}			
+		}
 
-		extractClusterVariablesFromControls();
+		List<Text> checksIntControls = new ArrayList<>();
+		checksIntControls.add(txtIPPort);
+		checksIntControls.add(txtLifeTimeLimit);
+		checksIntControls.add(txtMaxMemorySize);
+		checksIntControls.add(txtMaxMemoryTimeLimit);
+		checksIntControls.add(txtClusterRecyclingErrorsCountThreshold);
+		checksIntControls.add(txtExpirationTimeout);
+		checksIntControls.add(txtSessionFaultToleranceLevel);
+
+		for (Text control : checksIntControls) {
+			try {
+				Integer.parseInt(control.getText());
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			} catch (Exception e) {
+				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				existsError = true;
+			}
+		}
+		
+		return existsError;
+	}
+	
+	private boolean saveNewClusterProperties() {
+		if (checkVariablesFromControls())
+			return false;
 		
 		IClusterInfo clusterInfo;
 		
 		if (clusterId == null) {
 			clusterInfo = new ClusterInfo();
 	
-			clusterInfo.setHostName(computerName); 	// разрешено только при создании нового
-			clusterInfo.setMainPort(ipPort); 		// разрешено только при создании нового
+			clusterInfo.setHostName(txtComputerName.getText());
+			clusterInfo.setMainPort(Integer.parseInt(txtIPPort.getText()));
 		} else {		
 			clusterInfo = server.getClusterInfo(clusterId);
 		}
 		
-		clusterInfo.setName(clusterName);
-		clusterInfo.setSecurityLevel(securityLevel);
+		clusterInfo.setName(txtClusterName.getText());
+		
+		clusterInfo.setSecurityLevel((int) comboSecurityLevel.getData(comboSecurityLevel.getText()));
 
-		clusterInfo.setLifeTimeLimit(wpLifeTimeLimit);
-		clusterInfo.setClusterRecyclingKillProblemProcesses(clusterRecyclingKillProblemProcesses);
+		clusterInfo.setLifeTimeLimit(Integer.parseInt(txtLifeTimeLimit.getText()));
+		clusterInfo.setClusterRecyclingKillProblemProcesses(btnClusterRecyclingKillProblemProcesses.getSelection());
 
-		if (server.isFifteenOrOlderAgentVersion())
-			clusterInfo.setClusterRecyclingKillByMemoryWithDump(clusterRecyclingKillByMemoryWithDump); // 8.3.15+
+		if (server.isFifteenOrOlderAgentVersion()) // 8.3.15+
+			clusterInfo.setClusterRecyclingKillByMemoryWithDump(btnClusterRecyclingKillByMemoryWithDump.getSelection());
 		else {
-			clusterInfo.setMaxMemorySize(wpMaxMemorySize);
-			clusterInfo.setMaxMemoryTimeLimit(wpMaxMemoryTimeLimit);
-			clusterInfo.setClusterRecyclingErrorsCountThreshold(clusterRecyclingErrorsCountThreshold);
+			clusterInfo.setMaxMemorySize(Integer.parseInt(txtMaxMemorySize.getText()));
+			clusterInfo.setMaxMemoryTimeLimit(Integer.parseInt(txtMaxMemoryTimeLimit.getText()));
+			clusterInfo.setClusterRecyclingErrorsCountThreshold(Integer.parseInt(txtClusterRecyclingErrorsCountThreshold.getText()));
 		}
 
-		clusterInfo.setExpirationTimeout(expirationTimeout);
-		clusterInfo.setSessionFaultToleranceLevel(faultToleranceLevel);
-		clusterInfo.setLoadBalancingMode(loadBalancingMode);
+		clusterInfo.setExpirationTimeout(Integer.parseInt(txtExpirationTimeout.getText()));
+		clusterInfo.setSessionFaultToleranceLevel(Integer.parseInt(txtSessionFaultToleranceLevel.getText()));
+		clusterInfo.setLoadBalancingMode((int) comboLoadBalancingMode.getData(comboLoadBalancingMode.getText()));
 		
 
 		try {
-			if (server.regCluster(clusterInfo, clusterId == null))
-				close();
+			if (server.regCluster(clusterInfo))
+				return true;
 		} catch (Exception excp) {
 			var messageBox = new MessageBox(getParentShell());
 			messageBox.setMessage(excp.getLocalizedMessage());
 			messageBox.open();
 		}
+		return false;
 	}
 
-	private void extractClusterVariablesFromControls() { // TODO избавиться от метода???
-		
-		clusterName 	= txtClusterName.getText();
-		computerName 	= txtComputerName.getText();
-		ipPort 			= Integer.parseInt(txtIPPort.getText());
-		securityLevel 	= (int) comboSecurityLevel.getData(comboSecurityLevel.getText());
-		
-		wpLifeTimeLimit			= Integer.parseInt(txtLifeTimeLimit.getText());
-		wpMaxMemorySize			= Integer.parseInt(txtMaxMemorySize.getText());
-		wpMaxMemoryTimeLimit	= Integer.parseInt(txtMaxMemoryTimeLimit.getText());
-		clusterRecyclingErrorsCountThreshold = Integer.parseInt(txtClusterRecyclingErrorsCountThreshold.getText()); // 8.3.15-
-		clusterRecyclingKillProblemProcesses = btnClusterRecyclingKillProblemProcesses.getSelection();
-		
-		clusterRecyclingKillByMemoryWithDump = btnClusterRecyclingKillByMemoryWithDump.getSelection();  // 8.3.15+
-		
-		expirationTimeout 	= Integer.parseInt(txtExpirationTimeout.getText());
-		faultToleranceLevel = Integer.parseInt(txtSessionFaultToleranceLevel.getText());
-		loadBalancingMode 	= (int) comboLoadBalancingMode.getData(comboLoadBalancingMode.getText());
-		
-	}
-	
 	/**
 	 * Create contents of the button bar.
 	 * @param parent
@@ -358,14 +365,15 @@ public class CreateEditClusterDialog extends Dialog {
 		buttonOK.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				saveNewClusterProperties();
-//				close();
+				if (saveNewClusterProperties())
+					close();
 			}
 		});
 		
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 		
 		Button buttonApply = createButton(parent, IDialogConstants.PROCEED_ID, "Apply", false);
+		buttonApply.setEnabled(clusterId != null);
 		buttonApply.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
