@@ -444,4 +444,17 @@ public class SWTResourceManager {
 		disposeFonts();
 		disposeCursors();
 	}
+	
+	public static Color getWhiteColor() {
+		return getColor(255, 255, 255);
+	}
+	
+	public static Color getPinkColor() {
+		return getColor(255, 204, 204);
+	}
+	
+	public static Color getLightGreenColor() {
+		return getColor(128, 255, 128);
+	}
+	
 }
