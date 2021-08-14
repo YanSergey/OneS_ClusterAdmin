@@ -259,8 +259,13 @@ public class ViewerArea extends Composite {
 		if (mainMenu == null) {
 			return;
 		}
+		Menu mainMenuServersParent = new Menu(mainMenu);
 		
-		MenuItem toolBarItemFindNewServers = new MenuItem(mainMenu, SWT.NONE);
+		MenuItem mainMenuServers = new MenuItem(mainMenu, SWT.CASCADE);
+		mainMenuServers.setText("Servers");
+		mainMenuServers.setMenu(mainMenuServersParent);
+		
+		MenuItem toolBarItemFindNewServers = new MenuItem(mainMenuServersParent, SWT.NONE);
 		toolBarItemFindNewServers.setText("Find new Servers");
 		toolBarItemFindNewServers.setEnabled(false);
 		toolBarItemFindNewServers.addSelectionListener(new SelectionAdapter() {
@@ -273,17 +278,24 @@ public class ViewerArea extends Composite {
 			}
 		});
 
-		MenuItem toolBarItemConnectAllServers = new MenuItem(mainMenu, SWT.NONE);
+		MenuItem toolBarItemConnectAllServers = new MenuItem(mainMenuServersParent, SWT.NONE);
 		toolBarItemConnectAllServers.setText("Connect to all servers");		
 		toolBarItemConnectAllServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				
 				connectToAllServers(true);
-				
 			}
 		});
 
+		MenuItem toolBarItemDisonnectAllServers = new MenuItem(mainMenuServersParent, SWT.NONE);
+		toolBarItemDisonnectAllServers.setText("Disconnect from all servers");		
+		toolBarItemDisonnectAllServers.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				diconnectFromAllServers();
+			}
+		});
+		
 		MenuItem toolBarItemOpenSettings = new MenuItem(mainMenu, SWT.NONE);
 		toolBarItemOpenSettings.setText("Open settings");		
 		toolBarItemOpenSettings.addSelectionListener(new SelectionAdapter() {
@@ -921,12 +933,9 @@ public class ViewerArea extends Composite {
 					return;
 				
 				Server server = getCurrentServerConfig(item[0]);
-//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
 				UUID clusterId = getCurrentClusterId(item[0]);
 				UUID infobaseId = getCurrentInfobaseId(item[0]);
 				
-//				IInfoBaseInfo infoBaseInfo = server.clusterConnector.getInfoBaseInfo(clusterInfo.getClusterId(), infoBaseInfoShort.getInfoBaseId());
 				DropInfobaseDialog infobaseDialog;
 				try {
 					infobaseDialog = new DropInfobaseDialog(getParent().getDisplay().getActiveShell(), server, clusterId, infobaseId);
@@ -2176,8 +2185,16 @@ public class ViewerArea extends Composite {
 				connectServerItem(serverItem);
 		}
 	}
-	
 
+	private void diconnectFromAllServers() {
+		
+		TreeItem[] serversItem = serversTree.getItems();
+		
+		for (TreeItem serverItem : serversItem) {
+			disconnectServerItem(serverItem);
+		}
+	}
+	
 	private void connectServerItem(TreeItem serverItem) {
 		
 		// async не работает асинхронно
