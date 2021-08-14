@@ -11,6 +11,7 @@ import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -30,6 +31,8 @@ import com._1c.v8.ibis.admin.PortRangeInfo;
 import com._1c.v8.ibis.admin.WorkingServerInfo;
 
 import ru.yanygin.clusterAdminLibrary.Server;
+import org.eclipse.swt.events.MouseTrackAdapter;
+import org.eclipse.swt.events.MouseEvent;
 
 public class CreateEditWorkingServerDialog extends Dialog {
 	
@@ -59,7 +62,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	private Label lblCriticalProcessesTotalMemoryMb;
 	private Label lblTemporaryAllowedProcessesTotalMemoryMb;
 	private Label lblTemporaryAllowedProcessesTotalMemoryTimeLimitMin;
-
+	
 	public UUID getNewWorkingServerId() {
 		return workingServerId;
 	}
@@ -306,54 +309,54 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		if (workingServerId != null) { // Редактируем существующий рабочий сервер
 			serverInfo = server.getWorkingServerInfo(clusterId, workingServerId);
 			
-			this.txtServerName.setText(serverInfo.getName());
-			this.txtComputerName.setText(serverInfo.getHostName());
+			txtServerName.setText(serverInfo.getName());
+			txtComputerName.setText(serverInfo.getHostName());
 			
 			IPortRangeInfo portRangesInfo = serverInfo.getPortRanges().get(0);
 			String portRanges = Integer.toString(portRangesInfo.getLowBound()).concat(":").concat(Integer.toString(portRangesInfo.getHighBound()));
-			this.txtPortRange.setText(portRanges);
+			txtPortRange.setText(portRanges);
 		
-			this.txtInfoBasesPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getInfoBasesPerWorkingProcessLimit()));
-			this.txtConnectionsPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getConnectionsPerWorkingProcessLimit()));
+			txtInfoBasesPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getInfoBasesPerWorkingProcessLimit()));
+			txtConnectionsPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getConnectionsPerWorkingProcessLimit()));
 			
 		} else { // Создаем новый рабочий сервер
 			serverInfo = new WorkingServerInfo();
 			
-			this.txtServerName.setText("");
-			this.txtPortRange.setText("");
-			this.txtComputerName.setText("");
+			txtServerName.setText("");
+			txtPortRange.setText("");
+			txtComputerName.setText("");
 		
-			this.txtInfoBasesPerWorkingProcessLimit.setText("8");
-			this.txtConnectionsPerWorkingProcessLimit.setText("128");
+			txtInfoBasesPerWorkingProcessLimit.setText("8");
+			txtConnectionsPerWorkingProcessLimit.setText("128");
 		}
 		
-		this.txtIPPort.setText(Integer.toString(serverInfo.getMainPort()));
+		txtIPPort.setText(Integer.toString(serverInfo.getMainPort()));
 		
-		this.txtSafeWorkingProcessesMemoryLimit.setText(String.valueOf(serverInfo.getSafeWorkingProcessesMemoryLimit()));
-		this.txtSafeCallMemoryLimit.setText(String.valueOf(serverInfo.getSafeCallMemoryLimit()));
-		this.txtCriticalProcessesTotalMemory.setText(String.valueOf(serverInfo.getCriticalProcessesTotalMemory()));
-		this.txtTemporaryAllowedProcessesTotalMemory.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemory()));
-		this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit()));
-		this.txtWorkingProcessMemoryLimit.setText(String.valueOf(serverInfo.getWorkingProcessMemoryLimit()));
+		txtSafeWorkingProcessesMemoryLimit.setText(String.valueOf(serverInfo.getSafeWorkingProcessesMemoryLimit()));
+		txtSafeCallMemoryLimit.setText(String.valueOf(serverInfo.getSafeCallMemoryLimit()));
+		txtCriticalProcessesTotalMemory.setText(String.valueOf(serverInfo.getCriticalProcessesTotalMemory()));
+		txtTemporaryAllowedProcessesTotalMemory.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemory()));
+		txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setText(String.valueOf(serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit()));
+		txtWorkingProcessMemoryLimit.setText(String.valueOf(serverInfo.getWorkingProcessMemoryLimit()));
 		
-		this.txtIPPortMainManager.setText(Integer.toString(serverInfo.getClusterMainPort()));
-		this.btnIsDedicatedManagers.setSelection(serverInfo.isDedicatedManagers());
-		this.btnIsMainServer.setSelection(serverInfo.isMainServer());
+		txtIPPortMainManager.setText(Integer.toString(serverInfo.getClusterMainPort()));
+		btnIsDedicatedManagers.setSelection(serverInfo.isDedicatedManagers());
+		btnIsMainServer.setSelection(serverInfo.isMainServer());
 		
 		if (server.isFifteenOrOlderAgentVersion()) { // 8.3.15+
-			this.txtSafeWorkingProcessesMemoryLimit.setEditable(false);
-			this.txtWorkingProcessMemoryLimit.setEditable(false);
+			txtSafeWorkingProcessesMemoryLimit.setEditable(false);
+			txtWorkingProcessMemoryLimit.setEditable(false);
 			
-			this.txtSafeWorkingProcessesMemoryLimit.setToolTipText("deprecated in 8.3.15");
-			this.txtWorkingProcessMemoryLimit.setToolTipText("deprecated in 8.3.15");
+			txtSafeWorkingProcessesMemoryLimit.setToolTipText("deprecated in 8.3.15");
+			txtWorkingProcessMemoryLimit.setToolTipText("deprecated in 8.3.15");
 		} else {
-			this.txtCriticalProcessesTotalMemory.setEditable(false);
-			this.txtTemporaryAllowedProcessesTotalMemory.setEditable(false);
-			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setEditable(false);
+			txtCriticalProcessesTotalMemory.setEditable(false);
+			txtTemporaryAllowedProcessesTotalMemory.setEditable(false);
+			txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setEditable(false);
 			
-			this.txtCriticalProcessesTotalMemory.setToolTipText("8.3.15+");
-			this.txtTemporaryAllowedProcessesTotalMemory.setToolTipText("8.3.15+");
-			this.txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText("8.3.15+");
+			txtCriticalProcessesTotalMemory.setToolTipText("8.3.15+");
+			txtTemporaryAllowedProcessesTotalMemory.setToolTipText("8.3.15+");
+			txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText("8.3.15+");
 		}
 			
 //		serverInfo.getSafeWorkingProcessesMemoryLimit(); // (8.3.15-)	// максимальный объем памяти рабочих процессов (до 8.3.15)
@@ -368,7 +371,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			txtComputerName.setEditable(false);
 			txtIPPort.setEditable(false);
 		} else {
-			btnIsMainServer.setEnabled(false); // Новому серверу запрещено сразу ставить галочку Центральный сервер?
+			btnIsMainServer.setEnabled(false); // Почему новому серверу запрещено сразу ставить галочку Центральный сервер?
 			txtIPPortMainManager.setText("<auto>");
 		}
 		txtIPPortMainManager.setEditable(false);
@@ -376,8 +379,12 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	}
 
 	private void resetToProf() {
-		// TODO
-//		this.comboLoadBalancingMode.select(0);
+		if (!server.isFifteenOrOlderAgentVersion()) { // 8.3.15-
+			txtSafeWorkingProcessesMemoryLimit.setText("0");
+			txtWorkingProcessMemoryLimit.setText("0");
+		}
+		txtSafeCallMemoryLimit.setText("0");
+		txtInfoBasesPerWorkingProcessLimit.setText("8");
 	}
 
 	private boolean checkVariablesFromControls() {
@@ -392,10 +399,10 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		
 		for (Text control : checksTextControls) {
 			if (control.getText().isBlank()) {
-				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				control.setBackground(SWTResourceManager.getPinkColor());
 				existsError = true;
 			} else {
-				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+				control.setBackground(SWTResourceManager.getWhiteColor());
 			}			
 		}
 
@@ -407,9 +414,9 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		for (Text control : checksIntControls) {
 			try {
 				Integer.parseInt(control.getText());
-				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+				control.setBackground(SWTResourceManager.getWhiteColor());
 			} catch (Exception e) {
-				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				control.setBackground(SWTResourceManager.getPinkColor());
 				existsError = true;
 			}
 		}
@@ -425,9 +432,9 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		for (Text control : checksLongControls) {
 			try {
 				Long.parseLong(control.getText());
-				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+				control.setBackground(SWTResourceManager.getWhiteColor());
 			} catch (Exception e) {
-				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				control.setBackground(SWTResourceManager.getPinkColor());
 				existsError = true;
 			}
 		}
@@ -435,9 +442,9 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		try {
 			String[] portRange = txtPortRange.getText().split(":");
 			new PortRangeInfo(Integer.parseInt(portRange[1]), Integer.parseInt(portRange[0]));		
-			txtPortRange.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			txtPortRange.setBackground(SWTResourceManager.getWhiteColor());
 		} catch (Exception e) {
-			txtPortRange.setBackground(SWTResourceManager.getColor(255, 204, 204));
+			txtPortRange.setBackground(SWTResourceManager.getPinkColor());
 			existsError = true;
 		}
 				
@@ -529,6 +536,22 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			}
 		});
 		Button buttonResetToProf = createButton(parent, IDialogConstants.RETRY_ID, "Reset to PROF", false);
+		buttonResetToProf.addMouseTrackListener(new MouseTrackAdapter() {
+			@Override
+			public void mouseEnter(MouseEvent e) {
+				txtSafeCallMemoryLimit.setBackground(SWTResourceManager.getLightGreenColor());
+				txtSafeWorkingProcessesMemoryLimit.setBackground(SWTResourceManager.getLightGreenColor());
+				txtWorkingProcessMemoryLimit.setBackground(SWTResourceManager.getLightGreenColor());
+				txtInfoBasesPerWorkingProcessLimit.setBackground(SWTResourceManager.getLightGreenColor());
+			}
+			@Override
+			public void mouseExit(MouseEvent e) {
+				txtSafeCallMemoryLimit.setBackground(SWTResourceManager.getWhiteColor());
+				txtSafeWorkingProcessesMemoryLimit.setBackground(SWTResourceManager.getWhiteColor());
+				txtWorkingProcessMemoryLimit.setBackground(SWTResourceManager.getWhiteColor());
+				txtInfoBasesPerWorkingProcessLimit.setBackground(SWTResourceManager.getWhiteColor());
+			}
+		});
 		buttonResetToProf.setText("Reset to PROF");
 		buttonResetToProf.addSelectionListener(new SelectionAdapter() {
 			@Override

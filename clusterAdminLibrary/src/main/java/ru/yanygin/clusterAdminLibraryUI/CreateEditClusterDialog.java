@@ -6,33 +6,32 @@ import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import com._1c.v8.ibis.admin.ClusterInfo;
 import com._1c.v8.ibis.admin.IClusterInfo;
-import ru.yanygin.clusterAdminLibrary.Server;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.DisposeListener;
-import org.eclipse.swt.events.DisposeEvent;
-import org.eclipse.swt.widgets.Group;
+import ru.yanygin.clusterAdminLibrary.Server;
+import org.eclipse.swt.events.MouseTrackAdapter;
+import org.eclipse.swt.events.MouseEvent;
 
 public class CreateEditClusterDialog extends Dialog {
 	
-//	private IClusterInfo clusterInfo;
 	private UUID clusterId;
 	private Server server;
 	
@@ -123,12 +122,12 @@ public class CreateEditClusterDialog extends Dialog {
 		
 		Group groupWorkProcessesParams = new Group(container, SWT.NONE);
 		groupWorkProcessesParams.setText("Restart Work Processes");
-		GridLayout gl_groupWorkProcessesParams = new GridLayout(2, false);
-		gl_groupWorkProcessesParams.verticalSpacing = 8;
-		groupWorkProcessesParams.setLayout(gl_groupWorkProcessesParams);
-		GridData gd_groupWorkProcessesParams = new GridData(SWT.RIGHT, SWT.CENTER, false, false, 3, 1);
-		gd_groupWorkProcessesParams.widthHint = 450;
-		groupWorkProcessesParams.setLayoutData(gd_groupWorkProcessesParams);
+		GridLayout glgroupWorkProcessesParams = new GridLayout(2, false);
+		glgroupWorkProcessesParams.verticalSpacing = 8;
+		groupWorkProcessesParams.setLayout(glgroupWorkProcessesParams);
+		GridData gdgroupWorkProcessesParams = new GridData(SWT.RIGHT, SWT.CENTER, false, false, 3, 1);
+		gdgroupWorkProcessesParams.widthHint = 450;
+		groupWorkProcessesParams.setLayoutData(gdgroupWorkProcessesParams);
 		
 		Label lblLifeTimeLimit = new Label(groupWorkProcessesParams, SWT.NONE);
 		lblLifeTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -389,6 +388,16 @@ public class CreateEditClusterDialog extends Dialog {
 			}
 		});
 		Button buttonResetToProf = createButton(parent, IDialogConstants.RETRY_ID, "Reset to PROF", false);
+		buttonResetToProf.addMouseTrackListener(new MouseTrackAdapter() {
+			@Override
+			public void mouseEnter(MouseEvent e) {
+				comboLoadBalancingMode.setBackground(SWTResourceManager.getLightGreenColor());
+			}
+			@Override
+			public void mouseExit(MouseEvent e) {
+				comboLoadBalancingMode.setBackground(SWTResourceManager.getWhiteColor());
+			}
+		});
 		buttonResetToProf.setText("Reset to PROF");
 		buttonResetToProf.addSelectionListener(new SelectionAdapter() {
 			@Override
