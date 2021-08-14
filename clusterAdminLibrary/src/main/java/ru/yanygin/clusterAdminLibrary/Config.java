@@ -33,7 +33,51 @@ import ru.yanygin.clusterAdminLibraryUI.AuthenticateDialog;
 public class Config {
 	@SerializedName("Servers")
 	@Expose
-	public Map<String, Server> servers = new HashMap<>(); // Надо определиться что должно являться ключем, агент (Server:1540) или менеджер (Server:1541)
+	public Map<String, Server> servers = new HashMap<>();
+	
+	@SerializedName("ExpandServers")
+	@Expose
+	public boolean expandServersTree;
+	
+	@SerializedName("ExpandClustersTree")
+	@Expose
+	public boolean expandClustersTree;
+	
+	@SerializedName("ExpandInfobasesTree")
+	@Expose
+	public boolean expandInfobasesTree;
+	
+	@SerializedName("ShowWorkingServersTree")
+	@Expose
+	public boolean showWorkingServersTree;
+	
+	@SerializedName("ExpandWorkingServersTree")
+	@Expose
+	public boolean expandWorkingServersTree;
+	
+	@SerializedName("ShowWorkingProcessesTree")
+	@Expose
+	public boolean showWorkingProcessesTree;
+	
+	@SerializedName("ExpandWorkingProcessesTree")
+	@Expose
+	public boolean expandWorkingProcessesTree;
+	
+	@SerializedName("ShowServerDescription")
+	@Expose
+	public boolean showServerDescription;
+	
+	@SerializedName("ShowServerVersion")
+	@Expose
+	public boolean showServerVersion;
+	
+	@SerializedName("ShowInfobaseDescription")
+	@Expose
+	public boolean showInfobaseDescription;
+	
+	@SerializedName("ShowLocalRasConnectInfo")
+	@Expose
+	public boolean showLocalRasConnectInfo;
 
 	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary");
 	

@@ -1,36 +1,37 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.wb.swt.SWTResourceManager;
 
-import com._1c.v8.ibis.admin.IClusterInfo;
 import com._1c.v8.ibis.admin.IInfoBaseInfo;
 import com._1c.v8.ibis.admin.InfoBaseInfo;
 
 import ru.yanygin.clusterAdminLibrary.Server;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-
 public class CreateInfobaseDialog extends Dialog {
 		
-//	private IClusterInfo clusterInfo;
 	private UUID clusterId;
 
 	private Server server;
@@ -43,29 +44,11 @@ public class CreateInfobaseDialog extends Dialog {
 	private Text txtDatabaseDbUser;
 	private Text txtDatabaseDbPassword;
 	private Text txtInfobaseDescription;
-	private Combo comboSecurityLevel;
-	private Combo comboServerDBType;
-	private Label lblLocale;
+	private Combo comboSecurityLevel; // Disable, Connection only, Constantly (Выключено, Только соединение, Постоянно)
+	private Combo comboServerDBType; // MSSQLServer, PostgreSQL, IBMDB2, OracleDatabase
 	private Combo comboLocale; // Откуда то загрузить все возможные локали
 	private Combo comboDateOffset;
 
-	// fields of infobase
-	private String infobaseName;
-	private String infobaseDescription;
-	private String infobaseLocale;
-	private int infobaseDateOffset;
-	private int securityLevel; // Disable, Connection only, Constantly (Выключено, Только соединение, Постоянно)
-	
-	private String serverDBName;
-	private String serverDBType; // MSSQLServer, PostgreSQL, IBMDB2, OracleDatabase
-	private String databaseDbName;
-	private String databaseDbUser;
-	private String databaseDbPassword;
-	
-	private int allowDistributeLicense;
-	private boolean infobaseCreationMode;
-	private boolean sheduledJobsDenied;
-	
 	private UUID newInfobaseUUID;
 	
 	private UUID sampleInfobaseId;
@@ -79,20 +62,7 @@ public class CreateInfobaseDialog extends Dialog {
 	 * Create the dialog.
 	 * @param parentShell
 	 * @param serverParams 
-	 */
-//	public CreateInfobaseDialog(Shell parentShell, Server server, UUID clusterId) {
-//		super(parentShell);
-//		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
-//
-////		super.configureShell(parentShell);
-////		parentShell.setText("Parameters of the 1C:Enterprise infobase");
-//	    
-//		this.server = server;
-//		this.clusterId = clusterId;
-//		this.sampleInfobaseId = null;
-//		
-//	}
-	
+	 */	
 	public CreateInfobaseDialog(Shell parentShell, Server server, UUID clusterId, UUID sampleInfobaseId) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
@@ -122,6 +92,11 @@ public class CreateInfobaseDialog extends Dialog {
 		lblInfobaseName.setText("Infobase name");
 		
 		txtInfobaseName = new Text(container, SWT.BORDER);
+		txtInfobaseName.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				txtDatabaseDbName.setText(((Text)e.widget).getText());
+			}
+		});
 		txtInfobaseName.setToolTipText("Infobase name");
 		txtInfobaseName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
@@ -211,7 +186,7 @@ public class CreateInfobaseDialog extends Dialog {
 		btnAllowDistributeLicense = new Button(container, SWT.CHECK);
 		btnAllowDistributeLicense.setText("Allow distribute license at 1C:Enterprise server");
 		
-		lblLocale = new Label(container, SWT.NONE);
+		Label lblLocale = new Label(container, SWT.NONE);
 		lblLocale.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblLocale.setText("Locale");
 		
@@ -239,13 +214,28 @@ public class CreateInfobaseDialog extends Dialog {
 		new Label(container, SWT.NONE);
 
 		initInfobaseProperties();
-
 		
 		return container;
 	}
 
 	private void initInfobaseProperties() {
-		if (sampleInfobaseId != null) {
+		if (sampleInfobaseId == null) {
+			
+			txtInfobaseName.setText("");
+			txtInfobaseDescription.setText("");
+			comboSecurityLevel.select(0);
+			btnAllowDistributeLicense.setSelection(false);
+			btnSheduledJobsDenied.setSelection(false);
+			
+			// DB properties
+			txtServerDBName.setText("");
+			comboServerDBType.select(0);
+			txtDatabaseDbName.setText("");
+			txtDatabaseDbUser.setText("");
+			txtDatabaseDbPassword.setText("");
+			txtDatabaseDbPassword.setToolTipText("you need to enter");
+			
+		} else {
 			
 			IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, sampleInfobaseId);
 			if (infoBaseInfo == null) {
@@ -254,82 +244,82 @@ public class CreateInfobaseDialog extends Dialog {
 			}
 
 			// Common properties
-			this.txtInfobaseName.setText(infoBaseInfo.getName().concat("_1"));
-			this.txtInfobaseDescription.setText(infoBaseInfo.getDescr());
-			this.comboSecurityLevel.setText(Integer.toString(infoBaseInfo.getSecurityLevel()));
-			this.btnAllowDistributeLicense.setSelection(infoBaseInfo.getLicenseDistributionAllowed() == 1);
-			this.btnSheduledJobsDenied.setSelection(infoBaseInfo.isScheduledJobsDenied());
+			txtInfobaseName.setText(infoBaseInfo.getName());
+			txtInfobaseDescription.setText(infoBaseInfo.getDescr());
+			comboSecurityLevel.setText(Integer.toString(infoBaseInfo.getSecurityLevel()));
+			btnAllowDistributeLicense.setSelection(infoBaseInfo.getLicenseDistributionAllowed() == 1);
+			btnSheduledJobsDenied.setSelection(infoBaseInfo.isScheduledJobsDenied());
 			
 			// DB properties
-			this.txtServerDBName.setText(infoBaseInfo.getDbServerName());
-			this.comboServerDBType.setText(infoBaseInfo.getDbms());
-			this.txtDatabaseDbName.setText(infoBaseInfo.getDbName().concat("_1"));
-			this.txtDatabaseDbUser.setText(infoBaseInfo.getDbUser());
-			this.txtDatabaseDbPassword.setText("");
-			this.txtDatabaseDbPassword.setToolTipText("you need to enter");
+			txtServerDBName.setText(infoBaseInfo.getDbServerName());
+			comboServerDBType.setText(infoBaseInfo.getDbms());
+			txtDatabaseDbName.setText(infoBaseInfo.getDbName());
+			txtDatabaseDbUser.setText(infoBaseInfo.getDbUser());
+			txtDatabaseDbPassword.setText("");
+			txtDatabaseDbPassword.setToolTipText("you need to enter");
 			
-			this.txtInfobaseName.setForeground(new Color(255, 0, 0));
-			this.txtDatabaseDbName.setForeground(new Color(255, 0, 0));
-			this.btnInfobaseCreationMode.setForeground(new Color(255, 0, 0));
-			this.txtDatabaseDbPassword.setForeground(new Color(255, 0, 0));
+			txtInfobaseName.setForeground(new Color(255, 0, 0));
+			txtDatabaseDbName.setForeground(new Color(255, 0, 0));
+			btnInfobaseCreationMode.setForeground(new Color(255, 0, 0));
+			txtDatabaseDbPassword.setForeground(new Color(255, 0, 0));
 		}
 	}
 
-	private void saveInfobaseProperties() {
-
-		extractInfobaseVariablesFromControls();
+	private boolean checkVariablesFromControls() {
 		
-		IInfoBaseInfo infoBaseInfo = new InfoBaseInfo(securityLevel);
+		var existsError = false;
+		
+		List<Text> checksTextControls = new ArrayList<>();
+		checksTextControls.add(txtInfobaseName);
+		checksTextControls.add(txtServerDBName);
+		checksTextControls.add(txtDatabaseDbName);
+		checksTextControls.add(txtDatabaseDbUser);
+		
+		for (Text control : checksTextControls) {
+			if (control.getText().isBlank()) {
+				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				existsError = true;
+			} else {
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			}			
+		}
+		
+		return existsError;
+	}
+	
+	private boolean saveInfobaseProperties() {
+
+		if (checkVariablesFromControls())
+			return false;
+		
+		IInfoBaseInfo infoBaseInfo = new InfoBaseInfo((int) comboSecurityLevel.getData(comboSecurityLevel.getText()));
 
 		// Common properties
-		infoBaseInfo.setName(infobaseName);
-		infoBaseInfo.setDescr(infobaseDescription);
-		infoBaseInfo.setLicenseDistributionAllowed(allowDistributeLicense);
-		infoBaseInfo.setScheduledJobsDenied(sheduledJobsDenied);
+		infoBaseInfo.setName(txtInfobaseName.getText());
+		infoBaseInfo.setDescr(txtInfobaseDescription.getText());
+		infoBaseInfo.setLicenseDistributionAllowed(btnAllowDistributeLicense.getSelection() ? 1 : 0);
+		infoBaseInfo.setScheduledJobsDenied(btnSheduledJobsDenied.getSelection());
 
 		// DB properties
-		infoBaseInfo.setDbServerName(serverDBName);
-		infoBaseInfo.setDbms(serverDBType);
-		infoBaseInfo.setDbName(databaseDbName);
-		infoBaseInfo.setDbUser(databaseDbUser);
-		infoBaseInfo.setDbPassword(databaseDbPassword);
-		infoBaseInfo.setLocale(infobaseLocale);
-		infoBaseInfo.setDateOffset(infobaseDateOffset);
+		infoBaseInfo.setDbServerName(txtServerDBName.getText());
+		infoBaseInfo.setDbms(comboServerDBType.getText());
+		infoBaseInfo.setDbName(txtDatabaseDbName.getText());
+		infoBaseInfo.setDbUser(txtDatabaseDbUser.getText());
+		infoBaseInfo.setDbPassword(txtDatabaseDbPassword.getText());
+		infoBaseInfo.setLocale(comboLocale.getText());
+		if (comboServerDBType.getText().equals("MSSQLServer"))
+			infoBaseInfo.setDateOffset(Integer.parseInt(comboDateOffset.getText()));
 
 		try {
 			newInfobaseUUID = server.createInfoBase(clusterId, infoBaseInfo,
-					(infobaseCreationMode ? 1 : 0));
+					(btnInfobaseCreationMode.getSelection() ? 1 : 0));
 		} catch (Exception excp) {
-			//excp.printStackTrace();
 			var messageBox = new MessageBox(getParentShell());
 			messageBox.setMessage(excp.getLocalizedMessage());
 			messageBox.open();
-			return;
+			return false;
 		}
-		close();
-	}
-
-	private void extractInfobaseVariablesFromControls() {
-		
-		// Common properties
-		infobaseName 			= txtInfobaseName.getText();
-		infobaseDescription 	= txtInfobaseDescription.getText();
-		
-		securityLevel 	= (int) comboSecurityLevel.getData(comboSecurityLevel.getText());
-		
-		allowDistributeLicense 	= btnAllowDistributeLicense.getSelection() ? 1 : 0;
-		sheduledJobsDenied 		= btnSheduledJobsDenied.getSelection();
-		infobaseCreationMode 	= btnInfobaseCreationMode.getSelection();
-		
-		// DB properties
-		serverDBName 		= txtServerDBName.getText();
-		serverDBType 		= comboServerDBType.getText();
-		databaseDbName 		= txtDatabaseDbName.getText();
-		databaseDbUser 		= txtDatabaseDbUser.getText();
-		databaseDbPassword 	= txtDatabaseDbPassword.getText();
-				
-		infobaseLocale 		= comboLocale.getText();
-		infobaseDateOffset 	= Integer.parseInt(comboDateOffset.getText());
+		return true;
 	}
 	
 	/**
@@ -342,8 +332,8 @@ public class CreateInfobaseDialog extends Dialog {
 		button.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				saveInfobaseProperties();
-//				close();
+				if (saveInfobaseProperties())
+					close();
 			}
 		});
 		

@@ -4,11 +4,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +32,7 @@ import ru.yanygin.clusterAdminLibrary.Server;
 public class ClusterProvider {
 	
 	File configFile;
-	Config commonConfig;
+	static Config commonConfig;
 	String defaultConfigPath = ".\\config.json";
 
 	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider");
@@ -39,7 +42,11 @@ public class ClusterProvider {
 		
 	}
 	
-	public void readSavedKnownServers(String configPath) {
+	public static Config getCommonConfig() {
+		return commonConfig;
+	}
+
+	public void readConfig(String configPath) {
 		LOGGER.info("Start read config from file <{}>", configPath);
 		
 		if (configPath.isBlank()) {
@@ -81,23 +88,23 @@ public class ClusterProvider {
 			return;
 		}
 
-		if (commonConfig == null) {
+		if (getCommonConfig() == null) {
 			LOGGER.debug("config is null, after read json");
 			LOGGER.debug("Create new config in root folder");
 			configFile = new File(defaultConfigPath);
 			commonConfig = new Config();
 		}
 		else {
-			commonConfig.servers.forEach((server, config) -> {
+			getCommonConfig().servers.forEach((server, config) -> {
 				config.init();
 			});
 		}
 		LOGGER.info("Config file read successfully");
 	}
 	
-	public void saveKnownServers() {//String configPath) {
+	public void saveConfig() {//String configPath) {
 		
-		LOGGER.info("Start save config from file <{}>", configFile.getAbsolutePath());
+		LOGGER.info("Start save config to file <{}>", configFile.getAbsolutePath());
 		
 //		configFile = new File(configPath);
 
@@ -115,7 +122,7 @@ public class ClusterProvider {
 			    .setPrettyPrinting() // ���� ��������� � ����������������-��������������� ����, �� �� ��������
 			    .create();
 		try {
-			gson.toJson(commonConfig, commonConfig.getClass(), jsonWriter);
+			gson.toJson(getCommonConfig(), getCommonConfig().getClass(), jsonWriter);
 		} catch (JsonIOException excp) {
 			LOGGER.debug("Config file save error: {}", excp);
 		}
@@ -125,25 +132,26 @@ public class ClusterProvider {
 		} catch (IOException excp) {
 			LOGGER.debug("Config file save error: {}", excp);
 		}
+		LOGGER.info("Config file write successfully");
 		
 	}
 	
 	public Server createNewServer() {
-		return commonConfig.CreateNewServer();
+		return getCommonConfig().CreateNewServer();
 	}
 	
 	public void addNewServer(Server server) {
-		commonConfig.servers.put(server.getServerKey(), server);
-		saveKnownServers();
+		getCommonConfig().servers.put(server.getServerKey(), server);
+		saveConfig();
 	}
 	
 	public void removeServer(Server server) {
-		commonConfig.servers.remove(server.getServerKey(), server);
-		saveKnownServers();
+		getCommonConfig().servers.remove(server.getServerKey(), server);
+		saveConfig();
 	}
 	
 	public Map<String, Server> getServers() {
-		return commonConfig.servers;
+		return getCommonConfig().servers;
 	}
 	
 	public List<String> findNewServers() {
@@ -156,7 +164,7 @@ public class ClusterProvider {
 
 	public void connectToServers() {
 		
-		commonConfig.connectAllServers();
+		getCommonConfig().connectAllServers();
 		
 //		clusterConfig.serversMap.forEach((server, config) -> {
 //			config.connect(false);
@@ -168,7 +176,7 @@ public class ClusterProvider {
 		
 		List<String> connectedServers = new ArrayList<>();
 		
-		commonConfig.servers.forEach((server, config) -> {
+		getCommonConfig().servers.forEach((server, config) -> {
 			if (config.isConnected())
 				connectedServers.add(config.getServerKey());
 		});
@@ -178,7 +186,7 @@ public class ClusterProvider {
 	
 	public void checkConnectToServers() {
 		
-		commonConfig.checkConnectionAllServers();
+		getCommonConfig().checkConnectionAllServers();
 		
 	}
 
@@ -208,7 +216,32 @@ public class ClusterProvider {
 
 	}	
 	
-	
+	public static Map<String, String> getInstalledV8Versions() {
+		
+		Map<String, String> versions = new HashMap<>();
+		
+		String v8x64CommonPath = "C:\\Program Files\\1cv8";
+		String v8x86CommonPath = "C:\\Program Files (x86)\\1cv8";
+		
+		FilenameFilter filter = new FilenameFilter() {
+			public boolean accept(File f, String name) {
+				return name.matches("8.3.\\d\\d.\\d{4}");
+			}
+		};
+		
+		File[] v8x64dirs = new File(v8x64CommonPath).listFiles(filter);
+		File[] v8x86dirs = new File(v8x86CommonPath).listFiles(filter);
+		
+		for (File dir : v8x64dirs) {
+			if (dir.isDirectory()) {
+				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe"));
+				if (ras.exists() && ras.isFile())
+					versions.put(dir.getName().concat(" (x64)"), ras.getAbsolutePath());
+			}
+		}
+		return versions;
+		
+	}
 	
 	
 	

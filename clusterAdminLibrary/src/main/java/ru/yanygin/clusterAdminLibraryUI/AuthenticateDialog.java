@@ -65,8 +65,8 @@ public class AuthenticateDialog extends Dialog {
 		GridLayout gridLayout = (GridLayout) container.getLayout();
 		gridLayout.numColumns = 2;
 		
-		lblAuthenticateInfo = new Label(container, SWT.NONE);
-		lblAuthenticateInfo.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false, 2, 1));
+		lblAuthenticateInfo = new Label(container, SWT.WRAP);
+		lblAuthenticateInfo.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, true, 2, 1));
 		lblAuthenticateInfo.setText(authDescription);
 		
 		Label lblUsername = new Label(container, SWT.NONE);
@@ -126,7 +126,7 @@ public class AuthenticateDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(420, 230);
+		return new Point(420, 240);
 	}
 
 }

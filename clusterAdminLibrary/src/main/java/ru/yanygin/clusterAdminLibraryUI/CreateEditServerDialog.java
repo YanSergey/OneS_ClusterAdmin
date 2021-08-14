@@ -12,10 +12,12 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
+import ru.yanygin.clusterAdminLibrary.ClusterProvider;
 import ru.yanygin.clusterAdminLibrary.Server;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
@@ -40,20 +42,20 @@ public class CreateEditServerDialog extends Dialog {
 	
 	private Server serverParams;
 	
-	private String agentHost;
-	private int agentPort;
-	private String rasHost;
-	private int rasPort;
-	private boolean useLocalRas;
-	private String localRasV8version;
-	private String localRasPath;
-	private int localRasPort;
-	private boolean autoconnect;
-	private boolean saveCredentials;
-	private String agentUser;
-	private String agentPassword;
+//	private String agentHost;
+//	private int agentPort;
+//	private String rasHost;
+//	private int rasPort;
+//	private boolean useLocalRas;
+//	private String localRasV8version;
+//	private String localRasPath;
+//	private int localRasPort;
+//	private boolean autoconnect;
+//	private boolean saveCredentials;
+//	private String agentUser;
+//	private String agentPassword;
 	
-	private Map<UUID, String[]> credentialsClustersCashe;
+//	private Map<UUID, String[]> credentialsClustersCashe;
 	
 	private Text txtRASHost;
 	private Text txtRasPort;
@@ -61,8 +63,7 @@ public class CreateEditServerDialog extends Dialog {
 	private Text txtAgentHost;
 	private Text txtAgentPort;
 	private Text txtLocalRasPort;
-	private Text txtLocalRASPath;
-	private Label lblLocalRASPath;
+	private Combo comboV8Version;
 	
 	private Button btnAutoconnect;
 	private Text txtAgentUser;
@@ -72,6 +73,9 @@ public class CreateEditServerDialog extends Dialog {
 	private Button radioUseRemoteRAS;
 	private Button radioUseLocalRAS;
 	private Button btnSaveCredentials;
+	private Text txtDescription;
+
+//	private Combo comboV8Versions1;
 	
 	/**
 	 * Create the dialog.
@@ -96,11 +100,7 @@ public class CreateEditServerDialog extends Dialog {
 	 */
 	@Override
 	protected Control createDialogArea(Composite parent) {
-		parent.addDisposeListener(new DisposeListener() {
-			public void widgetDisposed(DisposeEvent e) {
-				extractServerParameters();
-			}
-		});
+		
 		Composite container = (Composite) super.createDialogArea(parent);
 		GridLayout gridLayout = (GridLayout) container.getLayout();
 		gridLayout.marginHeight = 0;
@@ -116,7 +116,28 @@ public class CreateEditServerDialog extends Dialog {
 		GridLayout gl_connectContainer = new GridLayout(2, false);
 		connectContainer.setLayout(gl_connectContainer);
 		
+		Composite composite = new Composite(connectContainer, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+		composite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
+		
+		Label lblDescription = new Label(composite, SWT.NONE);
+		lblDescription.setText("Description");
+		
+		txtDescription = new Text(composite, SWT.BORDER);
+		txtDescription.setToolTipText("Description");
+		txtDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		
+		btnAutoconnect = new Button(connectContainer, SWT.CHECK);
+		GridData gd_btnAutoconnect = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gd_btnAutoconnect.horizontalIndent = 5;
+		btnAutoconnect.setLayoutData(gd_btnAutoconnect);
+		btnAutoconnect.setText("Autoconnect to the server at startup");
+		new Label(connectContainer, SWT.NONE);
+		
 		radioUseRemoteRAS = new Button(connectContainer, SWT.RADIO);
+		GridData gd_radioUseRemoteRAS = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gd_radioUseRemoteRAS.horizontalIndent = 5;
+		radioUseRemoteRAS.setLayoutData(gd_radioUseRemoteRAS);
 		radioUseRemoteRAS.setSelection(true);
 		radioUseRemoteRAS.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -129,6 +150,9 @@ public class CreateEditServerDialog extends Dialog {
 		radioUseRemoteRAS.setText("Use remote RAS");
 		
 		radioUseLocalRAS = new Button(connectContainer, SWT.RADIO);
+		GridData gd_radioUseLocalRAS = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gd_radioUseLocalRAS.horizontalIndent = 5;
+		radioUseLocalRAS.setLayoutData(gd_radioUseLocalRAS);
 		radioUseLocalRAS.setBounds(0, 0, 90, 16);
 		radioUseLocalRAS.setText("Use local RAS");
 		
@@ -160,20 +184,20 @@ public class CreateEditServerDialog extends Dialog {
 		grpLocalRasParameters.setText("Local RAS parameters");
 		grpLocalRasParameters.setLayout(new GridLayout(2, false));
 		
-		lblLocalRASPath = new Label(grpLocalRasParameters, SWT.NONE);
-		lblLocalRASPath.setSize(124, 15);
-		lblLocalRASPath.setText("Path");
+		Label lblV8Version = new Label(grpLocalRasParameters, SWT.NONE);
+		lblV8Version.setSize(124, 15);
+		lblV8Version.setText("V8 Version");
 		
 		Label lblLocalRasPort = new Label(grpLocalRasParameters, SWT.NONE);
 		lblLocalRasPort.setSize(77, 15);
 		lblLocalRasPort.setText("Port");
 		
-		txtLocalRASPath = new Text(grpLocalRasParameters, SWT.BORDER);
-		GridData gd_txtLocalRASPath = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_txtLocalRASPath.widthHint = 200;
-		txtLocalRASPath.setLayoutData(gd_txtLocalRASPath);
-		txtLocalRASPath.setSize(389, 21);
-		txtLocalRASPath.setToolTipText("LocalRASPath");
+		comboV8Version = new Combo(grpLocalRasParameters, SWT.READ_ONLY);
+		GridData gd_comboV8Version = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gd_comboV8Version.widthHint = 140;
+		comboV8Version.setLayoutData(gd_comboV8Version);
+		comboV8Version.setSize(389, 21);
+		comboV8Version.setToolTipText("V8 version");
 		
 		txtLocalRasPort = new Text(grpLocalRasParameters, SWT.BORDER);
 		GridData gd_txtLocalRasPort = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
@@ -202,13 +226,6 @@ public class CreateEditServerDialog extends Dialog {
 		gd_txtAgentPort.widthHint = 50;
 		txtAgentPort.setLayoutData(gd_txtAgentPort);
 		txtAgentPort.setToolTipText("Agent Port");
-		new Label(connectContainer, SWT.NONE);
-		
-//		Button btnCheckButton = new Button(connectContainer, SWT.CHECK);
-//		btnCheckButton.setText("Check Button");
-		
-		btnAutoconnect = new Button(connectContainer, SWT.CHECK);
-		btnAutoconnect.setText("Autoconnect to the server at startup");
 		new Label(connectContainer, SWT.NONE);
 		
 		TabItem tabCredentials = new TabItem(tabFolder, SWT.NONE);
@@ -295,6 +312,8 @@ public class CreateEditServerDialog extends Dialog {
 	
 	private void initServerProperties() {
 		if (serverParams != null) {
+			this.txtDescription.setText(serverParams.description);
+			
 			this.txtRASHost.setText(serverParams.rasHost);
 			this.txtRasPort.setText(serverParams.getRasPortAsString());
 			
@@ -303,7 +322,11 @@ public class CreateEditServerDialog extends Dialog {
 			
 			this.radioUseRemoteRAS.setSelection(!serverParams.useLocalRas);
 			this.radioUseLocalRAS.setSelection(serverParams.useLocalRas);
-//			this.comboV8Versions.setText(serverParams.localRasV8version);
+			ClusterProvider.getInstalledV8Versions().forEach( (desc, path) -> {
+				comboV8Version.add(desc);		
+			});
+			this.comboV8Version.setText(serverParams.localRasV8version);
+
 			this.txtLocalRasPort.setText(serverParams.getLocalRasPortAsString());
 			
 			this.btnAutoconnect.setSelection(serverParams.autoconnect);
@@ -326,50 +349,40 @@ public class CreateEditServerDialog extends Dialog {
 			});
 		}
 	}
-	
-	private void extractServerParameters() {
-		agentHost = txtAgentHost.getText();
-		agentPort = Integer.parseInt(txtAgentPort.getText());
 		
-		rasHost = txtRASHost.getText();
-		rasPort = Integer.parseInt(txtRasPort.getText());
-		
-		useLocalRas 	= !radioUseRemoteRAS.getSelection();
-		localRasPort 	= Integer.parseInt(txtLocalRasPort.getText());
-//		localRasV8version 	= comboV8Versions.getText();
-		localRasPath 	= txtLocalRASPath.getText();
-		
-		autoconnect 	= btnAutoconnect.getSelection();
-		saveCredentials = btnSaveCredentials.getSelection();
-		agentUser 		= txtAgentUser.getText();
-		agentPassword 	= txtAgentPasswors.getText();
-		
-		credentialsClustersCashe = new HashMap<>();
-		if (saveCredentials) {
-			TableItem[] credentials = tableCredentials.getItems();
-			for (TableItem credential : credentials) {
-				UUID uuid = (UUID) credential.getData("UUID");
-				credentialsClustersCashe.put(uuid, new String[] { credential.getText(3), credential.getText(4), credential.getText(1) });
+	private boolean saveNewServerProperties() {
+		try {
+			serverParams.description = txtDescription.getText();
+
+			Map<UUID, String[]> credentialsClustersCashe = new HashMap<>();
+			if (btnSaveCredentials.getSelection()) {
+				TableItem[] credentials = tableCredentials.getItems();
+				for (TableItem credential : credentials) {
+					UUID uuid = (UUID) credential.getData("UUID");
+					credentialsClustersCashe.put(uuid, new String[] { credential.getText(3), credential.getText(4), credential.getText(1) });
+				}
 			}
-		}
-		
-	}
-	
-	private void saveNewServerProperties() {
-		if (serverParams != null) {
-			serverParams.setServerNewProperties(agentHost,
-					agentPort,
-					rasHost,
-					rasPort,
-					useLocalRas,
-					localRasPort,
-					localRasV8version,
-					localRasPath,
-					autoconnect,
-					saveCredentials,
-					agentUser,
-					agentPassword,
+
+			serverParams.setServerNewProperties(
+					txtAgentHost.getText(),
+					Integer.parseInt(txtAgentPort.getText()),
+					txtRASHost.getText(),
+					Integer.parseInt(txtRasPort.getText()),
+					!radioUseRemoteRAS.getSelection(),
+					Integer.parseInt(txtLocalRasPort.getText()),
+					comboV8Version.getText(),
+					btnAutoconnect.getSelection(),
+					btnSaveCredentials.getSelection(),
+					txtAgentUser.getText(),
+					txtAgentPasswors.getText(),
 					credentialsClustersCashe);
+			return true;
+			
+		} catch (Exception excp) {
+			var messageBox = new MessageBox(getParentShell());
+			messageBox.setMessage(excp.getLocalizedMessage());
+			messageBox.open();
+			return false;
 		}
 	}
 	
@@ -380,11 +393,12 @@ public class CreateEditServerDialog extends Dialog {
 	 */
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
-		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
+		Button button = createButton(parent, IDialogConstants.FINISH_ID, IDialogConstants.OK_LABEL, true);
 		button.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				saveNewServerProperties();
+				if (saveNewServerProperties())
+					close();
 			}
 		});
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
@@ -395,6 +409,6 @@ public class CreateEditServerDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(630, 410);
+		return new Point(580, 410);
 	}
 }
