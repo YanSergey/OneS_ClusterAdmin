@@ -6,16 +6,24 @@ import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.wb.swt.SWTResourceManager;
 
-import com._1c.v8.ibis.admin.ClusterInfo;
-import com._1c.v8.ibis.admin.IClusterInfo;
 import com._1c.v8.ibis.admin.IPortRangeInfo;
 import com._1c.v8.ibis.admin.IWorkingServerInfo;
 import com._1c.v8.ibis.admin.PortRangeInfo;
@@ -23,23 +31,8 @@ import com._1c.v8.ibis.admin.WorkingServerInfo;
 
 import ru.yanygin.clusterAdminLibrary.Server;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.DisposeListener;
-import org.eclipse.swt.events.DisposeEvent;
-import org.eclipse.swt.widgets.Group;
-import org.eclipse.wb.swt.SWTResourceManager;
-
 public class CreateEditWorkingServerDialog extends Dialog {
 	
-//	private IClusterInfo clusterInfo;
 	private UUID clusterId;
 	private UUID workingServerId;
 	private Server server;
@@ -50,21 +43,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	private Text txtIPPort;
 	private Text txtPortRange;
 
-	// fields of infobase
-	private String clusterName;
-	private String computerName;
-	private int ipPort;
-	private int securityLevel;
-	
-	private int wpLifeTimeLimit;
-	private int wpMaxMemorySize;
-	private int wpMaxMemoryTimeLimit;
-	private int clusterRecyclingErrorsCountThreshold;
-	private boolean clusterRecyclingKillProblemProcesses;
-	
-	private int expirationTimeout;
-	private int faultToleranceLevel;
-	private int loadBalancingMode;
 	private Text txtInfoBasesPerWorkingProcessLimit;
 	private Text txtConnectionsPerWorkingProcessLimit;
 	private Text txtIPPortMainManager;
@@ -75,6 +53,12 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	private Text txtTemporaryAllowedProcessesTotalMemory;
 	private Text txtTemporaryAllowedProcessesTotalMemoryTimeLimit;
 	private Text txtSafeWorkingProcessesMemoryLimit;
+	private Label lblSafeWorkingProcessesMemoryLimitMb;
+	private Label lblSafeCallMemoryLimitMb;
+	private Label lblWorkingProcessMemoryLimitMb;
+	private Label lblCriticalProcessesTotalMemoryMb;
+	private Label lblTemporaryAllowedProcessesTotalMemoryMb;
+	private Label lblTemporaryAllowedProcessesTotalMemoryTimeLimitMin;
 
 	public UUID getNewWorkingServerId() {
 		return workingServerId;
@@ -103,11 +87,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	 */
 	@Override
 	protected Control createDialogArea(Composite parent) {
-		parent.addDisposeListener(new DisposeListener() {
-			public void widgetDisposed(DisposeEvent e) {
-//				extractClusterVariablesFromControls();
-			}
-		});
+
 		Composite container = (Composite) super.createDialogArea(parent);
 		GridLayout gridLayout = (GridLayout) container.getLayout();
 		gridLayout.marginWidth = 10;
@@ -155,83 +135,124 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		lblSafeWorkingProcessesMemoryLimit.setText("Safe working processes memory limit (byte)");
 		
 		txtSafeWorkingProcessesMemoryLimit = new Text(container, SWT.BORDER);
+		txtSafeWorkingProcessesMemoryLimit.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				lblSafeWorkingProcessesMemoryLimitMb.setText(convertToMegabytes((Text)e.widget));
+			}
+		});
+		
 		txtSafeWorkingProcessesMemoryLimit.setToolTipText("SafeWorkingProcessesMemoryLimit");
 		txtSafeWorkingProcessesMemoryLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		
-		Label lblWPLimirMb_5 = new Label(container, SWT.NONE);
-		lblWPLimirMb_5.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblWPLimirMb_5.setText("20 Mb");
+		lblSafeWorkingProcessesMemoryLimitMb = new Label(container, SWT.NONE);
+		GridData gdlblSafeWorkingProcessesMemoryLimitMb = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdlblSafeWorkingProcessesMemoryLimitMb.minimumHeight = 8;
+		lblSafeWorkingProcessesMemoryLimitMb.setLayoutData(gdlblSafeWorkingProcessesMemoryLimitMb);
+		lblSafeWorkingProcessesMemoryLimitMb.setText("20 Mb");
 		
 		Label lblSafeCallMemoryLimit = new Label(container, SWT.NONE);
 		lblSafeCallMemoryLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblSafeCallMemoryLimit.setText("Safe call memory limit (byte)");
 		
 		txtSafeCallMemoryLimit = new Text(container, SWT.BORDER);
+		txtSafeCallMemoryLimit.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				lblSafeCallMemoryLimitMb.setText(convertToMegabytes((Text)e.widget));
+			}
+		});
 		txtSafeCallMemoryLimit.setToolTipText("SafeCallMemoryLimit");
 		txtSafeCallMemoryLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		
-		Label lblWPLimirMb_1 = new Label(container, SWT.NONE);
-		lblWPLimirMb_1.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblWPLimirMb_1.setText("20 Mb");
+		lblSafeCallMemoryLimitMb = new Label(container, SWT.NONE);
+		GridData gd_lblSafeCallMemoryLimitMb = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gd_lblSafeCallMemoryLimitMb.minimumHeight = 8;
+		lblSafeCallMemoryLimitMb.setLayoutData(gd_lblSafeCallMemoryLimitMb);
+		lblSafeCallMemoryLimitMb.setText("20 Mb");
 		
 		Label lblWorkingProcessMemoryLimit = new Label(container, SWT.NONE);
 		lblWorkingProcessMemoryLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1));
 		lblWorkingProcessMemoryLimit.setText("Working process memory limit  (byte)");
 		
 		txtWorkingProcessMemoryLimit = new Text(container, SWT.BORDER);
+		txtWorkingProcessMemoryLimit.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				lblWorkingProcessMemoryLimitMb.setText(convertToMegabytes((Text)e.widget));
+			}
+		});
 		txtWorkingProcessMemoryLimit.setToolTipText("WorkingProcessMemoryLimit");
 		txtWorkingProcessMemoryLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
-		Label lblWPLimirMb = new Label(container, SWT.NONE);
-		GridData gd_lblWPLimirMb = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
-		gd_lblWPLimirMb.minimumWidth = 20;
-		lblWPLimirMb.setLayoutData(gd_lblWPLimirMb);
-		lblWPLimirMb.setText("20 Mb");
+		lblWorkingProcessMemoryLimitMb = new Label(container, SWT.NONE);
+		GridData gd_lblWorkingProcessMemoryLimitMb = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		gd_lblWorkingProcessMemoryLimitMb.minimumHeight = 8;
+		lblWorkingProcessMemoryLimitMb.setLayoutData(gd_lblWorkingProcessMemoryLimitMb);
+		lblWorkingProcessMemoryLimitMb.setText("20 Mb");
 		
 		Label lblCriticalProcessesTotalMemory = new Label(container, SWT.NONE);
 		lblCriticalProcessesTotalMemory.setText("Critical processes total memory (byte)");
 		lblCriticalProcessesTotalMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		
 		txtCriticalProcessesTotalMemory = new Text(container, SWT.BORDER);
+		txtCriticalProcessesTotalMemory.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				lblCriticalProcessesTotalMemoryMb.setText(convertToMegabytes((Text)e.widget));
+			}
+		});
 		txtCriticalProcessesTotalMemory.setToolTipText("CriticalProcessesTotalMemory");
 		txtCriticalProcessesTotalMemory.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		
-		Label lblWPLimirMb_2 = new Label(container, SWT.NONE);
-		lblWPLimirMb_2.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblWPLimirMb_2.setText("20 Mb");
+		lblCriticalProcessesTotalMemoryMb = new Label(container, SWT.NONE);
+		GridData gdlblCriticalProcessesTotalMemoryMb = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdlblCriticalProcessesTotalMemoryMb.minimumHeight = 8;
+		lblCriticalProcessesTotalMemoryMb.setLayoutData(gdlblCriticalProcessesTotalMemoryMb);
+		lblCriticalProcessesTotalMemoryMb.setText("20 Mb");
 		
 		Label lblTemporaryAllowedProcessesTotalMemory = new Label(container, SWT.NONE);
 		lblTemporaryAllowedProcessesTotalMemory.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false, 1, 1));
 		lblTemporaryAllowedProcessesTotalMemory.setText("Temporary allowed\r\nprocesses total memory (byte)");
 		
 		txtTemporaryAllowedProcessesTotalMemory = new Text(container, SWT.BORDER);
+		txtTemporaryAllowedProcessesTotalMemory.addModifyListener(new ModifyListener() { //NOSONAR
+			public void modifyText(ModifyEvent e) {
+				lblTemporaryAllowedProcessesTotalMemoryMb.setText(convertToMegabytes((Text)e.widget));
+			}
+		});
 		txtTemporaryAllowedProcessesTotalMemory.setToolTipText("Temporary allowed processes total memory");
 		txtTemporaryAllowedProcessesTotalMemory.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		
-		Label lblWPLimirMb_3 = new Label(container, SWT.NONE);
-		lblWPLimirMb_3.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblWPLimirMb_3.setText("20 Mb");
+		lblTemporaryAllowedProcessesTotalMemoryMb = new Label(container, SWT.NONE);
+		GridData gdlblTemporaryAllowedProcessesTotalMemoryMb = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdlblTemporaryAllowedProcessesTotalMemoryMb.minimumHeight = 8;
+		lblTemporaryAllowedProcessesTotalMemoryMb.setLayoutData(gdlblTemporaryAllowedProcessesTotalMemoryMb);
+		lblTemporaryAllowedProcessesTotalMemoryMb.setText("20 Mb");
 		
 		Label lblTemporaryAllowedProcessesTotalMemoryTimeLimit = new Label(container, SWT.NONE);
 		lblTemporaryAllowedProcessesTotalMemoryTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblTemporaryAllowedProcessesTotalMemoryTimeLimit.setText("Temporary allowed processes\r\ntotal memory time limit (second)");
 		
 		txtTemporaryAllowedProcessesTotalMemoryTimeLimit = new Text(container, SWT.BORDER);
+		txtTemporaryAllowedProcessesTotalMemoryTimeLimit.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				lblTemporaryAllowedProcessesTotalMemoryTimeLimitMin.setText(convertToMinutes((Text)e.widget));
+			}
+		});
 		txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText("Temporary allowed processes total memory time limit");
 		txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		
-		Label lblMin = new Label(container, SWT.NONE);
-		lblMin.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblMin.setText("20 min");
+		lblTemporaryAllowedProcessesTotalMemoryTimeLimitMin = new Label(container, SWT.NONE);
+		GridData gdlblTemporaryAllowedProcessesTotalMemoryTimeLimitMin = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdlblTemporaryAllowedProcessesTotalMemoryTimeLimitMin.minimumHeight = 8;
+		lblTemporaryAllowedProcessesTotalMemoryTimeLimitMin.setLayoutData(gdlblTemporaryAllowedProcessesTotalMemoryTimeLimitMin);
+		lblTemporaryAllowedProcessesTotalMemoryTimeLimitMin.setText("20 min");
 		
 		Group groupWorkProcessesParams = new Group(container, SWT.NONE);
 		groupWorkProcessesParams.setText("Working processes parameters");
-		GridLayout gl_groupWorkProcessesParams = new GridLayout(2, true);
-		gl_groupWorkProcessesParams.verticalSpacing = 8;
-		groupWorkProcessesParams.setLayout(gl_groupWorkProcessesParams);
-		GridData gd_groupWorkProcessesParams = new GridData(SWT.CENTER, SWT.CENTER, false, false, 3, 1);
-		gd_groupWorkProcessesParams.widthHint = 450;
-		groupWorkProcessesParams.setLayoutData(gd_groupWorkProcessesParams);
+		GridLayout glgroupWorkProcessesParams = new GridLayout(2, true);
+		glgroupWorkProcessesParams.verticalSpacing = 8;
+		groupWorkProcessesParams.setLayout(glgroupWorkProcessesParams);
+		GridData gdgroupWorkProcessesParams = new GridData(SWT.CENTER, SWT.CENTER, false, false, 3, 1);
+		gdgroupWorkProcessesParams.widthHint = 424;
+		groupWorkProcessesParams.setLayoutData(gdgroupWorkProcessesParams);
 		
 		Label lblInfoBasesPerWorkingProcessLimit = new Label(groupWorkProcessesParams, SWT.NONE);
 		lblInfoBasesPerWorkingProcessLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -270,6 +291,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		
 		btnIsMainServer = new Button(container, SWT.CHECK);
 		btnIsMainServer.setText("Is main server");
+		new Label(container, SWT.NONE);
 		new Label(container, SWT.NONE);
 		new Label(container, SWT.NONE);
 
@@ -523,6 +545,18 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	@Override
 	protected Point getInitialSize() {
 		return new Point(520, 580);
+	}
+
+	private String convertToMegabytes(Text textControl) {
+		long inMb = Long.parseLong(textControl.getText()) / (1024*1024);
+		return Long.toString(inMb).concat(" Mb");
+
+	}
+
+	private String convertToMinutes(Text textControl) {
+		long inMb = Long.parseLong(textControl.getText()) / (60);
+		return Long.toString(inMb).concat(" Min");
+
 	}
 
 }

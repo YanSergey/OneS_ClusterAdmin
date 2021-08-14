@@ -168,9 +168,10 @@ public class Server {
 		this.localRasPath		= "";
 		this.autoconnect		= false;
 		this.available			= false;
-		this.agentUserName		= "";
-		this.agentPassword		= "";
+//		this.agentUserName		= "";
+//		this.agentPassword		= "";
 		this.saveCredentials	= false;
+		this.agentVersion		= "";
 		
 		init();
 		
@@ -178,8 +179,17 @@ public class Server {
 	
 	public void init() {
 		
-//		this.agentUserName = "";// Зачем?
-//		this.agentPassword = "";
+		// При чтении конфиг-файла отсутствующие поля, инициализируются значением null
+		if (agentUserName == null)
+			agentUserName = "";
+		if (agentPassword == null)
+			agentPassword = "";
+		if (description == null)
+			description = "";
+		if (localRasV8version == null)
+			localRasV8version = "";
+		if (agentVersion == null)
+			agentVersion = "disconnect";
 		
 		if (this.credentialsClustersCashe == null)
 			this.credentialsClustersCashe = new HashMap<>();
@@ -208,7 +218,7 @@ public class Server {
 		
 	}
 	
-	public String getDescription() {
+	public String getDescriptionOld() {
 
 		String serverDescriptionPattern;
 		String serverDescription;
@@ -221,6 +231,22 @@ public class Server {
 			serverDescription = String.format(serverDescriptionPattern, agentHost, getAgentPortAsString(), agentVersion);
 		}
 		return serverDescription;
+		
+	}
+	
+	public String getDescription() { // TODO
+		
+		var commonConfig 	= ClusterProvider.getCommonConfig();
+		
+		var localRasPatternPart = useLocalRas && commonConfig.showLocalRasConnectInfo ?
+				String.format("(local-RAS:%s)->", getLocalRasPortAsString()) : "";
+		var serverVersionPatternPart = commonConfig.showServerVersion ?
+				String.format(" (%s)", agentVersion) : "";
+		var serverDescriptionPatternPart = commonConfig.showServerDescription && !description.isBlank() ?
+				String.format(" - <%s>", description) : "";
+				
+		return String.format("%s%s:%s%s%s",
+				localRasPatternPart, agentHost, getAgentPortAsString(), serverVersionPatternPart, serverDescriptionPatternPart);
 		
 	}
 	
@@ -261,7 +287,7 @@ public class Server {
 										boolean useLocalRas,
 										int localRasPort,
 										String localRasV8version,
-										String localRasPath,
+//										String localRasPath,
 										boolean autoconnect,
 										boolean saveCredentials,
 										String agentUser,
@@ -275,7 +301,7 @@ public class Server {
 		this.useLocalRas				= useLocalRas;
 		this.localRasPort				= localRasPort;
 		this.localRasV8version			= localRasV8version;
-		this.localRasPath				= localRasPath;
+//		this.localRasPath				= localRasPath;
 		this.autoconnect				= autoconnect;
 		this.saveCredentials			= saveCredentials;
 		this.agentUserName				= agentUser;
@@ -630,7 +656,7 @@ public class Server {
 		};
 		
 		String[] userAndPassword = credentialsClustersCashe.getOrDefault(clusterId, new String[] { "", "" });
-		String authDescription = String.format("Authentication of the server cluster administrator <%s>", getClusterInfo(clusterId).getName());
+		String authDescription = String.format("Authentication of the cluster administrator on the <%s/%s> ", getServerKey(), getClusterInfo(clusterId).getName());
 		
 		return runAuthProcessWithRequestToUser(authDescription, userAndPassword[0], userAndPassword[1], authMethod);
 		
@@ -1138,7 +1164,7 @@ public class Server {
 			uuid = agentConnection.createInfoBase(clusterId, info, infobaseCreationMode);
 		} catch (Exception excp) {
 			LOGGER.error("Error creates an infobase", excp);
-			return emptyUuid;
+			throw excp;
 		}
 		
 		LOGGER.debug("Creates an infobase succesful");
