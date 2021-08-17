@@ -4,31 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com._1c.v8.ibis.admin.AgentAdminException;
-import com._1c.v8.ibis.admin.IAgentAdminConnection;
-import com._1c.v8.ibis.admin.IClusterInfo;
-import com._1c.v8.ibis.admin.IInfoBaseConnectionInfo;
-import com._1c.v8.ibis.admin.IInfoBaseConnectionShort;
-import com._1c.v8.ibis.admin.IInfoBaseInfo;
-import com._1c.v8.ibis.admin.IInfoBaseInfoShort;
-import com._1c.v8.ibis.admin.IObjectLockInfo;
-import com._1c.v8.ibis.admin.ISessionInfo;
-import com._1c.v8.ibis.admin.IWorkingProcessInfo;
-import com._1c.v8.ibis.admin.client.AgentAdminConnectorFactory;
-import com._1c.v8.ibis.admin.client.IAgentAdminConnector;
-import com._1c.v8.ibis.admin.client.IAgentAdminConnectorFactory;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
-
-import ru.yanygin.clusterAdminLibraryUI.AuthenticateDialog;
 
 public class Config {
 	@SerializedName("Servers")
@@ -78,11 +59,15 @@ public class Config {
 	@SerializedName("ShowLocalRasConnectInfo")
 	@Expose
 	public boolean showLocalRasConnectInfo;
+	
+	@SerializedName("Locale")
+	@Expose
+	public String locale;
 
-	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary");
+	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
 	
 	public Server CreateNewServer() {
-		return new Server("newServerAddress:1541");
+		return new Server("newServerAddress:1541"); //$NON-NLS-1$
 	}
 	
 	public List<String> addNewServers(List<String> servers) {

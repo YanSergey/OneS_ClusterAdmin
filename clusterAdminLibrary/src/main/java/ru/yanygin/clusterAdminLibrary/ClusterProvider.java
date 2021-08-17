@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -33,9 +34,9 @@ public class ClusterProvider {
 	
 	File configFile;
 	static Config commonConfig;
-	String defaultConfigPath = ".\\config.json";
+	String defaultConfigPath = ".\\config.json"; //$NON-NLS-1$
 
-	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider");
+	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
 
 	public ClusterProvider() {
 		
@@ -47,17 +48,17 @@ public class ClusterProvider {
 	}
 
 	public void readConfig(String configPath) {
-		LOGGER.info("Start read config from file <{}>", configPath);
+		LOGGER.info("Start read config from file <{}>", configPath); //$NON-NLS-1$
 		
 		if (configPath.isBlank()) {
-			LOGGER.debug("Config path is empty, create new config in root folder");
+			LOGGER.debug("Config path is empty, create new config in root folder"); //$NON-NLS-1$
 			commonConfig = new Config();
 			return;
 		}
 		
 		configFile = new File(configPath);
 		if (!configFile.exists()) {
-			LOGGER.debug("Config file not exists, create new");
+			LOGGER.debug("Config file not exists, create new"); //$NON-NLS-1$
 			commonConfig = new Config();
 			return;
 		}
@@ -68,43 +69,50 @@ public class ClusterProvider {
 			jsonReader = new JsonReader(
 					new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
 		} catch (FileNotFoundException excp) {
-			LOGGER.debug("Config file read error: {}", excp);
-			LOGGER.debug("Create new config in root folder");
+			LOGGER.debug("Config file read error: {}", excp); //$NON-NLS-1$
+			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
 			configFile = new File(defaultConfigPath);
 			commonConfig = new Config();
 			return;
 		}
 		Gson gson = new GsonBuilder()
-			    .excludeFieldsWithoutExposeAnnotation() // ������ ���� ������ � ���������� @Expose
+			    .excludeFieldsWithoutExposeAnnotation()
 			    .create();
 		
 		try {
 			commonConfig = gson.fromJson(jsonReader, Config.class);
 		} catch (Exception excp) {
-			LOGGER.debug("error convert config from json");
-			LOGGER.debug("Create new config in root folder");
+			LOGGER.debug("error convert config from json"); //$NON-NLS-1$
+			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
 			configFile = new File(defaultConfigPath);
 			commonConfig = new Config();
 			return;
 		}
 
-		if (getCommonConfig() == null) {
-			LOGGER.debug("config is null, after read json");
-			LOGGER.debug("Create new config in root folder");
+		if (commonConfig == null) {
+			LOGGER.debug("config is null, after read json"); //$NON-NLS-1$
+			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
 			configFile = new File(defaultConfigPath);
 			commonConfig = new Config();
 		}
 		else {
-			getCommonConfig().servers.forEach((server, config) -> {
-				config.init();
+			
+			if (commonConfig.locale != null) {
+				Locale locale = Locale.forLanguageTag(commonConfig.locale);
+				java.util.Locale.setDefault(locale);
+				Messages.reloadBundle(locale);
+			}
+
+			commonConfig.servers.forEach((key, server) -> {
+				server.init();
 			});
 		}
-		LOGGER.info("Config file read successfully");
+		LOGGER.info("Config file read successfully"); //$NON-NLS-1$
 	}
 	
 	public void saveConfig() {//String configPath) {
 		
-		LOGGER.info("Start save config to file <{}>", configFile.getAbsolutePath());
+		LOGGER.info("Start save config to file <{}>", configFile.getAbsolutePath()); //$NON-NLS-1$
 		
 //		configFile = new File(configPath);
 
@@ -113,26 +121,25 @@ public class ClusterProvider {
 			jsonWriter = new JsonWriter(
 					new OutputStreamWriter(new FileOutputStream(configFile), StandardCharsets.UTF_8));
 		} catch (FileNotFoundException excp) {
-			// ���� ����� �� ������������� ��������� � ������� �� ���������
-			LOGGER.debug("Config file save error: {}", excp);
+			LOGGER.debug("Config file save error: {}", excp); //$NON-NLS-1$
 			return;
 		}
 		Gson gson = new GsonBuilder()
-			    .excludeFieldsWithoutExposeAnnotation() // ��������� ���� ������ � ���������� @Expose
-			    .setPrettyPrinting() // ���� ��������� � ����������������-��������������� ����, �� �� ��������
+			    .excludeFieldsWithoutExposeAnnotation()
+			    .setPrettyPrinting()
 			    .create();
 		try {
 			gson.toJson(getCommonConfig(), getCommonConfig().getClass(), jsonWriter);
 		} catch (JsonIOException excp) {
-			LOGGER.debug("Config file save error: {}", excp);
+			LOGGER.debug("Config file save error: {}", excp); //$NON-NLS-1$
 		}
 		
 		try {
 			jsonWriter.close();
 		} catch (IOException excp) {
-			LOGGER.debug("Config file save error: {}", excp);
+			LOGGER.debug("Config file save error: {}", excp); //$NON-NLS-1$
 		}
-		LOGGER.info("Config file write successfully");
+		LOGGER.info("Config file write successfully"); //$NON-NLS-1$
 		
 	}
 	
@@ -158,17 +165,12 @@ public class ClusterProvider {
 				
 		List<String> addedServers = new ArrayList<>();
 		
-		
 		return addedServers;
 	}
 
 	public void connectToServers() {
 		
 		getCommonConfig().connectAllServers();
-		
-//		clusterConfig.serversMap.forEach((server, config) -> {
-//			config.connect(false);
-//		});
 		
 	}
 
@@ -220,25 +222,33 @@ public class ClusterProvider {
 		
 		Map<String, String> versions = new HashMap<>();
 		
-		String v8x64CommonPath = "C:\\Program Files\\1cv8";
-		String v8x86CommonPath = "C:\\Program Files (x86)\\1cv8";
+		String v8x64CommonPath = "C:\\Program Files\\1cv8"; //$NON-NLS-1$
+		String v8x86CommonPath = "C:\\Program Files (x86)\\1cv8"; //$NON-NLS-1$
 		
 		FilenameFilter filter = new FilenameFilter() {
 			public boolean accept(File f, String name) {
-				return name.matches("8.3.\\d\\d.\\d{4}");
+				return name.matches("8.3.\\d\\d.\\d{4}"); //$NON-NLS-1$
 			}
 		};
 		
 		File[] v8x64dirs = new File(v8x64CommonPath).listFiles(filter);
-		File[] v8x86dirs = new File(v8x86CommonPath).listFiles(filter);
-		
 		for (File dir : v8x64dirs) {
 			if (dir.isDirectory()) {
-				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe"));
+				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
 				if (ras.exists() && ras.isFile())
-					versions.put(dir.getName().concat(" (x64)"), ras.getAbsolutePath());
+					versions.put(dir.getName().concat(" (x64)"), ras.getAbsolutePath()); //$NON-NLS-1$
 			}
 		}
+		
+		File[] v8x86dirs = new File(v8x86CommonPath).listFiles(filter);
+		for (File dir : v8x86dirs) {
+			if (dir.isDirectory()) {
+				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
+				if (ras.exists() && ras.isFile())
+					versions.put(dir.getName().concat(" (x86)"), ras.getAbsolutePath()); //$NON-NLS-1$
+			}
+		}
+		
 		return versions;
 		
 	}

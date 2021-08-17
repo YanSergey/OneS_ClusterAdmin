@@ -112,21 +112,21 @@ public class ViewerArea extends Composite {
 	
 	TreeColumn columnServer;
 
-	UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
-	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider");
+	UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
+	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
 	FontData systemFontData = getDisplay().getSystemFont().getFontData()[0];
 	
 	enum TreeItemType {
 		SERVER, CLUSTER, INFOBASE_NODE, INFOBASE, WORKINGPROCESS_NODE, WORKINGPROCESS, WORKINGSERVER_NODE, WORKINGSERVER
 	}
 	
-	static final String SERVER_INFO = "ServerInfo";
-	static final String CLUSTER_ID = "ClusterId";
-	static final String INFOBASE_ID = "InfobaseId";
-	static final String WORKINGPROCESS_ID = "WorkingProcessId";
-	static final String WORKINGSERVER_ID = "WorkingServerId";
-	static final String SESSION_ID = "SessionId";
-	static final String CONNECTION_ID = "ConnectionId";
+	static final String SERVER_INFO = "ServerInfo"; //$NON-NLS-1$
+	static final String CLUSTER_ID = "ClusterId"; //$NON-NLS-1$
+	static final String INFOBASE_ID = "InfobaseId"; //$NON-NLS-1$
+	static final String WORKINGPROCESS_ID = "WorkingProcessId"; //$NON-NLS-1$
+	static final String WORKINGSERVER_ID = "WorkingServerId"; //$NON-NLS-1$
+	static final String SESSION_ID = "SessionId"; //$NON-NLS-1$
+	static final String CONNECTION_ID = "ConnectionId"; //$NON-NLS-1$
 
 	ClusterProvider clusterProvider;
 
@@ -136,7 +136,7 @@ public class ViewerArea extends Composite {
 		
 		this.clusterProvider = clusterProvider;
 
-		String configPath = ".\\config.json";
+		String configPath = ".\\config.json"; //$NON-NLS-1$
 		this.clusterProvider.readConfig(configPath);
 
 		SashForm sashForm = new SashForm(this, SWT.NONE);
@@ -185,37 +185,37 @@ public class ViewerArea extends Composite {
 //	}
 	
 	private void initIcon() {
-		LOGGER.info("Start init icon");
+		LOGGER.info("Start init icon"); //$NON-NLS-1$
 		
-		serverIcon				= getImage("server_24.png");
-		serverIconUp			= getImage("server_up_24.png");
-		serverIconDown			= getImage("server_down_24.png");
-		serverIconConnecting	= getImage("server_connecting_24.png");
-		workingServerIcon		= getImage("working_server_24.png");
-		infobaseIcon			= getImage("infobase_24.png");
-		infobasesIcon			= getImage("infobases_24.png");
-		clusterIcon				= getImage("cluster_24.png");
+		serverIcon				= getImage("server_24.png"); //$NON-NLS-1$
+		serverIconUp			= getImage("server_up_24.png"); //$NON-NLS-1$
+		serverIconDown			= getImage("server_down_24.png"); //$NON-NLS-1$
+		serverIconConnecting	= getImage("server_connecting_24.png"); //$NON-NLS-1$
+		workingServerIcon		= getImage("working_server_24.png"); //$NON-NLS-1$
+		infobaseIcon			= getImage("infobase_24.png"); //$NON-NLS-1$
+		infobasesIcon			= getImage("infobases_24.png"); //$NON-NLS-1$
+		clusterIcon				= getImage("cluster_24.png"); //$NON-NLS-1$
 		
-		userIcon				= getImage("user.png");
-		sleepUserIcon			= getImage("sleepUser.png");
-		robotIcon				= getImage("robot.png");
+		userIcon				= getImage("user.png"); //$NON-NLS-1$
+		sleepUserIcon			= getImage("sleepUser.png"); //$NON-NLS-1$
+		robotIcon				= getImage("robot.png"); //$NON-NLS-1$
 		
-		connectionIcon			= getImage("connection.png");
-		locksIcon				= getImage("lock_16.png");
+		connectionIcon			= getImage("connection.png"); //$NON-NLS-1$
+		locksIcon				= getImage("lock_16.png"); //$NON-NLS-1$
 		
-		workingProcessesIcon	= getImage("wps.png");
-		workingProcessIcon		= getImage("wp.png");
+		workingProcessesIcon	= getImage("wps.png"); //$NON-NLS-1$
+		workingProcessIcon		= getImage("wp.png"); //$NON-NLS-1$
 		
-		connectActionIcon		= getImage("connect_action_24.png");
-		disconnectActionIcon	= getImage("disconnect_action_24.png");
+		connectActionIcon		= getImage("connect_action_24.png"); //$NON-NLS-1$
+		disconnectActionIcon	= getImage("disconnect_action_24.png"); //$NON-NLS-1$
 		
-		editIcon				= getImage("edit_16.png");
-		addIcon					= getImage("add_16.png");
-		deleteIcon				= getImage("delete_16.png");
-		lockUsersIcon			= getImage("lock_users_16.png");
-		updateIcon				= getImage("update.png");
+		editIcon				= getImage("edit_16.png"); //$NON-NLS-1$
+		addIcon					= getImage("add_16.png"); //$NON-NLS-1$
+		deleteIcon				= getImage("delete_16.png"); //$NON-NLS-1$
+		lockUsersIcon			= getImage("lock_users_16.png"); //$NON-NLS-1$
+		updateIcon				= getImage("update.png"); //$NON-NLS-1$
 		
-		LOGGER.info("Start init succesfully");
+		LOGGER.info("Start init succesfully"); //$NON-NLS-1$
 	}
 	
 	private void initToolbar(Composite parent, ToolBar toolBar) {
@@ -233,7 +233,7 @@ public class ViewerArea extends Composite {
 //		});
 		
 		ToolItem toolBarItemFindNewServers = new ToolItem(toolBar, SWT.NONE);
-		toolBarItemFindNewServers.setText("Find new Servers");
+		toolBarItemFindNewServers.setText(Messages.getString("ViewerArea.FindNewServers")); //$NON-NLS-1$
 		toolBarItemFindNewServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -245,7 +245,7 @@ public class ViewerArea extends Composite {
 		});
 
 		ToolItem toolBarItemConnectAllServers = new ToolItem(toolBar, SWT.NONE);
-		toolBarItemConnectAllServers.setText("Connect to all servers");		
+		toolBarItemConnectAllServers.setText(Messages.getString("ViewerArea.ConnectToAllServers"));		 //$NON-NLS-1$
 		toolBarItemConnectAllServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -262,11 +262,11 @@ public class ViewerArea extends Composite {
 		Menu mainMenuServersParent = new Menu(mainMenu);
 		
 		MenuItem mainMenuServers = new MenuItem(mainMenu, SWT.CASCADE);
-		mainMenuServers.setText("Servers");
+		mainMenuServers.setText(Messages.getString("ViewerArea.Servers")); //$NON-NLS-1$
 		mainMenuServers.setMenu(mainMenuServersParent);
 		
 		MenuItem toolBarItemFindNewServers = new MenuItem(mainMenuServersParent, SWT.NONE);
-		toolBarItemFindNewServers.setText("Find new Servers");
+		toolBarItemFindNewServers.setText(Messages.getString("ViewerArea.FindNewServers")); //$NON-NLS-1$
 		toolBarItemFindNewServers.setEnabled(false);
 		toolBarItemFindNewServers.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -279,7 +279,7 @@ public class ViewerArea extends Composite {
 		});
 
 		MenuItem toolBarItemConnectAllServers = new MenuItem(mainMenuServersParent, SWT.NONE);
-		toolBarItemConnectAllServers.setText("Connect to all servers");		
+		toolBarItemConnectAllServers.setText(Messages.getString("ViewerArea.ConnectToAllServers"));		 //$NON-NLS-1$
 		toolBarItemConnectAllServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -288,7 +288,7 @@ public class ViewerArea extends Composite {
 		});
 
 		MenuItem toolBarItemDisonnectAllServers = new MenuItem(mainMenuServersParent, SWT.NONE);
-		toolBarItemDisonnectAllServers.setText("Disconnect from all servers");		
+		toolBarItemDisonnectAllServers.setText(Messages.getString("ViewerArea.DisonnectFromAllServers"));		 //$NON-NLS-1$
 		toolBarItemDisonnectAllServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -297,7 +297,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem toolBarItemOpenSettings = new MenuItem(mainMenu, SWT.NONE);
-		toolBarItemOpenSettings.setText("Open settings");		
+		toolBarItemOpenSettings.setText(Messages.getString("ViewerArea.OpenSettings"));		 //$NON-NLS-1$
 		toolBarItemOpenSettings.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -306,7 +306,7 @@ public class ViewerArea extends Composite {
 				try {
 					settingsDialog = new SettingsDialog(getParent().getDisplay().getActiveShell());
 				} catch (Exception excp) {
-					LOGGER.error("Error init SettingsDialog", excp);
+					LOGGER.error("Error init SettingsDialog", excp); //$NON-NLS-1$
 					return;
 				}
 				int dialogResult = settingsDialog.open();
@@ -403,7 +403,7 @@ public class ViewerArea extends Composite {
 		
 		
 		columnServer = new TreeColumn(serversTree, SWT.LEFT);
-		columnServer.setText("Server");
+		columnServer.setText(Messages.getString("ViewerArea.Server")); //$NON-NLS-1$
 		columnServer.setWidth(300);
 		columnServer.addListener(SWT.Selection, sortListener);
 //		columnServer.addSelectionListener(new SelectionAdapter() {
@@ -453,14 +453,14 @@ public class ViewerArea extends Composite {
 		serverMenu.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event e) {
-				System.out.println("click");
+				System.out.println("click"); //$NON-NLS-1$
 			}
 		});
 		
 		serverMenu.addListener(SWT.MenuDetect, new Listener() {
 			@Override
 			public void handleEvent(Event e) {
-				System.out.println("menu");
+				System.out.println("menu"); //$NON-NLS-1$
 			}
 		});
 		
@@ -477,7 +477,7 @@ public class ViewerArea extends Composite {
 	private void initServerMenu() {
 		
 		menuItemConnectServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemConnectServer.setText("Connect to Server");
+		menuItemConnectServer.setText(Messages.getString("ViewerArea.ConnectToServer")); //$NON-NLS-1$
 		menuItemConnectServer.setImage(connectActionIcon);
 		menuItemConnectServer.setEnabled(false);
 		menuItemConnectServer.addSelectionListener(new SelectionAdapter() {
@@ -495,7 +495,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		menuItemDisconnectServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemDisconnectServer.setText("Disconnect of Server");
+		menuItemDisconnectServer.setText(Messages.getString("ViewerArea.DisconnectOfServer")); //$NON-NLS-1$
 		menuItemDisconnectServer.setImage(disconnectActionIcon);
 		menuItemDisconnectServer.setEnabled(false);
 		menuItemDisconnectServer.addSelectionListener(new SelectionAdapter() {
@@ -515,7 +515,7 @@ public class ViewerArea extends Composite {
 		new MenuItem(serverMenu, SWT.SEPARATOR);
 
 		MenuItem menuItemAddNewServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemAddNewServer.setText("Add Server");
+		menuItemAddNewServer.setText(Messages.getString("ViewerArea.AddServer")); //$NON-NLS-1$
 		menuItemAddNewServer.setImage(addIcon);
 		menuItemAddNewServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -527,7 +527,7 @@ public class ViewerArea extends Composite {
 					connectionDialog = new CreateEditServerDialog(getParent().getDisplay().getActiveShell(), newServer);
 				} catch (Exception excp) {
 					excp.printStackTrace();
-					LOGGER.error("Error init CreateEditServerDialog for new server", excp);
+					LOGGER.error("Error init CreateEditServerDialog for new server", excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -547,7 +547,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemEditServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemEditServer.setText("Edit Server");
+		menuItemEditServer.setText(Messages.getString("ViewerArea.EditServer")); //$NON-NLS-1$
 		menuItemEditServer.setImage(editIcon);
 		menuItemEditServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -563,7 +563,7 @@ public class ViewerArea extends Composite {
 					connectionDialog = new CreateEditServerDialog(getParent().getDisplay().getActiveShell(), server);
 				} catch (Exception excp) {
 					excp.printStackTrace();
-					LOGGER.error("Error init CreateEditServerDialog for server {}", server.getDescription(), excp);
+					LOGGER.error("Error init CreateEditServerDialog for server {}", server.getDescription(), excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -581,7 +581,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemUpdateServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemUpdateServer.setText("Update");
+		menuItemUpdateServer.setText(Messages.getString("ViewerArea.Update")); //$NON-NLS-1$
 		menuItemUpdateServer.setImage(updateIcon);
 		menuItemUpdateServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -597,7 +597,7 @@ public class ViewerArea extends Composite {
 		new MenuItem(serverMenu, SWT.SEPARATOR);
 		
 		MenuItem menuItemDeleteServer = new MenuItem(serverMenu, SWT.NONE);
-		menuItemDeleteServer.setText("Remove Server");
+		menuItemDeleteServer.setText(Messages.getString("ViewerArea.RemoveServer")); //$NON-NLS-1$
 		menuItemDeleteServer.setImage(deleteIcon);
 		menuItemDeleteServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -621,7 +621,7 @@ public class ViewerArea extends Composite {
 		clusterMenu = new Menu(serversTree);
 		
 		MenuItem menuItemCreateCluster = new MenuItem(clusterMenu, SWT.NONE);
-		menuItemCreateCluster.setText("Create Cluster");
+		menuItemCreateCluster.setText(Messages.getString("ViewerArea.CreateCluster")); //$NON-NLS-1$
 		menuItemCreateCluster.setImage(addIcon);
 		menuItemCreateCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -636,7 +636,7 @@ public class ViewerArea extends Composite {
 				try {
 					editClusterDialog = new CreateEditClusterDialog(getParent().getDisplay().getActiveShell(), server, null);
 				} catch (Exception excp) {
-					LOGGER.error("Error init CreateEditClusterDialog for new cluster", excp);
+					LOGGER.error("Error init CreateEditClusterDialog for new cluster", excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -648,7 +648,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemEditCluster = new MenuItem(clusterMenu, SWT.NONE);
-		menuItemEditCluster.setText("Edit Cluster");
+		menuItemEditCluster.setText(Messages.getString("ViewerArea.EditCluster")); //$NON-NLS-1$
 		menuItemEditCluster.setImage(editIcon);
 		menuItemEditCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -664,7 +664,7 @@ public class ViewerArea extends Composite {
 				try {
 					editClusterDialog = new CreateEditClusterDialog(getParent().getDisplay().getActiveShell(), server, clusterId);
 				} catch (Exception excp) {
-					LOGGER.error("Error init CreateEditClusterDialog for cluster id {}", clusterId, excp);
+					LOGGER.error("Error init CreateEditClusterDialog for cluster id {}", clusterId, excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -676,7 +676,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemUpdateCluster = new MenuItem(clusterMenu, SWT.NONE);
-		menuItemUpdateCluster.setText("Update");
+		menuItemUpdateCluster.setText(Messages.getString("ViewerArea.Update")); //$NON-NLS-1$
 		menuItemUpdateCluster.setImage(updateIcon);
 		menuItemUpdateCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -694,7 +694,7 @@ public class ViewerArea extends Composite {
 		new MenuItem(clusterMenu, SWT.SEPARATOR);
 		
 		MenuItem menuItemDeleteCluster = new MenuItem(clusterMenu, SWT.NONE);
-		menuItemDeleteCluster.setText("Delete cluster");
+		menuItemDeleteCluster.setText(Messages.getString("ViewerArea.DeleteCluster")); //$NON-NLS-1$
 		menuItemDeleteCluster.setImage(deleteIcon);
 		menuItemDeleteCluster.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -707,7 +707,7 @@ public class ViewerArea extends Composite {
 				UUID clusterId = getCurrentClusterId(item[0]);
 				
 				var messageBox = new MessageBox(Display.getDefault().getActiveShell(), SWT.ICON_QUESTION |SWT.YES | SWT.NO);
-				messageBox.setMessage("”даление кластера приведет к удалению его настроек и списка зарегистрированных информационных баз. ¬ы действительно хотите удалить кластер?");
+				messageBox.setMessage(Messages.getString("ViewerArea.DeleteClusterQuestion")); //$NON-NLS-1$
 //				messageBox.setMessage("Deleting a cluster will delete its settings and the list of registered information databases. Do you really want to delete the cluster?");
 				int rc = messageBox.open();
 
@@ -724,7 +724,7 @@ public class ViewerArea extends Composite {
 		workingServerMenu = new Menu(serversTree);
 		
 		MenuItem menuItemCreateWorkingServer = new MenuItem(workingServerMenu, SWT.NONE);
-		menuItemCreateWorkingServer.setText("Create working server");
+		menuItemCreateWorkingServer.setText(Messages.getString("ViewerArea.CreateWorkingServer")); //$NON-NLS-1$
 		menuItemCreateWorkingServer.setImage(addIcon);
 		menuItemCreateWorkingServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -740,7 +740,7 @@ public class ViewerArea extends Composite {
 				try {
 					editWorkingServerDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), server, clusterId, null);
 				} catch (Exception excp) {
-					LOGGER.error("Error init WorkingServerDialog for cluster id {}", clusterId, excp);
+					LOGGER.error("Error init WorkingServerDialog for cluster id {}", clusterId, excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -756,7 +756,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemEditWorkingServer = new MenuItem(workingServerMenu, SWT.NONE);
-		menuItemEditWorkingServer.setText("Edit working server");
+		menuItemEditWorkingServer.setText(Messages.getString("ViewerArea.EditWorkingServer")); //$NON-NLS-1$
 		menuItemEditWorkingServer.setImage(editIcon);
 		menuItemEditWorkingServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -774,7 +774,7 @@ public class ViewerArea extends Composite {
 					editClusterDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), server, clusterId, workingServerId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
-					LOGGER.error("Error init WorkingServerDialog for cluster id {}", workingServerId, excp);
+					LOGGER.error("Error init WorkingServerDialog for cluster id {}", workingServerId, excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -790,7 +790,7 @@ public class ViewerArea extends Composite {
 		infobaseNodeMenu = new Menu(serversTree);
 
 		MenuItem menuItemNewInfobase = new MenuItem(infobaseNodeMenu, SWT.NONE);
-		menuItemNewInfobase.setText("Create Infobase");
+		menuItemNewInfobase.setText(Messages.getString("ViewerArea.CreateInfobase")); //$NON-NLS-1$
 		menuItemNewInfobase.setImage(addIcon);
 		menuItemNewInfobase.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -806,7 +806,7 @@ public class ViewerArea extends Composite {
 				try {
 					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), server, clusterId, null);
 				} catch (Exception excp) {
-					LOGGER.error("Error in CreateInfobaseDialog", excp);
+					LOGGER.error("Error in CreateInfobaseDialog", excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -822,7 +822,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemUpdateInfobases = new MenuItem(infobaseNodeMenu, SWT.NONE);
-		menuItemUpdateInfobases.setText("Update infobases");
+		menuItemUpdateInfobases.setText(Messages.getString("ViewerArea.UpdateInfobases")); //$NON-NLS-1$
 		menuItemUpdateInfobases.setImage(updateIcon);
 		menuItemUpdateInfobases.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -832,7 +832,7 @@ public class ViewerArea extends Composite {
 					return;
 				
 				Server server = getCurrentServerConfig(item[0]);
-				fillInfobasesOfCluster(item[0], server);
+				fillInfobasesOfCluster(item[0].getParentItem(), server);
 				
 //				UUID clusterId = getCurrentClusterId(item[0]);
 //				
@@ -861,7 +861,7 @@ public class ViewerArea extends Composite {
 		infobaseMenu = new Menu(serversTree);
 		
 		MenuItem menuItemCopyInfobase = new MenuItem(infobaseMenu, SWT.NONE);
-		menuItemCopyInfobase.setText("Create a new Infobase using this");
+		menuItemCopyInfobase.setText(Messages.getString("ViewerArea.CreateNewInfobaseUsingThis")); //$NON-NLS-1$
 		menuItemCopyInfobase.setImage(addIcon);
 		menuItemCopyInfobase.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -878,7 +878,7 @@ public class ViewerArea extends Composite {
 				try {
 					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), server, clusterId, sampleInfobaseId);
 				} catch (Exception excp) {
-					LOGGER.error("Error in CreateInfobaseDialog", excp);
+					LOGGER.error("Error in CreateInfobaseDialog", excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -894,7 +894,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemEditInfobase = new MenuItem(infobaseMenu, SWT.NONE);
-		menuItemEditInfobase.setText("Edit Infobase");
+		menuItemEditInfobase.setText(Messages.getString("ViewerArea.EditInfobase")); //$NON-NLS-1$
 		menuItemEditInfobase.setImage(editIcon);
 		menuItemEditInfobase.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -923,7 +923,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemDeleteInfobase = new MenuItem(infobaseMenu, SWT.NONE);
-		menuItemDeleteInfobase.setText("Delete Infobase");
+		menuItemDeleteInfobase.setText(Messages.getString("ViewerArea.DeleteInfobase")); //$NON-NLS-1$
 		menuItemDeleteInfobase.setImage(deleteIcon);
 		menuItemDeleteInfobase.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -955,12 +955,12 @@ public class ViewerArea extends Composite {
 		Menu infobaseSubMenuSessionManage = new Menu(infobaseMenu);
 		
 		MenuItem infobaseMenuSessionManage = new MenuItem(infobaseMenu, SWT.CASCADE);
-		infobaseMenuSessionManage.setText("Session manage");
+		infobaseMenuSessionManage.setText(Messages.getString("ViewerArea.SessionManage")); //$NON-NLS-1$
 		infobaseMenuSessionManage.setMenu(infobaseSubMenuSessionManage);
 //		infobaseSubMenuSessionManage.setImage(terminateSessionIcon);
 		
 		MenuItem menuItemLockUserSessionsNow = new MenuItem(infobaseSubMenuSessionManage, SWT.NONE);
-		menuItemLockUserSessionsNow.setText("Lock sessions now");
+		menuItemLockUserSessionsNow.setText(Messages.getString("ViewerArea.LockSessionsNow")); //$NON-NLS-1$
 		menuItemLockUserSessionsNow.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
@@ -983,16 +983,16 @@ public class ViewerArea extends Composite {
 				infoBaseInfo.setSessionsDenied(true);
 				infoBaseInfo.setDeniedFrom(null);
 				infoBaseInfo.setDeniedTo(null);
-				infoBaseInfo.setDeniedMessage("");
-				infoBaseInfo.setDeniedParameter("");
-				infoBaseInfo.setPermissionCode("");
+				infoBaseInfo.setDeniedMessage(""); //$NON-NLS-1$
+				infoBaseInfo.setDeniedParameter(""); //$NON-NLS-1$
+				infoBaseInfo.setPermissionCode(""); //$NON-NLS-1$
 				
 				server.updateInfoBase(clusterId, infoBaseInfo);
 			}
 		});		
 
 		MenuItem menuItemTerminateAllSessions = new MenuItem(infobaseSubMenuSessionManage, SWT.NONE);
-		menuItemTerminateAllSessions.setText("Terminate all sessions");
+		menuItemTerminateAllSessions.setText(Messages.getString("ViewerArea.TerminateAllSessions")); //$NON-NLS-1$
 		menuItemTerminateAllSessions.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
@@ -1012,7 +1012,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemTerminateUserSessions = new MenuItem(infobaseSubMenuSessionManage, SWT.NONE);
-		menuItemTerminateUserSessions.setText("Terminate user sessions");
+		menuItemTerminateUserSessions.setText(Messages.getString("ViewerArea.TerminateUsersSessions")); //$NON-NLS-1$
 		menuItemTerminateUserSessions.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
@@ -1035,7 +1035,7 @@ public class ViewerArea extends Composite {
 	private void initSessionTable(TabFolder tabFolder) {
 
 		tabSessions = new TabItem(tabFolder, SWT.NONE);
-		tabSessions.setText("Sessions");
+		tabSessions.setText(Messages.getString("ViewerArea.Sessions")); //$NON-NLS-1$
 
 		tableSessions = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
 		tabSessions.setControl(tableSessions);
@@ -1044,23 +1044,23 @@ public class ViewerArea extends Composite {
 		
 		initSessionsTableContextMenu();
 		
-		addTableColumn(tableSessions, "Username", 		140);
-		addTableColumn(tableSessions, "Infobase", 		100);
-		addTableColumn(tableSessions, "Session N", 		70);
-		addTableColumn(tableSessions, "Connection N", 	80);
-		addTableColumn(tableSessions, "Started At", 	140);
-		addTableColumn(tableSessions, "Last active at", 140);
-		addTableColumn(tableSessions, "Computer", 		100);
-		addTableColumn(tableSessions, "Application", 	100);
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.Username"), 		140); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.Infobase"), 		100); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.SessionN"), 		70); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.ConnectionN"), 	80); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.StartedAt"), 	140); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.LastActiveAt"), 140); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.Application"), 	100); //$NON-NLS-1$
 		
-		addTableColumn(tableSessions, "Host", 			100);
-		addTableColumn(tableSessions, "Port", 			60);
-		addTableColumn(tableSessions, "PID", 			60);
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.Host"), 			100); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.Port"), 			60); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.PID"), 			60); //$NON-NLS-1$
 				
-		addTableColumn(tableSessions, "License", 		60);
-		addTableColumn(tableSessions, "Is sleep", 		40);
-		addTableColumn(tableSessions, "Sleep after",	60);
-		addTableColumn(tableSessions, "Kill after", 	60);
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.License"), 		60); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.IsSleep"), 		40); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.SleepAfter"),	60); //$NON-NLS-1$
+		addTableColumn(tableSessions, Messages.getString("ViewerArea.KillAfter"), 	60); //$NON-NLS-1$
 	}
 	
 	private void initSessionsTableContextMenu() {
@@ -1069,7 +1069,7 @@ public class ViewerArea extends Composite {
 		tableSessions.setMenu(tableSessionsMenu);
 		
 		MenuItem menuItemKillSession = new MenuItem(tableSessionsMenu, SWT.NONE);
-		menuItemKillSession.setText("Kill session");
+		menuItemKillSession.setText(Messages.getString("ViewerArea.KillSession")); //$NON-NLS-1$
 		menuItemKillSession.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -1097,7 +1097,7 @@ public class ViewerArea extends Composite {
 	private void initConnectionsTable(TabFolder tabFolder) {
 
 		tabConnections = new TabItem(tabFolder, SWT.NONE);
-		tabConnections.setText("Connections");
+		tabConnections.setText(Messages.getString("ViewerArea.Connections")); //$NON-NLS-1$
 		
 		tableConnections = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
 		tabConnections.setControl(tableConnections);
@@ -1106,14 +1106,14 @@ public class ViewerArea extends Composite {
 		
 		initConnectionsTableContextMenu();
 		
-		addTableColumn(tableConnections, "Infobase", 		100);
-		addTableColumn(tableConnections, "Connection", 		100);
-		addTableColumn(tableConnections, "Session", 		100);
-		addTableColumn(tableConnections, "Hostname", 		100);
-		addTableColumn(tableConnections, "Application", 	100);
-		addTableColumn(tableConnections, "Connected at", 	100);
-		addTableColumn(tableConnections, "Infobase connection ID", 100);
-		addTableColumn(tableConnections, "rphost ID", 		100);
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.Infobase"), 		100); //$NON-NLS-1$
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.Connection"), 		100); //$NON-NLS-1$
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.Session"), 		100); //$NON-NLS-1$
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.Hostname"), 		100); //$NON-NLS-1$
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.Application"), 	100); //$NON-NLS-1$
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.ConnectedAt"), 	100); //$NON-NLS-1$
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.InfobaseConnectionID"), 100); //$NON-NLS-1$
+		addTableColumn(tableConnections, Messages.getString("ViewerArea.rphostID"), 		100); //$NON-NLS-1$
 		
 	}
 	
@@ -1123,7 +1123,7 @@ public class ViewerArea extends Composite {
 		tableConnections.setMenu(tableConnectionsMenu);
 		
 		MenuItem menuItemKillSession = new MenuItem(tableConnectionsMenu, SWT.NONE);
-		menuItemKillSession.setText("Kill connection");
+		menuItemKillSession.setText(Messages.getString("ViewerArea.KillConnection")); //$NON-NLS-1$
 		menuItemKillSession.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -1152,7 +1152,7 @@ public class ViewerArea extends Composite {
 	private void initLocksTable(TabFolder tabFolder) {
 
 		tabLocks = new TabItem(tabFolder, SWT.NONE);
-		tabLocks.setText("Locks");
+		tabLocks.setText(Messages.getString("ViewerArea.Locks")); //$NON-NLS-1$
 		
 		tableLocks = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
 		tabLocks.setControl(tableLocks);
@@ -1161,15 +1161,15 @@ public class ViewerArea extends Composite {
 		
 		initLocksTableContextMenu();
 		
-		addTableColumn(tableLocks, "Description", 	250);
-		addTableColumn(tableLocks, "Infobase", 		100);
-		addTableColumn(tableLocks, "Connection", 	80);
-		addTableColumn(tableLocks, "Session", 		80);
-		addTableColumn(tableLocks, "Computer", 		100);
-		addTableColumn(tableLocks, "Application", 	140);
-		addTableColumn(tableLocks, "Hostname", 		100);
-		addTableColumn(tableLocks, "Port", 			100);
-		addTableColumn(tableLocks, "Locked at", 	120);
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Description"), 	250); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Infobase"), 		100); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Connection"), 	80); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Session"), 		80); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Application"), 	140); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Hostname"), 		100); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.Port"), 			100); //$NON-NLS-1$
+		addTableColumn(tableLocks, Messages.getString("ViewerArea.LockedAt"), 	120); //$NON-NLS-1$
 //		addTableColumn(tableLocks, "Locked Object", 100);
 		
 	}
@@ -1181,7 +1181,7 @@ public class ViewerArea extends Composite {
 	private void initWorkingProcessesTable(TabFolder tabFolder) {
 
 		tabWorkingProcesses = new TabItem(tabFolder, SWT.NONE);
-		tabWorkingProcesses.setText("Working processes");
+		tabWorkingProcesses.setText(Messages.getString("ViewerArea.WorkingProcesses")); //$NON-NLS-1$
 		
 		tableWorkingProcesses = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
 		tabWorkingProcesses.setControl(tableWorkingProcesses);
@@ -1190,15 +1190,15 @@ public class ViewerArea extends Composite {
 		
 		initWorkingProcessesTableContextMenu();
 		
-		addTableColumn(tableWorkingProcesses, "Computer", 		100);
-		addTableColumn(tableWorkingProcesses, "Port", 			100);
-		addTableColumn(tableWorkingProcesses, "Using", 			250);
-		addTableColumn(tableWorkingProcesses, "Enabled", 		100);
-		addTableColumn(tableWorkingProcesses, "Active", 		80);
-		addTableColumn(tableWorkingProcesses, "PID", 			80);
-		addTableColumn(tableWorkingProcesses, "Memory", 		140);
-		addTableColumn(tableWorkingProcesses, "MemoryExceeded", 100);
-		addTableColumn(tableWorkingProcesses, "Available performance", 	120);
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Port"), 			100); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Using"), 			250); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Enabled"), 		100); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Active"), 		80); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.PID"), 			80); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Memory"), 		140); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.MemoryExceeded"), 100); //$NON-NLS-1$
+		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.AvailablePerformance"), 	120); //$NON-NLS-1$
 		
 	}
 	
@@ -1209,7 +1209,7 @@ public class ViewerArea extends Composite {
 	private void initWorkingServersTable(TabFolder tabFolder) {
 
 		tabWorkingServers = new TabItem(tabFolder, SWT.NONE);
-		tabWorkingServers.setText("Working processes");
+		tabWorkingServers.setText(Messages.getString("ViewerArea.WorkingProcesses")); //$NON-NLS-1$
 		
 		tableWorkingServers = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
 		tabWorkingServers.setControl(tableWorkingServers);
@@ -1218,16 +1218,16 @@ public class ViewerArea extends Composite {
 		
 		initWorkingServersTableContextMenu();
 		
-		addTableColumn(tableWorkingServers, "Description", 		100);
-		addTableColumn(tableWorkingServers, "Computer", 		100);
-		addTableColumn(tableWorkingServers, "IP Port", 			250);
-		addTableColumn(tableWorkingServers, "Range IP Port", 	100);
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.Description"), 		100); //$NON-NLS-1$
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.IPPort"), 			250); //$NON-NLS-1$
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.RangeIPPort"), 	100); //$NON-NLS-1$
 //		addTableColumn(tableWorkingServers, "Max memory WP", 	80);
-		addTableColumn(tableWorkingServers, "IB per process limit", 	80);
-		addTableColumn(tableWorkingServers, "Conn per process limit", 	140);
-		addTableColumn(tableWorkingServers, "IP Port main manager", 100);
-		addTableColumn(tableWorkingServers, "Dedicated managers", 	120);
-		addTableColumn(tableWorkingServers, "Main server", 		100);
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.IBPerProcessLimit"), 	80); //$NON-NLS-1$
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.ConnPerProcessLimit"), 	140); //$NON-NLS-1$
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.IPPortMainManager"), 100); //$NON-NLS-1$
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.DedicatedManagers"), 	120); //$NON-NLS-1$
+		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.MainServer"), 		100); //$NON-NLS-1$
 		
 	}
 	
@@ -1237,7 +1237,7 @@ public class ViewerArea extends Composite {
 		tableWorkingServers.setMenu(workingServersMenu);
 		
 		MenuItem menuItemCreateWorkingServer = new MenuItem(workingServersMenu, SWT.NONE);
-		menuItemCreateWorkingServer.setText("Create working server");
+		menuItemCreateWorkingServer.setText(Messages.getString("ViewerArea.CreateWorkingServer")); //$NON-NLS-1$
 		menuItemCreateWorkingServer.setImage(addIcon);
 		menuItemCreateWorkingServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -1253,7 +1253,7 @@ public class ViewerArea extends Composite {
 				try {
 					editWorkingServerDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), server, clusterId, null);
 				} catch (Exception excp) {
-					LOGGER.error("Error init WorkingServerDialog for cluster id {}", clusterId, excp);
+					LOGGER.error("Error init WorkingServerDialog for cluster id {}", clusterId, excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -1269,7 +1269,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemEditWorkingServer = new MenuItem(workingServersMenu, SWT.NONE);
-		menuItemEditWorkingServer.setText("Edit working server");
+		menuItemEditWorkingServer.setText(Messages.getString("ViewerArea.EditWorkingServer")); //$NON-NLS-1$
 		menuItemEditWorkingServer.setImage(editIcon);
 		menuItemEditWorkingServer.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -1287,7 +1287,7 @@ public class ViewerArea extends Composite {
 					editClusterDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), server, clusterId, workingServerId);
 				} catch (Exception excp) {
 					excp.printStackTrace();
-					LOGGER.error("Error init WorkingServerDialog for cluster id {}", workingServerId, excp);
+					LOGGER.error("Error init WorkingServerDialog for cluster id {}", workingServerId, excp); //$NON-NLS-1$
 					return;
 				}
 				
@@ -1459,7 +1459,7 @@ public class ViewerArea extends Composite {
 
 		TreeItem infobasesNode = null;
 		for (TreeItem treeItem : clusterItem.getItems()) {
-			if (treeItem.getData("Type") == TreeItemType.INFOBASE_NODE) {
+			if (treeItem.getData("Type") == TreeItemType.INFOBASE_NODE) { //$NON-NLS-1$
 				infobasesNode = treeItem;
 				break;
 			}
@@ -1467,7 +1467,7 @@ public class ViewerArea extends Composite {
 		
 		if (infobasesNode == null) {
 			infobasesNode = new TreeItem(clusterItem, SWT.NONE);
-			infobasesNode.setData("Type", TreeItemType.INFOBASE_NODE);
+			infobasesNode.setData("Type", TreeItemType.INFOBASE_NODE); //$NON-NLS-1$
 			infobasesNode.setImage(infobasesIcon);
 			infobasesNode.setChecked(false);
 		}
@@ -1475,7 +1475,7 @@ public class ViewerArea extends Composite {
 		UUID clusterId = getCurrentClusterId(infobasesNode);
 		List<IInfoBaseInfoShort> infoBases = server.getInfoBasesShort(clusterId);
 		
-		var infobasesNodeTitle = String.format("Infobases (%s)", infoBases.size());
+		var infobasesNodeTitle = String.format(Messages.getString("ViewerArea.InfobasesCount"), infoBases.size()); //$NON-NLS-1$
 		infobasesNode.setText(new String[] { infobasesNodeTitle });
 //		infobasesNode.setText(new String[] { String.format("Infobases (%s)", infoBases.size()) });
 		
@@ -1522,7 +1522,7 @@ public class ViewerArea extends Composite {
 
 		TreeItem workingProcessesNode = null;
 		for (TreeItem treeItem : clusterItem.getItems()) {
-			if (treeItem.getData("Type") == TreeItemType.WORKINGPROCESS_NODE) {
+			if (treeItem.getData("Type") == TreeItemType.WORKINGPROCESS_NODE) { //$NON-NLS-1$
 				workingProcessesNode = treeItem;
 				break;
 			}
@@ -1536,7 +1536,7 @@ public class ViewerArea extends Composite {
 		
 		if (workingProcessesNode == null) {
 			workingProcessesNode = new TreeItem(clusterItem, SWT.NONE);
-			workingProcessesNode.setData("Type", TreeItemType.WORKINGPROCESS_NODE);
+			workingProcessesNode.setData("Type", TreeItemType.WORKINGPROCESS_NODE); //$NON-NLS-1$
 			workingProcessesNode.setImage(workingProcessesIcon);
 			workingProcessesNode.setChecked(false);
 		}
@@ -1544,7 +1544,7 @@ public class ViewerArea extends Composite {
 		UUID clusterId = getCurrentClusterId(workingProcessesNode);
 		List<IWorkingProcessInfo> wProcesses = server.getWorkingProcesses(clusterId);
 
-		var workingProcessesNodeTitle 	= String.format("Working processes (%s)", wProcesses.size());
+		var workingProcessesNodeTitle 	= String.format(Messages.getString("ViewerArea.WorkingProcessesCount"), wProcesses.size()); //$NON-NLS-1$
 		workingProcessesNode.setText(new String[] { workingProcessesNodeTitle });
 //		workingProcessesNode.setText(new String[] { String.format("Working processes (%s)", wProcesses.size()) });
 		
@@ -1589,7 +1589,7 @@ public class ViewerArea extends Composite {
 
 		TreeItem workingServersNode = null;
 		for (TreeItem treeItem : clusterItem.getItems()) {
-			if (treeItem.getData("Type") == TreeItemType.WORKINGSERVER_NODE) {
+			if (treeItem.getData("Type") == TreeItemType.WORKINGSERVER_NODE) { //$NON-NLS-1$
 				workingServersNode = treeItem;
 				break;
 			}
@@ -1603,7 +1603,7 @@ public class ViewerArea extends Composite {
 		
 		if (workingServersNode == null) {
 			workingServersNode = new TreeItem(clusterItem, SWT.NONE);
-			workingServersNode.setData("Type", TreeItemType.WORKINGSERVER_NODE);
+			workingServersNode.setData("Type", TreeItemType.WORKINGSERVER_NODE); //$NON-NLS-1$
 			workingServersNode.setImage(workingServerIcon);
 			workingServersNode.setChecked(false);
 		}
@@ -1611,7 +1611,7 @@ public class ViewerArea extends Composite {
 		UUID clusterId = getCurrentClusterId(workingServersNode);
 		List<IWorkingServerInfo> wServers = server.getWorkingServers(clusterId);
 		
-		var workingServerNodeTitle = String.format("Working servers (%s)", wServers.size());
+		var workingServerNodeTitle = String.format(Messages.getString("ViewerArea.WorkingServersCount"), wServers.size()); //$NON-NLS-1$
 		workingServersNode.setText(new String[] { workingServerNodeTitle });
 //		workingServersNode.setText(new String[] { String.format("Working servers (%s)", wServers.size()) });
 		
@@ -1657,7 +1657,7 @@ public class ViewerArea extends Composite {
 		var item = new TreeItem(serversTree, SWT.NONE);
 		
 		item.setText(new String[] { server.getDescription()});
-		item.setData("Type", TreeItemType.SERVER);
+		item.setData("Type", TreeItemType.SERVER); //$NON-NLS-1$
 		item.setData(SERVER_INFO, server);
 		
 		if (server.isConnected()) {
@@ -1671,14 +1671,14 @@ public class ViewerArea extends Composite {
 	
 	private TreeItem addClusterItemInServersTree(TreeItem serverItem, IClusterInfo clusterInfo) {
 		
-		var clusterTitle 				= String.format("%s (%s)", clusterInfo.getName(), clusterInfo.getMainPort());
+		var clusterTitle 				= String.format("%s (%s)", clusterInfo.getName(), clusterInfo.getMainPort()); //$NON-NLS-1$
 //		var infobasesNodeTitle 			= String.format("Infobases (%s)", 0);
 //		var workingProcessesNodeTitle 	= String.format("Working processes (%s)", 0);
 //		var workingServerNodeTitle 		= String.format("Working servers (%s)", 0);
 		
 		var clusterItem = new TreeItem(serverItem, SWT.NONE);
 		clusterItem.setText(new String[] { clusterTitle });
-		clusterItem.setData("Type", TreeItemType.CLUSTER);
+		clusterItem.setData("Type", TreeItemType.CLUSTER); //$NON-NLS-1$
 //		item.setData("ClusterName", clusterInfo.getName()); // «ачем?
 		clusterItem.setData(CLUSTER_ID, clusterInfo.getClusterId());
 		clusterItem.setImage(clusterIcon);
@@ -1713,7 +1713,7 @@ public class ViewerArea extends Composite {
 		var item = new TreeItem(infobaseNode, SWT.NONE);
 		
 		item.setText(new String[] { ibInfo.getName()});
-		item.setData("Type", TreeItemType.INFOBASE);
+		item.setData("Type", TreeItemType.INFOBASE); //$NON-NLS-1$
 		item.setData(INFOBASE_ID, ibInfo.getInfoBaseId());
 		item.setImage(0, infobaseIcon);
 		item.setChecked(false);
@@ -1725,10 +1725,10 @@ public class ViewerArea extends Composite {
 	private void addWorkingProcessItemInNode(TreeItem wpNodeItem, IWorkingProcessInfo wpInfo) {
 		var item = new TreeItem(wpNodeItem, SWT.NONE);
 		
-		var itemTitle = String.format("%s (%s)", wpInfo.getHostName(), wpInfo.getMainPort());
+		var itemTitle = String.format("%s (%s)", wpInfo.getHostName(), wpInfo.getMainPort()); //$NON-NLS-1$
 		
 		item.setText(new String[] { itemTitle});
-		item.setData("Type", TreeItemType.WORKINGPROCESS);
+		item.setData("Type", TreeItemType.WORKINGPROCESS); //$NON-NLS-1$
 		item.setData(WORKINGPROCESS_ID, wpInfo.getWorkingProcessId());
 		item.setImage(workingProcessIcon);
 		item.setChecked(false);
@@ -1737,10 +1737,10 @@ public class ViewerArea extends Composite {
 	private void addWorkingServerItemInNode(TreeItem wsNodeItem, IWorkingServerInfo wpInfo) {
 		var item = new TreeItem(wsNodeItem, SWT.NONE);
 		
-		var itemTitle = String.format("%s (%s)", wpInfo.getHostName(), wpInfo.getMainPort());
+		var itemTitle = String.format("%s (%s)", wpInfo.getHostName(), wpInfo.getMainPort()); //$NON-NLS-1$
 		
 		item.setText(new String[] { itemTitle});
-		item.setData("Type", TreeItemType.WORKINGSERVER);
+		item.setData("Type", TreeItemType.WORKINGSERVER); //$NON-NLS-1$
 		item.setData(WORKINGSERVER_ID, wpInfo.getWorkingServerId());
 		item.setImage(workingServerIcon);
 		item.setChecked(false);
@@ -1755,7 +1755,7 @@ public class ViewerArea extends Composite {
 		
 		String infobaseName = server.getInfoBaseName(clusterId, infobaseId);
 		
-		var connectionNumber = "";
+		var connectionNumber = ""; //$NON-NLS-1$
 		if (!sessionInfo.getConnectionId().equals(emptyUuid)) {
 			List<IInfoBaseConnectionShort> thisConnection = connections.stream()
 																	.filter(c -> c.getInfoBaseConnectionId().equals(sessionInfo.getConnectionId()))
@@ -1764,9 +1764,9 @@ public class ViewerArea extends Composite {
 				connectionNumber = String.valueOf(thisConnection.get(0).getConnId());
 		}
 
-		var wpHostName = "";
-		var wpMainPort = "";
-		var wpPid = "";
+		var wpHostName = ""; //$NON-NLS-1$
+		var wpMainPort = ""; //$NON-NLS-1$
+		var wpPid = ""; //$NON-NLS-1$
 		if (!sessionInfo.getWorkingProcessId().equals(emptyUuid)) {
 			IWorkingProcessInfo wpInfo = server.getWorkingProcessInfo(clusterId, sessionInfo.getWorkingProcessId());
 			
@@ -1774,7 +1774,7 @@ public class ViewerArea extends Composite {
 			wpMainPort = Integer.toString(wpInfo.getMainPort());
 			wpPid = wpInfo.getPid();
 		}
-		var license = "";
+		var license = ""; //$NON-NLS-1$
 		if (!sessionInfo.getLicenses().isEmpty())
 			license = sessionInfo.getLicenses().get(0).getFullPresentation();
 		
@@ -1863,7 +1863,7 @@ public class ViewerArea extends Composite {
 	private void addConnectionInTable(Server server, UUID clusterId, UUID infobaseId, IInfoBaseConnectionShort connectionInfo) {
 		TableItem connectionItem = new TableItem(tableConnections, SWT.NONE);
 
-		String infobaseName = "";
+		String infobaseName = ""; //$NON-NLS-1$
 		if (infobaseId == null && !connectionInfo.getInfoBaseId().equals(emptyUuid)) {
 			infobaseId = connectionInfo.getInfoBaseId();
 			infobaseName = server.getInfoBaseName(clusterId, infobaseId);
@@ -1894,13 +1894,13 @@ public class ViewerArea extends Composite {
 	private void addLocksInTable(Server server, UUID clusterId, UUID infobaseId, IObjectLockInfo lockInfo, List<ISessionInfo> sessionsInfo, List<IInfoBaseConnectionShort> connections) {
 		var lockItem = new TableItem(tableLocks, SWT.NONE);
 
-		var connectionNumber = "";
-		var sessionNumber = "";
-		var computerName = "";
-		var appName = "";
-		var hostName = "";
-		var hostPort = "";
-		var infobaseName = "";
+		var connectionNumber = ""; //$NON-NLS-1$
+		var sessionNumber = ""; //$NON-NLS-1$
+		var computerName = ""; //$NON-NLS-1$
+		var appName = ""; //$NON-NLS-1$
+		var hostName = ""; //$NON-NLS-1$
+		var hostPort = ""; //$NON-NLS-1$
+		var infobaseName = ""; //$NON-NLS-1$
 
 		if (!lockInfo.getSid().equals(emptyUuid)) {
 			ISessionInfo session = getSessionInfoFromLockConnectionId(lockInfo, sessionsInfo);
@@ -1948,7 +1948,7 @@ public class ViewerArea extends Composite {
 		lockItem.setText(itemText);
 		lockItem.setData(CLUSTER_ID, 		clusterId);
 		lockItem.setData(INFOBASE_ID,		infobaseId);
-		lockItem.setData("IObjectLockInfo", lockInfo);
+		lockItem.setData("IObjectLockInfo", lockInfo); //$NON-NLS-1$
 		lockItem.setImage(locksIcon);
 		lockItem.setChecked(false);
 	}
@@ -1959,28 +1959,28 @@ public class ViewerArea extends Composite {
 		String isUse;
 		switch (workingProcess.getUse()) {
 			case 0:
-				isUse = "Not used";
+				isUse = Messages.getString("ViewerArea.NotUsed"); //$NON-NLS-1$
 				break;
 			case 1:
-				isUse = "Used";
+				isUse = Messages.getString("ViewerArea.Used"); //$NON-NLS-1$
 				break;
 			case 2:
-				isUse = "Used as a reserve";
+				isUse = Messages.getString("ViewerArea.UsedAsAReserve"); //$NON-NLS-1$
 				break;
 			default:
-				isUse = "Not used";
+				isUse = Messages.getString("ViewerArea.NotUsed"); //$NON-NLS-1$
 				break;
 		}
 		String isRunning;
 		switch (workingProcess.getRunning()) {
 			case 0:
-				isRunning = "The process is stopped";
+				isRunning = Messages.getString("ViewerArea.ProcessIsStopped"); //$NON-NLS-1$
 				break;
 			case 1:
-				isRunning = "The process is running";
+				isRunning = Messages.getString("ViewerArea.ProcessIsRunning"); //$NON-NLS-1$
 				break;
 			default:
-				isRunning = "The process is stopped";
+				isRunning = Messages.getString("ViewerArea.ProcessIsStopped"); //$NON-NLS-1$
 				break;
 		}
 		
@@ -2008,7 +2008,7 @@ public class ViewerArea extends Composite {
 		TableItem connectionItem = new TableItem(tableWorkingServers, SWT.NONE);
 		
 		IPortRangeInfo portRangesInfo = workingServer.getPortRanges().get(0);
-		String portRanges = Integer.toString(portRangesInfo.getLowBound()).concat(":").concat(Integer.toString(portRangesInfo.getHighBound()));
+		String portRanges = Integer.toString(portRangesInfo.getLowBound()).concat(":").concat(Integer.toString(portRangesInfo.getHighBound())); //$NON-NLS-1$
 	
 		String[] itemText = {
 				workingServer.getName(),
@@ -2040,7 +2040,7 @@ public class ViewerArea extends Composite {
 	}
 	
 	private TreeItemType getTreeItemType(TreeItem item) {
-		return (TreeItemType) item.getData("Type");
+		return (TreeItemType) item.getData("Type"); //$NON-NLS-1$
 	}
 
 	private ISessionInfo getSessionInfoFromLockConnectionId(IObjectLockInfo lockInfo, List<ISessionInfo> sessionsInfo) {
@@ -2075,7 +2075,7 @@ public class ViewerArea extends Composite {
 			else 
 				parentItem = parentItem.getParentItem();
 		}
-		throw new IllegalStateException("Error get ParentItem from currentItem.");
+		throw new IllegalStateException("Error get ParentItem from currentItem."); //$NON-NLS-1$
 //		return null;
 	}
 	
@@ -2093,7 +2093,7 @@ public class ViewerArea extends Composite {
 			else 
 				parentItem = parentItem.getParentItem();
 		}
-		throw new IllegalStateException("Error get ServerConfig from item.");
+		throw new IllegalStateException("Error get ServerConfig from item."); //$NON-NLS-1$
 //		return null;
 	}
 	
@@ -2156,7 +2156,7 @@ public class ViewerArea extends Composite {
 	
 	
 	private String convertUuidToString(UUID uuid) {
-		return uuid.equals(emptyUuid) ? "" : uuid.toString();
+		return uuid.equals(emptyUuid) ? "" : uuid.toString(); //$NON-NLS-1$
 	}
 	
 
@@ -2171,7 +2171,7 @@ public class ViewerArea extends Composite {
 	
 	
 	private Image getImage(String name) {
-		return new Image(getParent().getDisplay(), this.getClass().getResourceAsStream("/icons/".concat(name)));
+		return new Image(getParent().getDisplay(), this.getClass().getResourceAsStream("/icons/".concat(name))); //$NON-NLS-1$
 	}
 	
 
@@ -2296,27 +2296,27 @@ public class ViewerArea extends Composite {
 				return;
 		}
 
-		tabSessions.setText(String.format("Sessions (%s)", sessions.size()));
+		tabSessions.setText(String.format(Messages.getString("ViewerArea.SessionsCount"), sessions.size())); //$NON-NLS-1$
 		sessions.forEach(session -> {
 			addSessionInTable(server, clusterId, infobaseId, session, connections);
 		});
 
-		tabConnections.setText(String.format("Connections (%s)", connections.size()));
+		tabConnections.setText(String.format(Messages.getString("ViewerArea.ConnectionsCount"), connections.size())); //$NON-NLS-1$
 		connections.forEach(connection -> {
 			addConnectionInTable(server, clusterId, infobaseId, connection);
 		});
 
-		tabLocks.setText(String.format("Locks (%s)", locks.size()));
+		tabLocks.setText(String.format(Messages.getString("ViewerArea.LocksCount"), locks.size())); //$NON-NLS-1$
 		locks.forEach(lock -> {
 			addLocksInTable(server, clusterId, infobaseId, lock, sessions, connections);
 		});
 
-		tabWorkingProcesses.setText(String.format("Working processes (%s)", workingProcesses.size()));
+		tabWorkingProcesses.setText(String.format(Messages.getString("ViewerArea.WorkingProcessesCount"), workingProcesses.size())); //$NON-NLS-1$
 		workingProcesses.forEach(workingProcess -> {
 			addWorkingProcessInTable(server, clusterId, workingProcess);
 		});
 
-		tabWorkingServers.setText(String.format("Working servers (%s)", workingServers.size()));
+		tabWorkingServers.setText(String.format(Messages.getString("ViewerArea.WorkingServersCount"), workingServers.size())); //$NON-NLS-1$
 		workingServers.forEach(workingServer -> {
 			addWorkingServerInTable(server, clusterId, workingServer);
 		});
@@ -2366,11 +2366,11 @@ public class ViewerArea extends Composite {
 	}
 	
 	private void clearTabs() {
-		tabSessions.setText("Sessions");
-		tabConnections.setText("Connections");
-		tabLocks.setText("Locks");
-		tabWorkingProcesses.setText("Working processes");
-		tabWorkingServers.setText("Working servers");
+		tabSessions.setText(Messages.getString("ViewerArea.Sessions")); //$NON-NLS-1$
+		tabConnections.setText(Messages.getString("ViewerArea.Connections")); //$NON-NLS-1$
+		tabLocks.setText(Messages.getString("ViewerArea.Locks")); //$NON-NLS-1$
+		tabWorkingProcesses.setText(Messages.getString("ViewerArea.WorkingProcesses")); //$NON-NLS-1$
+		tabWorkingServers.setText(Messages.getString("ViewerArea.WorkingServers")); //$NON-NLS-1$
 		
 		tableSessions.removeAll();
 		tableConnections.removeAll();
