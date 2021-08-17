@@ -80,7 +80,7 @@
 		    <version>3.2.6.Final</version>
 		</dependency>
 		
-		<!-- 1c-libs from local rep -->
+		<!-- 1c-libs from local repo -->
 		<dependency>
 		    <groupId>com._1c.v8</groupId>
 		    <artifactId>com._1c.v8.core</artifactId>
@@ -115,8 +115,29 @@
 	</dependencies>
 
 	<build>
+	
+		<resources>
+			<resource>
+				<directory>${basedir}/src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>${basedir}/src/main/java/ru/yanygin/clusterAdminLibrary</directory>
+				<targetPath>/ru/yanygin/clusterAdminLibrary</targetPath>
+				<includes>
+					<include>**/*.properties</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>${basedir}/src/main/java/ru/yanygin/clusterAdminLibraryUI</directory>
+				<targetPath>/ru/yanygin/clusterAdminLibraryUI</targetPath>
+				<includes>
+					<include>**/*.properties</include>
+				</includes>
+			</resource>
+		</resources>	
+		
 		<plugins>
-
+		
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
