@@ -20,8 +20,6 @@ public class AuthenticateDialog extends Dialog {
 	
 	private Text txtUsername;
 	private Text txtPassword;
-	private Label lblAuthenticateInfo;
-	private Label lblAuthExcpMessage;
 	
 	private String username;
 	private String password;
@@ -65,7 +63,7 @@ public class AuthenticateDialog extends Dialog {
 		GridLayout gridLayout = (GridLayout) container.getLayout();
 		gridLayout.numColumns = 2;
 		
-		lblAuthenticateInfo = new Label(container, SWT.WRAP);
+		Label lblAuthenticateInfo = new Label(container, SWT.WRAP);
 		lblAuthenticateInfo.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, true, 2, 1));
 		lblAuthenticateInfo.setText(authDescription);
 		
@@ -83,7 +81,7 @@ public class AuthenticateDialog extends Dialog {
 		txtPassword.setToolTipText(Messages.getString("Dialogs.Password")); //$NON-NLS-1$
 		txtPassword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
-		lblAuthExcpMessage = new Label(container, SWT.WRAP);
+		Label lblAuthExcpMessage = new Label(container, SWT.WRAP);
 		lblAuthExcpMessage.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, true, 2, 1));
 		lblAuthExcpMessage.setText(authExcpMessage);
 
