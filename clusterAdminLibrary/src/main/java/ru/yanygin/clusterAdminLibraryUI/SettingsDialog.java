@@ -1,5 +1,7 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.util.Locale;
+
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.graphics.Point;
@@ -24,9 +26,6 @@ import org.eclipse.swt.widgets.Group;
 public class SettingsDialog extends Dialog {
 	
 	private Config config;
-//	private String password;
-//	private String authExcpMessage;
-//	private String authDescription;
 	private Button btnShowWorkingServers;
 	private Button btnShowWorkingProcesses;
 	private Button btnExpandServers;
@@ -38,15 +37,11 @@ public class SettingsDialog extends Dialog {
 	private Button btnShowServerDescription;
 	private Button btnShowInfobaseDescription;
 	private Button btnShowLocalRasConnectInfo;
+	private Group grpLocale;
+	private Button btnLocaleSystem;
+	private Button btnLocaleEnglish;
+	private Button btnLocaleRussian;
 	
-//	public String getUsername() {
-//		return username;
-//	}
-//
-//	public String getPassword() {
-//		return password;
-//	}
-
 	/**
 	 * Create the dialog.
 	 * @param parentShell
@@ -74,54 +69,67 @@ public class SettingsDialog extends Dialog {
 		gridLayout.numColumns = 4;
 		
 		Group grpShowNodesIn = new Group(container, SWT.NONE);
-		grpShowNodesIn.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false, 1, 1));
-		grpShowNodesIn.setText("Show nodes in tree");
+		grpShowNodesIn.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+		grpShowNodesIn.setText(Messages.getString("SettingsDialog.ShowNodesInTree")); //$NON-NLS-1$
 		grpShowNodesIn.setLayout(new GridLayout(1, false));
 		
 		btnShowWorkingServers = new Button(grpShowNodesIn, SWT.CHECK);
-		btnShowWorkingServers.setText("Show working servers");
+		btnShowWorkingServers.setText(Messages.getString("SettingsDialog.ShowWorkingServers")); //$NON-NLS-1$
 		
 		btnShowWorkingProcesses = new Button(grpShowNodesIn, SWT.CHECK);
-		btnShowWorkingProcesses.setText("Show working processes");
+		btnShowWorkingProcesses.setText(Messages.getString("SettingsDialog.ShowWorkingProcesses")); //$NON-NLS-1$
 		
 		Group grpExpandNodes = new Group(container, SWT.NONE);
-		grpExpandNodes.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false, 1, 1));
-		grpExpandNodes.setText("Expand nodes in tree");
+		grpExpandNodes.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+		grpExpandNodes.setText(Messages.getString("SettingsDialog.ExpandNodesInTree")); //$NON-NLS-1$
 		grpExpandNodes.setLayout(new GridLayout(1, false));
 		
 		btnExpandServers = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandServers.setText("Expand servers");
+		btnExpandServers.setText(Messages.getString("SettingsDialog.ExpandServers")); //$NON-NLS-1$
 		
 		btnExpandClusters = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandClusters.setText("Expand clusters");
+		btnExpandClusters.setText(Messages.getString("SettingsDialog.ExpandClusters")); //$NON-NLS-1$
 		
 		btnExpandInfobases = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandInfobases.setText("Expand infobases");
+		btnExpandInfobases.setText(Messages.getString("SettingsDialog.ExpandInfobases")); //$NON-NLS-1$
 		
 		btnExpandWorkingServers = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandWorkingServers.setText("Expand working servers");
+		btnExpandWorkingServers.setText(Messages.getString("SettingsDialog.ExpandWorkingServers")); //$NON-NLS-1$
 		
 		btnExpandWorkingProcesses = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandWorkingProcesses.setText("Expand working processes");
+		btnExpandWorkingProcesses.setText(Messages.getString("SettingsDialog.ExpandWorkingProcesses")); //$NON-NLS-1$
 		
 		Group grpShowInfo = new Group(container, SWT.NONE);
-		grpShowInfo.setText("Show info");
-		grpShowInfo.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false, 1, 1));
+		grpShowInfo.setText(Messages.getString("SettingsDialog.ShowInfo")); //$NON-NLS-1$
+		grpShowInfo.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
 		grpShowInfo.setLayout(new GridLayout(1, false));
 		
 		btnShowServerVersion = new Button(grpShowInfo, SWT.CHECK);
-		btnShowServerVersion.setText("Show server version");
+		btnShowServerVersion.setText(Messages.getString("SettingsDialog.ShowServerVersion")); //$NON-NLS-1$
 		
 		btnShowServerDescription = new Button(grpShowInfo, SWT.CHECK);
-		btnShowServerDescription.setText("Show server description");
+		btnShowServerDescription.setText(Messages.getString("SettingsDialog.ShowServerDescription")); //$NON-NLS-1$
 		
 		btnShowInfobaseDescription = new Button(grpShowInfo, SWT.CHECK);
-		btnShowInfobaseDescription.setText("Show infobase description");
+		btnShowInfobaseDescription.setText(Messages.getString("SettingsDialog.ShowInfobaseDescription")); //$NON-NLS-1$
 		
 		btnShowLocalRasConnectInfo = new Button(grpShowInfo, SWT.CHECK);
-		btnShowLocalRasConnectInfo.setText("Show local RAS connect info");
+		btnShowLocalRasConnectInfo.setText(Messages.getString("SettingsDialog.ShowLocalRASConnectInfo")); //$NON-NLS-1$
 		new Label(container, SWT.NONE);
-		new Label(container, SWT.NONE);
+		
+		grpLocale = new Group(container, SWT.NONE);
+		grpLocale.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+		grpLocale.setText(Messages.getString("SettingsDialog.Locale")); //$NON-NLS-1$
+		grpLocale.setLayout(new GridLayout(1, false));
+		
+		btnLocaleSystem = new Button(grpLocale, SWT.RADIO);
+		btnLocaleSystem.setText(Messages.getString("SettingsDialog.System")); //$NON-NLS-1$
+		
+		btnLocaleEnglish = new Button(grpLocale, SWT.RADIO);
+		btnLocaleEnglish.setText(Messages.getString("SettingsDialog.English")); //$NON-NLS-1$
+		
+		btnLocaleRussian = new Button(grpLocale, SWT.RADIO);
+		btnLocaleRussian.setText(Messages.getString("SettingsDialog.Russian")); //$NON-NLS-1$
 		new Label(container, SWT.NONE);
 		new Label(container, SWT.NONE);
 
@@ -146,6 +154,12 @@ public class SettingsDialog extends Dialog {
 		btnShowInfobaseDescription.setSelection(config.showInfobaseDescription);
 		btnShowLocalRasConnectInfo.setSelection(config.showLocalRasConnectInfo);
 		
+		if (config.locale == null) {
+			btnLocaleSystem.setSelection(true);
+		} else {
+			btnLocaleEnglish.setSelection(config.locale.equals(Locale.ENGLISH.toLanguageTag()));
+			btnLocaleRussian.setSelection(config.locale.equals("ru-RU")); //$NON-NLS-1$
+		}
 	}
 
 	private void saveProperties() {
@@ -163,6 +177,13 @@ public class SettingsDialog extends Dialog {
 		config.showServerDescription = btnShowServerDescription.getSelection();
 		config.showInfobaseDescription = btnShowInfobaseDescription.getSelection();
 		config.showLocalRasConnectInfo = btnShowLocalRasConnectInfo.getSelection();
+		
+		if (btnLocaleSystem.getSelection())
+			config.locale = null;
+		else if (btnLocaleEnglish.getSelection())
+			config.locale = Locale.ENGLISH.toLanguageTag();
+		else if (btnLocaleRussian.getSelection())
+			config.locale = "ru-RU"; //$NON-NLS-1$
 	}
 	
 	/**
@@ -188,7 +209,7 @@ public class SettingsDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(600, 400);
+		return new Point(650, 350);
 	}
 
 }

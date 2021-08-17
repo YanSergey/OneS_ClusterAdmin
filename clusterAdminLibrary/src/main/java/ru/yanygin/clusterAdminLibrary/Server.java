@@ -111,19 +111,19 @@ public class Server {
 	
 	public String connectionError;
 	
-	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary");
-	private static UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
+	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
+	private static UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
 	
 	private IAgentAdminConnector agentConnector;
 	private IAgentAdminConnection agentConnection;
-	private String agentVersion = "";
+	private String agentVersion = ""; //$NON-NLS-1$
 	
-	public static final String THIN_CLIENT = "1CV8C";
-	public static final String THICK_CLIENT = "1CV8";
-	public static final String DESIGNER = "Designer";
-	public static final String SERVER_CONSOLE = "SrvrConsole";
-	public static final String RAS_CONSOLE = "RAS";
-	public static final String JOBSCHEDULER = "JobScheduler";
+	public static final String THIN_CLIENT = "1CV8C"; //$NON-NLS-1$
+	public static final String THICK_CLIENT = "1CV8"; //$NON-NLS-1$
+	public static final String DESIGNER = "Designer"; //$NON-NLS-1$
+	public static final String SERVER_CONSOLE = "SrvrConsole"; //$NON-NLS-1$
+	public static final String RAS_CONSOLE = "RAS"; //$NON-NLS-1$
+	public static final String JOBSCHEDULER = "JobScheduler"; //$NON-NLS-1$
 	
 	interface IRunAuthenticate {
 		void performAutenticate(String userName, String password, boolean saveNewUserpass);
@@ -136,21 +136,21 @@ public class Server {
 	public String getApplicationName(String appId) {
 		switch (appId) {
 			case THIN_CLIENT:
-				return "Thin client";
+				return Messages.getString("Server.ThinClient"); //$NON-NLS-1$
 			case THICK_CLIENT:
-				return "Thick client";
+				return Messages.getString("Server.ThickClient"); //$NON-NLS-1$
 			case DESIGNER:
-				return "Designer";
+				return Messages.getString("Server.Designer"); //$NON-NLS-1$
 			case SERVER_CONSOLE:
-				return "Cluster Console";
+				return Messages.getString("Server.ClusterConsole"); //$NON-NLS-1$
 			case RAS_CONSOLE:
-				return "Administration Server";
+				return Messages.getString("Server.AdministrationServer"); //$NON-NLS-1$
 			case JOBSCHEDULER:
-				return "Job scheduler";
-			case "":
-				return "";
+				return Messages.getString("Server.JobScheduler"); //$NON-NLS-1$
+			case "": //$NON-NLS-1$
+				return ""; //$NON-NLS-1$
 			default:
-				return String.format("Unknown client (%s)", appId);
+				return String.format(Messages.getString("Server.UnknownClient"), appId); //$NON-NLS-1$
 		}
 	}
 	
@@ -164,14 +164,14 @@ public class Server {
 		
 		this.useLocalRas		= false;
 		this.localRasPort		= 0;
-		this.localRasV8version	= "";
-		this.localRasPath		= "";
+		this.localRasV8version	= ""; //$NON-NLS-1$
+		this.localRasPath		= ""; //$NON-NLS-1$
 		this.autoconnect		= false;
 		this.available			= false;
 //		this.agentUserName		= "";
 //		this.agentPassword		= "";
 		this.saveCredentials	= false;
-		this.agentVersion		= "";
+		this.agentVersion		= ""; //$NON-NLS-1$
 		
 		init();
 		
@@ -181,38 +181,38 @@ public class Server {
 		
 		// ѕри чтении конфиг-файла отсутствующие пол€, инициализируютс€ значением null
 		if (agentUserName == null)
-			agentUserName = "";
+			agentUserName = ""; //$NON-NLS-1$
 		if (agentPassword == null)
-			agentPassword = "";
+			agentPassword = ""; //$NON-NLS-1$
 		if (description == null)
-			description = "";
+			description = ""; //$NON-NLS-1$
 		if (localRasV8version == null)
-			localRasV8version = "";
+			localRasV8version = ""; //$NON-NLS-1$
 		if (agentVersion == null)
-			agentVersion = "disconnect";
+			agentVersion = Messages.getString("Server.NotConnect"); //$NON-NLS-1$
 		
 		if (this.credentialsClustersCashe == null)
 			this.credentialsClustersCashe = new HashMap<>();
 		
-		LOGGER.info("Server <{}> init done", this.getServerKey());
+		LOGGER.info("Server <{}> init done", this.getServerKey()); //$NON-NLS-1$
 		
 	}
 	
 	// Ќадо определитьс€ что должно €вл€тьс€ ключем, агент (Server:1540) или
 	// менеджер (Server:1541) или RAS (Server:1545)
 	public String getServerKey() {
-		return agentHost.concat(":").concat(Integer.toString(agentPort));
+		return agentHost.concat(":").concat(Integer.toString(agentPort)); //$NON-NLS-1$
 	}
 	
 	public String getServerDescriptionOld() {
-		var rasPortString = "";
+		var rasPortString = ""; //$NON-NLS-1$
 		if (useLocalRas) {
-			rasPortString = "(*".concat(Integer.toString(localRasPort)).concat(")");
+			rasPortString = "(*".concat(Integer.toString(localRasPort)).concat(")"); //$NON-NLS-1$ //$NON-NLS-2$
 		} else {
 			rasPortString = Integer.toString(this.rasPort);
 		}
 		
-		var serverDescriptionPattern = isConnected() ? "%s:%s-%s (%s)" : "%s:%s-%s";
+		var serverDescriptionPattern = isConnected() ? "%s:%s-%s (%s)" : "%s:%s-%s"; //$NON-NLS-1$ //$NON-NLS-2$
 		
 		return String.format(serverDescriptionPattern, agentHost, Integer.toString(agentPort), rasPortString, agentVersion);
 		
@@ -224,10 +224,10 @@ public class Server {
 		String serverDescription;
 		
 		if (useLocalRas) {
-			serverDescriptionPattern = isConnected() ? "(local-RAS:%s)->%s:%s (%s)" : "(local-RAS:%s)->%s:%s";
+			serverDescriptionPattern = isConnected() ? "(local-RAS:%s)->%s:%s (%s)" : "(local-RAS:%s)->%s:%s"; //$NON-NLS-1$ //$NON-NLS-2$
 			serverDescription = String.format(serverDescriptionPattern, getLocalRasPortAsString(), agentHost, getAgentPortAsString(), agentVersion);
 		} else {
-			serverDescriptionPattern = isConnected() ? "%s:%s (%s)" : "%s:%s";
+			serverDescriptionPattern = isConnected() ? "%s:%s (%s)" : "%s:%s"; //$NON-NLS-1$ //$NON-NLS-2$
 			serverDescription = String.format(serverDescriptionPattern, agentHost, getAgentPortAsString(), agentVersion);
 		}
 		return serverDescription;
@@ -239,13 +239,13 @@ public class Server {
 		var commonConfig 	= ClusterProvider.getCommonConfig();
 		
 		var localRasPatternPart = useLocalRas && commonConfig.showLocalRasConnectInfo ?
-				String.format("(local-RAS:%s)->", getLocalRasPortAsString()) : "";
+				String.format("(local-RAS:%s)->", getLocalRasPortAsString()) : ""; //$NON-NLS-1$ //$NON-NLS-2$
 		var serverVersionPatternPart = commonConfig.showServerVersion ?
-				String.format(" (%s)", agentVersion) : "";
+				String.format(" (%s)", agentVersion) : ""; //$NON-NLS-1$ //$NON-NLS-2$
 		var serverDescriptionPatternPart = commonConfig.showServerDescription && !description.isBlank() ?
-				String.format(" - <%s>", description) : "";
+				String.format(" - <%s>", description) : ""; //$NON-NLS-1$ //$NON-NLS-2$
 				
-		return String.format("%s%s:%s%s%s",
+		return String.format("%s%s:%s%s%s", //$NON-NLS-1$
 				localRasPatternPart, agentHost, getAgentPortAsString(), serverVersionPatternPart, serverDescriptionPatternPart);
 		
 	}
@@ -257,15 +257,15 @@ public class Server {
 		
 		try {
 			agentVersion = agentConnection.getAgentVersion();
-			LOGGER.debug("Agent version of server <{}> is <{}>", this.getServerKey(), agentVersion);
+			LOGGER.debug("Agent version of server <{}> is <{}>", this.getServerKey(), agentVersion); //$NON-NLS-1$
 		} catch (Exception e) {
-			agentVersion = "Unknown";
-			LOGGER.error("Unknown agent version of server <{}>", this.getServerKey());
+			agentVersion = Messages.getString("Server.UnknownAgentVersion"); //$NON-NLS-1$
+			LOGGER.error("Unknown agent version of server <{}>", this.getServerKey()); //$NON-NLS-1$
 		}
 	}
 	
 	public boolean isFifteenOrOlderAgentVersion() {
-		return agentVersion.compareTo("8.3.15") >= 0;
+		return agentVersion.compareTo("8.3.15") >= 0; //$NON-NLS-1$
 	}
 	
 	public String getAgentPortAsString() {
@@ -311,7 +311,7 @@ public class Server {
 		if (this.autoconnect)
 			connectAndAuthenticate(false);
 		
-		LOGGER.info("Set new properties for server <{}>", this.getServerKey());
+		LOGGER.info("Set new properties for server <{}>", this.getServerKey()); //$NON-NLS-1$
 	}
 	
 	/**
@@ -324,11 +324,11 @@ public class Server {
 	 */
 	private String cutHostName(String serverAddress) {
 		String serverName;
-		String[] ar = serverAddress.split(":");
+		String[] ar = serverAddress.split(":"); //$NON-NLS-1$
 		if (ar.length > 0) {
 			serverName = ar[0];
 		} else {
-			serverName = "localhost";
+			serverName = "localhost"; //$NON-NLS-1$
 		}
 		
 		return serverName;
@@ -336,7 +336,7 @@ public class Server {
 	
 	private int cutManagerPort(String serverAddress) {
 		int port;
-		String[] ar = serverAddress.split(":");
+		String[] ar = serverAddress.split(":"); //$NON-NLS-1$
 		if (ar.length == 1) {
 			port = 1541;
 		} else {
@@ -347,11 +347,11 @@ public class Server {
 	
 	private int cutRemoteRASPort(String serverAddress) {
 		int port;
-		String[] ar = serverAddress.split(":");
+		String[] ar = serverAddress.split(":"); //$NON-NLS-1$
 		if (ar.length == 1) {
 			port = 1545;
 		} else {
-			port = Integer.parseInt(ar[1].substring(0, ar[1].length() - 1).concat("5"));
+			port = Integer.parseInt(ar[1].substring(0, ar[1].length() - 1).concat("5")); //$NON-NLS-1$
 		}
 		return port;
 	}
@@ -366,9 +366,9 @@ public class Server {
 		
 		serverAddress = serverAddress.strip();
 		if (serverAddress.isBlank())
-			serverAddress = "localhost";
+			serverAddress = "localhost"; //$NON-NLS-1$
 		
-		String[] ar = serverAddress.split(":");
+		String[] ar = serverAddress.split(":"); //$NON-NLS-1$
 		agentHost	= ar[0];
 		rasHost		= ar[0];
 		
@@ -388,7 +388,7 @@ public class Server {
 		this.agentPort 	= agentPort;
 		this.rasPort 	= rasPort;
 		
-		LOGGER.info("Calculate params for Server <{}> ", this.getServerKey());
+		LOGGER.info("Calculate params for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
 		
 	}
 	
@@ -403,13 +403,13 @@ public class Server {
 //			LOGGER.debug("Server {} is already connected", this.getServerKey()); // засор€ет лог
 		
 		if (!isConnected)
-			LOGGER.info("Server <{}> connection is not established", this.getServerKey());
+			LOGGER.info("Server <{}> connection is not established", this.getServerKey()); //$NON-NLS-1$
 		
 		return isConnected;
 	}
 	
 	public boolean connectAndAuthenticate(boolean disconnectAfter) { // TODO здесь аутентификации не делаетс€ же?
-		LOGGER.debug("Server <{}> start connection", this.getServerKey());
+		LOGGER.debug("Server <{}> start connection", this.getServerKey()); //$NON-NLS-1$
 		
 		if (isConnected())
 			return true;
@@ -417,7 +417,7 @@ public class Server {
 		if (!checkAndRunLocalRAS())
 			return false;
 		
-		String rasHost 	= useLocalRas ? "localhost" : this.rasHost;
+		String rasHost 	= useLocalRas ? "localhost" : this.rasHost; //$NON-NLS-1$
 		int rasPort 	= useLocalRas ? localRasPort : this.rasPort;
 		
 		try {
@@ -428,7 +428,7 @@ public class Server {
 			}
 		} catch (Exception excp) {
 			available = false;
-			LOGGER.info("Server <{}> connection error: <{}>", this.getServerKey(), excp.getLocalizedMessage());
+			LOGGER.info("Server <{}> connection error: <{}>", this.getServerKey(), excp.getLocalizedMessage()); //$NON-NLS-1$
 			return false;
 		}
 		return true;
@@ -445,7 +445,7 @@ public class Server {
 			return true;
 		
 		if (localRasPath.isBlank() || localRasPort == 0) {
-			var message = String.format("Local RAS path or port for Server %s is empty", this.getServerKey());
+			var message = String.format(Messages.getString("Server.LocalRasParamsIsEmpty"), this.getServerKey()); //$NON-NLS-1$
 			LOGGER.error(message);
 			
 			var messageBox = new MessageBox(Display.getDefault().getActiveShell());
@@ -457,21 +457,21 @@ public class Server {
 		
 		///////////////////////////// пока только Windows
 		var processBuilder = new ProcessBuilder();
-		var processOutput = "";
+		var processOutput = ""; //$NON-NLS-1$
 
 		Map<String, String> env = processBuilder.environment();
 
-		env.put("RAS_PATH",		localRasPath);
-		env.put("RAS_PORT",		getLocalRasPortAsString());
-		env.put("AGENT_HOST",	agentHost);
-		env.put("AGENT_PORT",	getAgentPortAsString());
+		env.put("RAS_PATH",		localRasPath); //$NON-NLS-1$
+		env.put("RAS_PORT",		getLocalRasPortAsString()); //$NON-NLS-1$
+		env.put("AGENT_HOST",	agentHost); //$NON-NLS-1$
+		env.put("AGENT_PORT",	getAgentPortAsString()); //$NON-NLS-1$
 
-		processBuilder.command("cmd.exe", "/c", "%RAS_PATH% cluster %AGENT_HOST%:%AGENT_PORT% --port=%RAS_PORT%");
+		processBuilder.command("cmd.exe", "/c", "%RAS_PATH% cluster %AGENT_HOST%:%AGENT_PORT% --port=%RAS_PORT%"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		try {
 			localRASProcess = processBuilder.start();
 		} catch (Exception excp) {
-			LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey());
-			LOGGER.error("Error: <{}>", processOutput, excp);
+			LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey()); //$NON-NLS-1$
+			LOGGER.error("Error: <{}>", processOutput, excp); //$NON-NLS-1$
 			return false;
 		}
 		
@@ -492,13 +492,13 @@ public class Server {
 		
 		var needAuthenticate = false;
 		try {
-			LOGGER.debug("Gets the list administrators of server <{}>:<{}>", agentHost, agentPort);
+			LOGGER.debug("Gets the list administrators of server <{}>:<{}>", agentHost, agentPort); //$NON-NLS-1$
 			agentConnection.getAgentAdmins();
 			return true;
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage());
-			if (excp.getLocalizedMessage().contains("Ќедостаточно прав пользовател€ на управление центральным сервером") ||
-					excp.getLocalizedMessage().contains("јдминистратор центрального сервера не аутентифицирован")) // TODO учесть английский вариант
+			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage()); //$NON-NLS-1$
+			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCentralServer")) || //$NON-NLS-1$
+					excp.getLocalizedMessage().contains(Messages.getString("Server.CentralServerAdminIsNotAuthenticated"))) // TODO учесть английский вариант //$NON-NLS-1$
 				needAuthenticate = true;
 		}
 		
@@ -520,12 +520,12 @@ public class Server {
 	 */
 	public void connectToAgent(String address, int port, long timeout) {
 		if (isConnected()) {
-			LOGGER.debug("The connection to server <{}> is already established", this.getServerKey());
+			LOGGER.debug("The connection to server <{}> is already established", this.getServerKey()); //$NON-NLS-1$
 			available = true;
 			return;
 		}
 		
-		LOGGER.debug("Try connect server <{}> to address:port=<{}:{}>",
+		LOGGER.debug("Try connect server <{}> to address:port=<{}:{}>", //$NON-NLS-1$
 				this.getServerKey(), address, port);
 		
 		IAgentAdminConnectorFactory factory = new AgentAdminConnectorFactory();
@@ -535,7 +535,7 @@ public class Server {
 		available = true;
 		readAgentVersion();
 		
-		LOGGER.debug("Server <{}> is connected now", this.getServerKey());
+		LOGGER.debug("Server <{}> is connected now", this.getServerKey()); //$NON-NLS-1$
 	}
 	
 	/**
@@ -549,14 +549,14 @@ public class Server {
 		
 		if (useLocalRas && localRASProcess.isAlive()) {
 			localRASProcess.destroy();
-			LOGGER.info("Local RAS of Server <{}> is shutdown now", this.getServerKey());
+			LOGGER.info("Local RAS of Server <{}> is shutdown now", this.getServerKey()); //$NON-NLS-1$
 		}
 		
 		try {
 			agentConnector.shutdown();
-			LOGGER.info("Server <{}> disconnected now", this.getServerKey());
+			LOGGER.info("Server <{}> disconnected now", this.getServerKey()); //$NON-NLS-1$
 		} catch (Exception excp) {
-			LOGGER.info("Server <{}> disconnect error: <{}>", this.getServerKey(), excp.getLocalizedMessage());
+			LOGGER.info("Server <{}> disconnect error: <{}>", this.getServerKey(), excp.getLocalizedMessage()); //$NON-NLS-1$
 		} finally {
 			agentConnection = null;
 			agentConnector = null;
@@ -578,19 +578,19 @@ public class Server {
 		
 		IRunAuthenticate authMethod = (String userName, String password, boolean saveNewUserpass) -> {
 			
-			LOGGER.debug("Try to autenticate the agent server <{}>", this.getServerKey());
+			LOGGER.debug("Try to autenticate the agent server <{}>", this.getServerKey()); //$NON-NLS-1$
 			this.agentConnection.authenticateAgent(userName, password);
-			LOGGER.debug("Authentication to the agent server <{}> was successful", this.getServerKey());
+			LOGGER.debug("Authentication to the agent server <{}> was successful", this.getServerKey()); //$NON-NLS-1$
 			
 			// сохран€ем новые user/pass после успешной авторизации
 			if (saveNewUserpass) {
 				this.agentUserName = userName;
 				this.agentPassword = password;
-				LOGGER.debug("New credentials for the agent server <{}> are saved", this.getServerKey());
+				LOGGER.debug("New credentials for the agent server <{}> are saved", this.getServerKey()); //$NON-NLS-1$
 			}
 			
 		};
-		String authDescription = String.format("Authentication of the Central server administrator <%s:%s>", agentHost, agentPort);
+		String authDescription = String.format(Messages.getString("Server.AuthenticationOfCentralServerAdministrator"), agentHost, agentPort); //$NON-NLS-1$
 		
 		return runAuthProcessWithRequestToUser(authDescription, agentUserName, agentPassword, authMethod);
 	}
@@ -606,14 +606,14 @@ public class Server {
 		
 		var needAuthenticate = false;
 		try {
-			LOGGER.debug("Check autenticate of cluster <{}>", clusterId);
+			LOGGER.debug("Check autenticate of cluster <{}>", clusterId); //$NON-NLS-1$
 			agentConnection.getClusterAdmins(clusterId);
-			LOGGER.debug("Autenticate succesfil");
+			LOGGER.debug("Autenticate succesfil"); //$NON-NLS-1$
 			return true;
 		} catch (Exception excp) {
-			LOGGER.error("Error autenticate of cluster: <{}>", excp.getLocalizedMessage());
-			if (excp.getLocalizedMessage().contains("Ќедостаточно прав пользовател€ на управление кластером") ||
-					excp.getLocalizedMessage().contains("јдминистратор кластера не аутентифицирован")) // TODO учесть английский вариант
+			LOGGER.error("Error autenticate of cluster: <{}>", excp.getLocalizedMessage()); //$NON-NLS-1$
+			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCluster")) || //$NON-NLS-1$
+					excp.getLocalizedMessage().contains(Messages.getString("Server.ClusterAdminIsNotAuthenticate"))) // TODO учесть английский вариант //$NON-NLS-1$
 				needAuthenticate = true;
 		}
 		
@@ -641,22 +641,22 @@ public class Server {
 			
 			String clusterName = getClusterInfo(clusterId).getName();
 			
-			LOGGER.debug("Try to autenticate to the cluster <{}> of server <{}>", clusterName, this.getServerKey());
+			LOGGER.debug("Try to autenticate to the cluster <{}> of server <{}>", clusterName, this.getServerKey()); //$NON-NLS-1$
 			agentConnection.authenticate(clusterId, userName, password);
-			LOGGER.debug("Authentication to the cluster <{}> of server <{}> was successful", clusterName,
+			LOGGER.debug("Authentication to the cluster <{}> of server <{}> was successful", clusterName, //$NON-NLS-1$
 					this.getServerKey());
 			
 			// сохран€ем новые user/pass после успешной авторизации
 			if (this.saveCredentials && saveNewUserpass) { // ||
 				this.credentialsClustersCashe.put(clusterId, new String[] { userName, password, clusterName });
-				LOGGER.debug("New credentials for the cluster <{}> of server <{}> are saved", clusterName,
+				LOGGER.debug("New credentials for the cluster <{}> of server <{}> are saved", clusterName, //$NON-NLS-1$
 						this.getServerKey());
 			}
 			
 		};
 		
-		String[] userAndPassword = credentialsClustersCashe.getOrDefault(clusterId, new String[] { "", "" });
-		String authDescription = String.format("Authentication of the cluster administrator on the <%s/%s> ", getServerKey(), getClusterInfo(clusterId).getName());
+		String[] userAndPassword = credentialsClustersCashe.getOrDefault(clusterId, new String[] { "", "" }); //$NON-NLS-1$ //$NON-NLS-2$
+		String authDescription = String.format(Messages.getString("Server.AuthenticationOfClusterAdminnistrator"), getServerKey(), getClusterInfo(clusterId).getName()); //$NON-NLS-1$
 		
 		return runAuthProcessWithRequestToUser(authDescription, userAndPassword[0], userAndPassword[1], authMethod);
 		
@@ -670,7 +670,7 @@ public class Server {
 			authMethod.performAutenticate(userName, password, false);
 			
 		} catch (Exception excp) {
-			LOGGER.debug("Autenticate to server <{}> error: <{}>", this.getServerKey(), excp.getLocalizedMessage());
+			LOGGER.debug("Autenticate to server <{}> error: <{}>", this.getServerKey(), excp.getLocalizedMessage()); //$NON-NLS-1$
 			
 			AuthenticateDialog authenticateDialog;
 			String authExcpMessage = excp.getLocalizedMessage();
@@ -679,12 +679,12 @@ public class Server {
 			while (true) { // крутимс€, пока не подойдет пароль, или пользователь не нажмет ќтмена
 				
 				try {
-					LOGGER.debug("Requesting new user credentials for the server <{}>", this.getServerKey());
+					LOGGER.debug("Requesting new user credentials for the server <{}>", this.getServerKey()); //$NON-NLS-1$
 					authenticateDialog = new AuthenticateDialog(Display.getDefault().getActiveShell(), userName,
 							authDescription, authExcpMessage);
 					dialogResult = authenticateDialog.open();
 				} catch (Exception exc) {
-					LOGGER.debug("Request new user credentials for the server <{}> failed", this.getServerKey());
+					LOGGER.debug("Request new user credentials for the server <{}> failed", this.getServerKey()); //$NON-NLS-1$
 					MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
 					messageBox.setMessage(exc.getLocalizedMessage());
 					messageBox.open();
@@ -692,14 +692,14 @@ public class Server {
 				}
 				
 				if (dialogResult == 0) {
-					LOGGER.debug("The user has provided new credentials for the server <{}>", this.getServerKey());
+					LOGGER.debug("The user has provided new credentials for the server <{}>", this.getServerKey()); //$NON-NLS-1$
 					userName = authenticateDialog.getUsername();
 					password = authenticateDialog.getPassword();
 					try {
 						authMethod.performAutenticate(userName, password, true);
 						break;
 					} catch (Exception exc) {
-						LOGGER.debug("Autenticate to server <{}> error: <{}>", this.getServerKey(),
+						LOGGER.debug("Autenticate to server <{}> error: <{}>", this.getServerKey(), //$NON-NLS-1$
 								excp.getLocalizedMessage());
 						authExcpMessage = exc.getLocalizedMessage();
 						continue;
@@ -728,7 +728,7 @@ public class Server {
 //		String clusterName = getClusterInfo(clusterId).getName();
 		
 		agentConnection.addAuthentication(clusterId, userName, password);
-		LOGGER.debug("Add new infobase credentials for the cluster <{}> of server <{}>", clusterId,
+		LOGGER.debug("Add new infobase credentials for the cluster <{}> of server <{}>", clusterId, //$NON-NLS-1$
 				this.getServerKey());
 		
 	}
@@ -742,19 +742,19 @@ public class Server {
 		if (!isConnected())
 			return new ArrayList<>();
 		
-		LOGGER.debug("Get the list of cluster descriptions registered on the central server <{}>", this.getServerKey());
+		LOGGER.debug("Get the list of cluster descriptions registered on the central server <{}>", this.getServerKey()); //$NON-NLS-1$
 		
 		List<IClusterInfo> clusters;
 		try {
 			clusters = agentConnection.getClusters();
 		} catch (Exception excp) {
-			LOGGER.error("Error get of the list of cluster descriptions", excp.getLocalizedMessage());
+			LOGGER.error("Error get of the list of cluster descriptions", excp.getLocalizedMessage()); //$NON-NLS-1$
 			return new ArrayList<>();
 		}
 		
 		boolean needSaveConfig = false;
 		for (IClusterInfo cluster : clusters) {
-			LOGGER.debug("\tCluster: name=<{}>, ID=<{}>, host:port=<{}:{}>",
+			LOGGER.debug("\tCluster: name=<{}>, ID=<{}>, host:port=<{}:{}>", //$NON-NLS-1$
 					cluster.getName(), cluster.getClusterId(), cluster.getHostName(), cluster.getMainPort());
 			
 			// обновление имени кластера в кеше credentials
@@ -783,17 +783,17 @@ public class Server {
 		if (!isConnected())
 			return null;
 		
-		LOGGER.debug("Get the cluster <{}> descriptions", clusterId);
+		LOGGER.debug("Get the cluster <{}> descriptions", clusterId); //$NON-NLS-1$
 		
 		IClusterInfo clusterInfo;
 		try {
 			clusterInfo = agentConnection.getClusterInfo(clusterId); //TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error get the cluster descriptions", excp);
+			LOGGER.error("Error get the cluster descriptions", excp); //$NON-NLS-1$
 			return null;
 		}
 
-		LOGGER.debug("Get the cluster descriptions succesful");
+		LOGGER.debug("Get the cluster descriptions succesful"); //$NON-NLS-1$
 		return clusterInfo;
 	}
 	
@@ -808,16 +808,16 @@ public class Server {
 		if (!isConnected())
 			return null;
 		
-		LOGGER.debug("Get the cluster <{}> descriptions", clusterId);
+		LOGGER.debug("Get the cluster <{}> descriptions", clusterId); //$NON-NLS-1$
 		
 		try {
 			agentConnection.getClusterManagers(clusterId); //TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error get the cluster descriptions", excp);
+			LOGGER.error("Error get the cluster descriptions", excp); //$NON-NLS-1$
 			return null;
 		}
 
-		LOGGER.debug("Get the cluster descriptions succesful");
+		LOGGER.debug("Get the cluster descriptions succesful"); //$NON-NLS-1$
 		return agentConnection.getClusterManagers(clusterId); //TODO
 	}
 	
@@ -832,17 +832,17 @@ public class Server {
 		if (!isConnected())
 			return null;
 		
-		LOGGER.debug("Get the cluster manager <{}> descriptions of cluster  <{}>", managerId, clusterId);
+		LOGGER.debug("Get the cluster manager <{}> descriptions of cluster  <{}>", managerId, clusterId); //$NON-NLS-1$
 		
 		IClusterManagerInfo clusterManagerInfo;
 		try {
 			clusterManagerInfo = agentConnection.getClusterManagerInfo(clusterId, managerId); //TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error get the cluster descriptions", excp);
+			LOGGER.error("Error get the cluster descriptions", excp); //$NON-NLS-1$
 			return null;
 		}
 
-		LOGGER.debug("Get the cluster descriptions succesful");
+		LOGGER.debug("Get the cluster descriptions succesful"); //$NON-NLS-1$
 		return clusterManagerInfo;
 	}
 	
@@ -854,12 +854,12 @@ public class Server {
 	 */
 	public boolean regCluster(IClusterInfo clusterInfo) {
 		if (clusterInfo.getClusterId().equals(emptyUuid))
-			LOGGER.debug("Registration new cluster <{}>", clusterInfo.getName());
+			LOGGER.debug("Registration new cluster <{}>", clusterInfo.getName()); //$NON-NLS-1$
 		else
-			LOGGER.debug("Registration changes a cluster <{}>", clusterInfo.getClusterId());
+			LOGGER.debug("Registration changes a cluster <{}>", clusterInfo.getClusterId()); //$NON-NLS-1$
 		
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterInfo.getClusterId());
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterInfo.getClusterId()); //$NON-NLS-1$
 			return false;
 		}
 		
@@ -870,14 +870,14 @@ public class Server {
 		try {
 			newClusterId = agentConnection.regCluster(clusterInfo);
 		} catch (Exception excp) {
-			LOGGER.error("Error registraion cluster", excp);
+			LOGGER.error("Error registraion cluster", excp); //$NON-NLS-1$
 			throw excp;
 		}
 
 		if (clusterInfo.getClusterId().equals(emptyUuid))
-			LOGGER.debug("Registration new cluster <{}> succesful", newClusterId);
+			LOGGER.debug("Registration new cluster <{}> succesful", newClusterId); //$NON-NLS-1$
 		else
-			LOGGER.debug("Registration changes a cluster <{}> succesful", clusterInfo.getClusterId());
+			LOGGER.debug("Registration changes a cluster <{}> succesful", clusterInfo.getClusterId()); //$NON-NLS-1$
 		return true;
 	}
     
@@ -893,17 +893,17 @@ public class Server {
 		String unregMessage = null;
 		
 		if (!isConnected())
-			unregMessage = "The connection a cluster is not established.";
+			unregMessage = Messages.getString("Server.TheConnectionAClusterIsNotEstablished"); //$NON-NLS-1$
 		
 		if (!checkAutenticateCluster(clusterId))
-			unregMessage = "The cluster autentication error.";
+			unregMessage = Messages.getString("Server.TheClusterAuthenticationError"); //$NON-NLS-1$
 		
 		try {
-			LOGGER.debug("Delete a cluster <{}>", clusterId);
+			LOGGER.debug("Delete a cluster <{}>", clusterId); //$NON-NLS-1$
 			agentConnection.unregCluster(clusterId);
 			unregSuccesful = true;
 		} catch (Exception excp) {
-			LOGGER.error("Error delete a cluster", excp);
+			LOGGER.error("Error delete a cluster", excp); //$NON-NLS-1$
 			unregMessage = excp.getLocalizedMessage();
 		}
 		if (!unregSuccesful) {
@@ -923,9 +923,9 @@ public class Server {
 	 * @return list of cluster administrators
 	 */
 	public List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
-		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId);
+		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return new ArrayList<>();
 		}
 		
@@ -942,9 +942,9 @@ public class Server {
 	 * @return list of cluster administrators
 	 */
 	public void unregClusterAdmin(UUID clusterId, String name) {
-		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId);
+		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return;
 		}
 		
@@ -961,9 +961,9 @@ public class Server {
 	 * @return list of short descriptions of cluster infobases
 	 */
 	public List<IInfoBaseInfoShort> getInfoBasesShort(UUID clusterId) {
-		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId);
+		LOGGER.debug("Get the list of short descriptions of infobases registered in the cluster <{}>", clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return new ArrayList<>();
 		}
 		
@@ -974,13 +974,13 @@ public class Server {
 		try {
 			clusterInfoBases = agentConnection.getInfoBasesShort(clusterId);
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of short descriptions of infobases", excp);
-			throw new IllegalStateException("Error get infobases short info");
+			LOGGER.error("Error get the list of short descriptions of infobases", excp); //$NON-NLS-1$
+			throw new IllegalStateException("Error get infobases short info"); //$NON-NLS-1$
 		}
 		
-		clusterInfoBases.forEach(ib -> LOGGER.debug("\tInfobase: name=<{}>, desc=<{}>", ib.getName(), ib.getDescr()));
+		clusterInfoBases.forEach(ib -> LOGGER.debug("\tInfobase: name=<{}>, desc=<{}>", ib.getName(), ib.getDescr())); //$NON-NLS-1$
 		
-		LOGGER.debug("Get the list of short descriptions of infobases succesful");
+		LOGGER.debug("Get the list of short descriptions of infobases succesful"); //$NON-NLS-1$
 		return clusterInfoBases;
 	}
 	
@@ -995,9 +995,9 @@ public class Server {
 	 * @return list of full descriptions of cluster infobases
 	 */
 	public List<IInfoBaseInfo> getInfoBases(UUID clusterId) {
-		LOGGER.debug("Get the list of descriptions of infobases registered in the cluster <{}>", clusterId);
+		LOGGER.debug("Get the list of descriptions of infobases registered in the cluster <{}>", clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return new ArrayList<>();
 		}
 		
@@ -1008,15 +1008,15 @@ public class Server {
 		try {
 			clusterInfoBases = agentConnection.getInfoBases(clusterId); // TODO For each infobase in the cluster, infobase authentication is required
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of descriptions of infobases", excp);
-			throw new IllegalStateException("Error get infobases info");
+			LOGGER.error("Error get the list of descriptions of infobases", excp); //$NON-NLS-1$
+			throw new IllegalStateException("Error get infobases info"); //$NON-NLS-1$
 		}
 		
 		clusterInfoBases.forEach(ib -> {
-			LOGGER.debug("\tInfobase: name=<{}>, desc=<{}>", ib.getName(), ib.getDescr());
+			LOGGER.debug("\tInfobase: name=<{}>, desc=<{}>", ib.getName(), ib.getDescr()); //$NON-NLS-1$
 		});
 		
-		LOGGER.debug("Get the list of descriptions of infobases succesful");
+		LOGGER.debug("Get the list of descriptions of infobases succesful"); //$NON-NLS-1$
 		return clusterInfoBases;
 	}
 	
@@ -1029,9 +1029,9 @@ public class Server {
 	 * @return infobase full infobase description
 	 */
 	public IInfoBaseInfoShort getInfoBaseShortInfo(UUID clusterId, UUID infobaseId) {
-		LOGGER.debug("Get the short description for infobase <{}> of the cluster <{}>", infobaseId, clusterId);
+		LOGGER.debug("Get the short description for infobase <{}> of the cluster <{}>", infobaseId, clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return null;
 		}
 		
@@ -1042,11 +1042,11 @@ public class Server {
 		try {
 			info = agentConnection.getInfoBaseShortInfo(clusterId, infobaseId);
 		} catch (Exception excp) {
-			LOGGER.error("Error get the short info for infobase", excp);
+			LOGGER.error("Error get the short info for infobase", excp); //$NON-NLS-1$
 			return null;
 		}
 		
-		LOGGER.debug("Get the short description for infobase <{}> succesful", info.getName());
+		LOGGER.debug("Get the short description for infobase <{}> succesful", info.getName()); //$NON-NLS-1$
 		return info;
 	}
 	
@@ -1060,9 +1060,9 @@ public class Server {
 	 * @return infobase full infobase description
 	 */
 	public IInfoBaseInfo getInfoBaseInfo(UUID clusterId, UUID infobaseId) {
-		LOGGER.debug("Get the description for infobase <{}> of the cluster <{}>", infobaseId, clusterId);
+		LOGGER.debug("Get the description for infobase <{}> of the cluster <{}>", infobaseId, clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return null;
 		}
 		
@@ -1083,15 +1083,15 @@ public class Server {
 			
 			while (true) { // пока не подойдет пароль, или пользователь не нажмет ќтмена
 				
-				var userName = "";
-				var authDescription = "Authentication of the infobase";
+				var userName = ""; //$NON-NLS-1$
+				var authDescription = Messages.getString("Server.AuthenticationOfInfobase"); //$NON-NLS-1$
 				try {
-					LOGGER.debug("Requesting new user credentials for the infobase <{}>", infobaseId);
+					LOGGER.debug("Requesting new user credentials for the infobase <{}>", infobaseId); //$NON-NLS-1$
 					authenticateDialog = new AuthenticateDialog(Display.getDefault().getActiveShell(), userName,
 							authDescription, authExcpMessage);
 					dialogResult = authenticateDialog.open();
 				} catch (Exception exc) {
-					LOGGER.debug("Request new user credentials for the infobase failed: <{}>", exc.getLocalizedMessage());
+					LOGGER.debug("Request new user credentials for the infobase failed: <{}>", exc.getLocalizedMessage()); //$NON-NLS-1$
 					var messageBox = new MessageBox(Display.getDefault().getActiveShell());
 					messageBox.setMessage(exc.getLocalizedMessage());
 					messageBox.open();
@@ -1099,7 +1099,7 @@ public class Server {
 				}
 				
 				if (dialogResult == 0) {
-					LOGGER.debug("The user has provided new credentials for the infobase <{}>", infobaseId);
+					LOGGER.debug("The user has provided new credentials for the infobase <{}>", infobaseId); //$NON-NLS-1$
 					userName = authenticateDialog.getUsername();
 					String password = authenticateDialog.getPassword();
 					try {
@@ -1108,11 +1108,11 @@ public class Server {
 						break;
 					} catch (Exception exc) {
 						authExcpMessage = exc.getLocalizedMessage();
-						LOGGER.debug("Autenticate to infobase <{}> error: <{}>", this.getServerKey(), authExcpMessage);
+						LOGGER.debug("Autenticate to infobase <{}> error: <{}>", this.getServerKey(), authExcpMessage); //$NON-NLS-1$
 						continue;
 					}
 				} else {
-					LOGGER.debug("Autenticate to infobase <{}> abort by the user", this.getServerKey());
+					LOGGER.debug("Autenticate to infobase <{}> abort by the user", this.getServerKey()); //$NON-NLS-1$
 					return null;
 				}
 			}
@@ -1130,15 +1130,15 @@ public class Server {
 	 * @return infobase full infobase description
 	 */
 	public String getInfoBaseName(UUID clusterId, UUID infobaseId) {
-		LOGGER.debug("Get the name for infobase <{}> of the cluster <{}>", infobaseId, clusterId);
+		LOGGER.debug("Get the name for infobase <{}> of the cluster <{}>", infobaseId, clusterId); //$NON-NLS-1$
 		
 		if (infobaseId.equals(emptyUuid)) {
-			LOGGER.debug("Infobase ID is empty");
-			return "";
+			LOGGER.debug("Infobase ID is empty"); //$NON-NLS-1$
+			return ""; //$NON-NLS-1$
 		}
 		
 		IInfoBaseInfoShort infobaseShortInfo = getInfoBaseShortInfo(clusterId, infobaseId);
-		return infobaseShortInfo == null ? "" : infobaseShortInfo.getName();
+		return infobaseShortInfo == null ? "" : infobaseShortInfo.getName(); //$NON-NLS-1$
 		
 	}
 	
@@ -1150,9 +1150,9 @@ public class Server {
 	 * @param info      infobase parameters
 	 */
 	public UUID createInfoBase(UUID clusterId, IInfoBaseInfo info, int infobaseCreationMode) {
-		LOGGER.debug("Creates an infobase <{}> in a cluster <{}>", info.getName(), clusterId);
+		LOGGER.debug("Creates an infobase <{}> in a cluster <{}>", info.getName(), clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return emptyUuid;
 		}
 		
@@ -1163,11 +1163,11 @@ public class Server {
 		try {
 			uuid = agentConnection.createInfoBase(clusterId, info, infobaseCreationMode);
 		} catch (Exception excp) {
-			LOGGER.error("Error creates an infobase", excp);
+			LOGGER.error("Error creates an infobase", excp); //$NON-NLS-1$
 			throw excp;
 		}
 		
-		LOGGER.debug("Creates an infobase succesful");
+		LOGGER.debug("Creates an infobase succesful"); //$NON-NLS-1$
 		return uuid;
 	}
 	
@@ -1180,7 +1180,7 @@ public class Server {
 	 */
 	public void updateInfoBaseShort(UUID clusterId, IInfoBaseInfoShort info) {
 		if (agentConnection == null) {
-			throw new IllegalStateException("The connection is not established.");
+			throw new IllegalStateException("The connection is not established."); //$NON-NLS-1$
 		}
 		
 		agentConnection.updateInfoBaseShort(clusterId, info); // TODO debug
@@ -1196,10 +1196,10 @@ public class Server {
 	 */
 	public void updateInfoBase(UUID clusterId, IInfoBaseInfo info) {
 		if (agentConnection == null) {
-			throw new IllegalStateException("The connection is not established.");
+			throw new IllegalStateException("The connection is not established."); //$NON-NLS-1$
 		}
 		
-		agentConnection.addAuthentication(clusterId, "", "");
+		agentConnection.addAuthentication(clusterId, "", ""); //$NON-NLS-1$ //$NON-NLS-2$
 		
 		agentConnection.updateInfoBase(clusterId, info); // TODO debug
 	}
@@ -1218,7 +1218,7 @@ public class Server {
 	 */
 	public void dropInfoBase(UUID clusterId, UUID infobaseId, int dropMode) {
 		if (agentConnection == null) {
-			throw new IllegalStateException("The connection is not established.");
+			throw new IllegalStateException("The connection is not established."); //$NON-NLS-1$
 		}
 		
 		agentConnection.dropInfoBase(clusterId, infobaseId, dropMode); // TODO debug
@@ -1232,9 +1232,9 @@ public class Server {
 	 * @return List of session descriptions
 	 */
 	public List<ISessionInfo> getSessions(UUID clusterId) {
-		LOGGER.debug("Gets the list of cluster session descriptions in the cluster <{}>", clusterId);
+		LOGGER.debug("Gets the list of cluster session descriptions in the cluster <{}>", clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return new ArrayList<>();
 		}
 		
@@ -1245,16 +1245,16 @@ public class Server {
 		try {
 			sessions = agentConnection.getSessions(clusterId);
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of cluster session descriptions", excp);
+			LOGGER.error("Error get the list of cluster session descriptions", excp); //$NON-NLS-1$
 			return new ArrayList<>();
 //			throw new IllegalStateException("Error get list of cluster session descriptions");
 		}
 		sessions.forEach(s -> {
-			LOGGER.debug("\tSession: application name=<{}>, session ID=<{}>",
+			LOGGER.debug("\tSession: application name=<{}>, session ID=<{}>", //$NON-NLS-1$
 					getApplicationName(s.getAppId()), s.getSessionId());
 		});
 		
-		LOGGER.debug("Get the list of cluster session descriptions succesful");
+		LOGGER.debug("Get the list of cluster session descriptions succesful"); //$NON-NLS-1$
 		return sessions;
 		
 	}
@@ -1267,9 +1267,9 @@ public class Server {
 	 * @return List of session descriptions
 	 */
 	public ISessionInfo getSessionInfo(UUID clusterId, UUID sid) {
-		LOGGER.debug("Gets a session <{}> description in the cluster <{}>", sid, clusterId);
+		LOGGER.debug("Gets a session <{}> description in the cluster <{}>", sid, clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return null;
 		}
 		
@@ -1280,14 +1280,14 @@ public class Server {
 		try {
 			sessionInfo = agentConnection.getSessionInfo(clusterId, sid); // TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of cluster session descriptions", excp);
+			LOGGER.error("Error get the list of cluster session descriptions", excp); //$NON-NLS-1$
 			return null;
 //			throw new IllegalStateException("Error get list of cluster session descriptions");
 		}
-		LOGGER.debug("\tSession: application name=<{}>, session ID=<{}>",
+		LOGGER.debug("\tSession: application name=<{}>, session ID=<{}>", //$NON-NLS-1$
 				getApplicationName(sessionInfo.getAppId()), sessionInfo.getSessionId());
 		
-		LOGGER.debug("Get the list of cluster session descriptions succesful");
+		LOGGER.debug("Get the list of cluster session descriptions succesful"); //$NON-NLS-1$
 		return sessionInfo;
 		
 	}
@@ -1301,9 +1301,9 @@ public class Server {
 	 * @return Infobase sessions
 	 */
 	public List<ISessionInfo> getInfoBaseSessions(UUID clusterId, UUID infobaseId) {
-		LOGGER.debug("Gets the list of infobase <{}> session descriptions in the cluster <{}>", infobaseId, clusterId);
+		LOGGER.debug("Gets the list of infobase <{}> session descriptions in the cluster <{}>", infobaseId, clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return new ArrayList<>();
 		}
 		
@@ -1315,16 +1315,16 @@ public class Server {
 		try {
 			sessions = agentConnection.getInfoBaseSessions(clusterId, infobaseId);
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of infobase session descriptions", excp);
+			LOGGER.error("Error get the list of infobase session descriptions", excp); //$NON-NLS-1$
 			return new ArrayList<>();
 //			throw new IllegalStateException("Error get list of cluster session descriptions");
 		}
 		sessions.forEach(s -> {
-			LOGGER.debug("\tSession: application name=<{}>, session ID=<{}>",
+			LOGGER.debug("\tSession: application name=<{}>, session ID=<{}>", //$NON-NLS-1$
 					getApplicationName(s.getAppId()), s.getSessionId());
 		});
 		
-		LOGGER.debug("Get the list of cluster session descriptions succesful");
+		LOGGER.debug("Get the list of cluster session descriptions succesful"); //$NON-NLS-1$
 		return sessions;
 		
 	}
@@ -1358,7 +1358,7 @@ public class Server {
 	 * @param message   error message for user
 	 */
 	public void terminateSession(UUID clusterId, UUID sessionId) {
-		terminateSession(clusterId, sessionId, "Your session was interrupted by the administrator");
+		terminateSession(clusterId, sessionId, Messages.getString("Server.TerminateSessionMessage")); //$NON-NLS-1$
 		// TODO оказываетс€ есть две перегрузки метода
 	}
 	
@@ -1371,9 +1371,9 @@ public class Server {
 	 * @param message   error message for user
 	 */
 	public void terminateSession(UUID clusterId, UUID sessionId, String message) {
-		LOGGER.debug("Terminates a session <{}> in the cluster <{}>", sessionId, clusterId);
+		LOGGER.debug("Terminates a session <{}> in the cluster <{}>", sessionId, clusterId); //$NON-NLS-1$
 		if (!isConnected()) {
-			LOGGER.debug("The connection a cluster <{}> is not established", clusterId);
+			LOGGER.debug("The connection a cluster <{}> is not established", clusterId); //$NON-NLS-1$
 			return;
 		}
 		
@@ -1383,7 +1383,7 @@ public class Server {
 		try {
 			agentConnection.terminateSession(clusterId, sessionId, message);
 		} catch (Exception excp) {
-			LOGGER.error("Error terminate a session", excp);
+			LOGGER.error("Error terminate a session", excp); //$NON-NLS-1$
 		}
 	}
 	
@@ -1606,17 +1606,17 @@ public class Server {
 		
 		List<IWorkingProcessInfo> workingProcesses;
 		try {
-			LOGGER.debug("Gets the list of descriptions of working processes registered in the cluster <{}>", clusterId);
+			LOGGER.debug("Gets the list of descriptions of working processes registered in the cluster <{}>", clusterId); //$NON-NLS-1$
 			workingProcesses = agentConnection.getWorkingProcesses(clusterId); // TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of short descriptions of working processes", excp);
-			throw new IllegalStateException("Error get working processes");
+			LOGGER.error("Error get the list of short descriptions of working processes", excp); //$NON-NLS-1$
+			throw new IllegalStateException("Error get working processes"); //$NON-NLS-1$
 		}
 		workingProcesses.forEach(wp -> {
-			LOGGER.debug("\tWorking process: host name=<{}>, main port=<{}>", wp.getHostName(), wp.getMainPort());
+			LOGGER.debug("\tWorking process: host name=<{}>, main port=<{}>", wp.getHostName(), wp.getMainPort()); //$NON-NLS-1$
 		});
 		
-		LOGGER.debug("Get the list of short descriptions of working processes succesful");
+		LOGGER.debug("Get the list of short descriptions of working processes succesful"); //$NON-NLS-1$
 		return workingProcesses;
 	}
 	
@@ -1630,7 +1630,7 @@ public class Server {
 	public IWorkingProcessInfo getWorkingProcessInfo(UUID clusterId, UUID processId) {
 		
 		if (agentConnection == null) {
-			throw new IllegalStateException("The connection is not established.");
+			throw new IllegalStateException("The connection is not established."); //$NON-NLS-1$
 		}
 		 // TODO 
 //		if (isConnected())
@@ -1667,17 +1667,17 @@ public class Server {
 		
 		List<IWorkingServerInfo> workingServers;
 		try {
-			LOGGER.debug("Gets the list of descriptions of working servers registered in the cluster <{}>", clusterId);
+			LOGGER.debug("Gets the list of descriptions of working servers registered in the cluster <{}>", clusterId); //$NON-NLS-1$
 			workingServers = agentConnection.getWorkingServers(clusterId); // TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of descriptions of working servers", excp);
-			throw new IllegalStateException("Error get working servers");
+			LOGGER.error("Error get the list of descriptions of working servers", excp); //$NON-NLS-1$
+			throw new IllegalStateException("Error get working servers"); //$NON-NLS-1$
 		}
 		workingServers.forEach(ws -> {
-			LOGGER.debug("\tWorking server: host name=<{}>, main port=<{}>", ws.getHostName(), ws.getMainPort());
+			LOGGER.debug("\tWorking server: host name=<{}>, main port=<{}>", ws.getHostName(), ws.getMainPort()); //$NON-NLS-1$
 		});
 		
-		LOGGER.debug("Get the list of descriptions of working servers succesful");
+		LOGGER.debug("Get the list of descriptions of working servers succesful"); //$NON-NLS-1$
 		return workingServers;
 	}
 	
@@ -1697,16 +1697,16 @@ public class Server {
 		
 		IWorkingServerInfo workingServerInfo;
 		try {
-			LOGGER.debug("Gets the description of working server <{}> registered in the cluster <{}>", serverId, clusterId);
+			LOGGER.debug("Gets the description of working server <{}> registered in the cluster <{}>", serverId, clusterId); //$NON-NLS-1$
 			workingServerInfo = agentConnection.getWorkingServerInfo(clusterId, serverId); // TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error get the list of descriptions of working server", excp);
-			throw new IllegalStateException("Error get working server");
+			LOGGER.error("Error get the list of descriptions of working server", excp); //$NON-NLS-1$
+			throw new IllegalStateException("Error get working server"); //$NON-NLS-1$
 		}
 			
-		LOGGER.debug("\tWorking server: host name=<{}>, main port=<{}>", workingServerInfo.getHostName(), workingServerInfo.getMainPort());
+		LOGGER.debug("\tWorking server: host name=<{}>, main port=<{}>", workingServerInfo.getHostName(), workingServerInfo.getMainPort()); //$NON-NLS-1$
 		
-		LOGGER.debug("Get the list of short descriptions of working processes succesful");
+		LOGGER.debug("Get the list of short descriptions of working processes succesful"); //$NON-NLS-1$
 		return workingServerInfo;
 	}
 	
@@ -1725,20 +1725,20 @@ public class Server {
 			return false;
 		
 		if (createNew)
-			LOGGER.debug("Registration NEW working server");
+			LOGGER.debug("Registration NEW working server"); //$NON-NLS-1$
 		
 		try {
-			LOGGER.debug("Registration working server <{}> registered in the cluster <{}>", serverInfo.getName(), clusterId);
+			LOGGER.debug("Registration working server <{}> registered in the cluster <{}>", serverInfo.getName(), clusterId); //$NON-NLS-1$
 			agentConnection.regWorkingServer(clusterId, serverInfo); // TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error registration working server", excp);
+			LOGGER.error("Error registration working server", excp); //$NON-NLS-1$
 			throw excp;
 		}
 			
-		LOGGER.debug("\tRegistration working server: name=<{}>, host name=<{}>, main port=<{}>",
+		LOGGER.debug("\tRegistration working server: name=<{}>, host name=<{}>, main port=<{}>", //$NON-NLS-1$
 				serverInfo.getName(), serverInfo.getHostName(), serverInfo.getMainPort());
 		
-		LOGGER.debug("Registration working server succesful");
+		LOGGER.debug("Registration working server succesful"); //$NON-NLS-1$
 		return true;
 	}
 	
@@ -1758,14 +1758,14 @@ public class Server {
 			return false;
 		
 		try {
-			LOGGER.debug("Deletes a working server <{}> from the cluster <{}>", serverId, clusterId);
+			LOGGER.debug("Deletes a working server <{}> from the cluster <{}>", serverId, clusterId); //$NON-NLS-1$
 			agentConnection.unregWorkingServer(clusterId, serverId); // TODO debug
 		} catch (Exception excp) {
-			LOGGER.error("Error registration working server", excp);
+			LOGGER.error("Error registration working server", excp); //$NON-NLS-1$
 			throw excp;
 		}
 		
-		LOGGER.debug("Registration working server succesful");
+		LOGGER.debug("Registration working server succesful"); //$NON-NLS-1$
 		return true;
 	}
 	

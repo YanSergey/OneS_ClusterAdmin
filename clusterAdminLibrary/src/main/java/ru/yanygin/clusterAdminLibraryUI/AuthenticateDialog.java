@@ -70,17 +70,17 @@ public class AuthenticateDialog extends Dialog {
 		lblAuthenticateInfo.setText(authDescription);
 		
 		Label lblUsername = new Label(container, SWT.NONE);
-		lblUsername.setText("Username");
+		lblUsername.setText(Messages.getString("Dialogs.Username")); //$NON-NLS-1$
 		
 		txtUsername = new Text(container, SWT.BORDER);
-		txtUsername.setToolTipText("Username");
+		txtUsername.setToolTipText(Messages.getString("Dialogs.Username")); //$NON-NLS-1$
 		txtUsername.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
 		Label lblPassword = new Label(container, SWT.NONE);
-		lblPassword.setText("Password");
+		lblPassword.setText(Messages.getString("Dialogs.Password")); //$NON-NLS-1$
 		
 		txtPassword = new Text(container, SWT.BORDER | SWT.PASSWORD);
-		txtPassword.setToolTipText("Password");
+		txtPassword.setToolTipText(Messages.getString("Dialogs.Password")); //$NON-NLS-1$
 		txtPassword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
 		lblAuthExcpMessage = new Label(container, SWT.WRAP);

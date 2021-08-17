@@ -6,56 +6,33 @@ import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
 import ru.yanygin.clusterAdminLibrary.Server;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.DisposeListener;
-import org.eclipse.swt.events.DisposeEvent;
-import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableItem;
-import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.swt.widgets.TabFolder;
-import org.eclipse.swt.widgets.TabItem;
-import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.RowLayout;
-import org.eclipse.wb.swt.SWTResourceManager;
-import org.eclipse.swt.custom.CTabFolder;
-import org.eclipse.swt.widgets.Display;
-
 public class CreateEditServerDialog extends Dialog {
 	
 	private Server serverParams;
-	
-//	private String agentHost;
-//	private int agentPort;
-//	private String rasHost;
-//	private int rasPort;
-//	private boolean useLocalRas;
-//	private String localRasV8version;
-//	private String localRasPath;
-//	private int localRasPort;
-//	private boolean autoconnect;
-//	private boolean saveCredentials;
-//	private String agentUser;
-//	private String agentPassword;
-	
-//	private Map<UUID, String[]> credentialsClustersCashe;
 	
 	private Text txtRASHost;
 	private Text txtRasPort;
@@ -68,14 +45,11 @@ public class CreateEditServerDialog extends Dialog {
 	private Button btnAutoconnect;
 	private Text txtAgentUser;
 	private Text txtAgentPasswors;
-//	private Group grpCredentials;
 	private Table tableCredentials;
 	private Button radioUseRemoteRAS;
 	private Button radioUseLocalRAS;
 	private Button btnSaveCredentials;
 	private Text txtDescription;
-
-//	private Combo comboV8Versions1;
 	
 	/**
 	 * Create the dialog.
@@ -109,35 +83,35 @@ public class CreateEditServerDialog extends Dialog {
 		TabFolder tabFolder = new TabFolder(container, SWT.NONE);
 		
 		TabItem tabConnect = new TabItem(tabFolder, SWT.NONE);
-		tabConnect.setText("Connect parameters");
+		tabConnect.setText(Messages.getString("ServerDialog.ConnectParameters")); //$NON-NLS-1$
 		
 		Composite connectContainer = new Composite(tabFolder, SWT.NONE);
 		tabConnect.setControl(connectContainer);
-		GridLayout gl_connectContainer = new GridLayout(2, false);
-		connectContainer.setLayout(gl_connectContainer);
+		GridLayout glconnectContainer = new GridLayout(2, false);
+		connectContainer.setLayout(glconnectContainer);
 		
 		Composite composite = new Composite(connectContainer, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
 		composite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
 		
 		Label lblDescription = new Label(composite, SWT.NONE);
-		lblDescription.setText("Description");
+		lblDescription.setText(Messages.getString("ServerDialog.Description")); //$NON-NLS-1$
 		
 		txtDescription = new Text(composite, SWT.BORDER);
-		txtDescription.setToolTipText("Description");
+		txtDescription.setToolTipText(Messages.getString("ServerDialog.Description")); //$NON-NLS-1$
 		txtDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
 		btnAutoconnect = new Button(connectContainer, SWT.CHECK);
-		GridData gd_btnAutoconnect = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_btnAutoconnect.horizontalIndent = 5;
-		btnAutoconnect.setLayoutData(gd_btnAutoconnect);
-		btnAutoconnect.setText("Autoconnect to the server at startup");
+		GridData gdbtnAutoconnect = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gdbtnAutoconnect.horizontalIndent = 5;
+		btnAutoconnect.setLayoutData(gdbtnAutoconnect);
+		btnAutoconnect.setText(Messages.getString("ServerDialog.AutoconnectAtStartup")); //$NON-NLS-1$
 		new Label(connectContainer, SWT.NONE);
 		
 		radioUseRemoteRAS = new Button(connectContainer, SWT.RADIO);
-		GridData gd_radioUseRemoteRAS = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_radioUseRemoteRAS.horizontalIndent = 5;
-		radioUseRemoteRAS.setLayoutData(gd_radioUseRemoteRAS);
+		GridData gdradioUseRemoteRAS = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gdradioUseRemoteRAS.horizontalIndent = 5;
+		radioUseRemoteRAS.setLayoutData(gdradioUseRemoteRAS);
 		radioUseRemoteRAS.setSelection(true);
 		radioUseRemoteRAS.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -147,89 +121,89 @@ public class CreateEditServerDialog extends Dialog {
 			}
 		});
 		radioUseRemoteRAS.setBounds(0, 0, 90, 16);
-		radioUseRemoteRAS.setText("Use remote RAS");
+		radioUseRemoteRAS.setText(Messages.getString("ServerDialog.UseRemoteRAS")); //$NON-NLS-1$
 		
 		radioUseLocalRAS = new Button(connectContainer, SWT.RADIO);
-		GridData gd_radioUseLocalRAS = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_radioUseLocalRAS.horizontalIndent = 5;
-		radioUseLocalRAS.setLayoutData(gd_radioUseLocalRAS);
+		GridData gdradioUseLocalRAS = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gdradioUseLocalRAS.horizontalIndent = 5;
+		radioUseLocalRAS.setLayoutData(gdradioUseLocalRAS);
 		radioUseLocalRAS.setBounds(0, 0, 90, 16);
-		radioUseLocalRAS.setText("Use local RAS");
+		radioUseLocalRAS.setText(Messages.getString("ServerDialog.UseLocalRAS")); //$NON-NLS-1$
 		
 		Group grpRemoteRasParameters = new Group(connectContainer, SWT.NONE);
-		grpRemoteRasParameters.setText("Remote RAS parameters");
+		grpRemoteRasParameters.setText(Messages.getString("ServerDialog.RemoteRASParameters")); //$NON-NLS-1$
 		grpRemoteRasParameters.setLayout(new GridLayout(2, false));
 		
 		Label lblRASHost = new Label(grpRemoteRasParameters, SWT.NONE);
-		lblRASHost.setText("Host");
+		lblRASHost.setText(Messages.getString("ServerDialog.Host")); //$NON-NLS-1$
 		
 		Label lblRasPort = new Label(grpRemoteRasParameters, SWT.NONE);
 		lblRasPort.setSize(46, 15);
-		lblRasPort.setText("Port");
+		lblRasPort.setText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		
 		txtRASHost = new Text(grpRemoteRasParameters, SWT.BORDER);
-		GridData gd_txtRASHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_txtRASHost.widthHint = 200;
-		txtRASHost.setLayoutData(gd_txtRASHost);
-		txtRASHost.setToolTipText("RAS host");
+		GridData gdtxtRASHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gdtxtRASHost.widthHint = 200;
+		txtRASHost.setLayoutData(gdtxtRASHost);
+		txtRASHost.setToolTipText(Messages.getString("ServerDialog.Host")); //$NON-NLS-1$
 		
 		txtRasPort = new Text(grpRemoteRasParameters, SWT.BORDER);
-		GridData gd_txtRasPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
-		gd_txtRasPort.widthHint = 50;
-		txtRasPort.setLayoutData(gd_txtRasPort);
-		txtRasPort.setToolTipText("RAS Port");
+		GridData gdtxtRasPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtRasPort.widthHint = 50;
+		txtRasPort.setLayoutData(gdtxtRasPort);
+		txtRasPort.setToolTipText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		
 		Group grpLocalRasParameters = new Group(connectContainer, SWT.NONE);
 		grpLocalRasParameters.setSize(417, 90);
-		grpLocalRasParameters.setText("Local RAS parameters");
+		grpLocalRasParameters.setText(Messages.getString("ServerDialog.LocalRASParameters")); //$NON-NLS-1$
 		grpLocalRasParameters.setLayout(new GridLayout(2, false));
 		
 		Label lblV8Version = new Label(grpLocalRasParameters, SWT.NONE);
 		lblV8Version.setSize(124, 15);
-		lblV8Version.setText("V8 Version");
+		lblV8Version.setText(Messages.getString("ServerDialog.V8Version")); //$NON-NLS-1$
 		
 		Label lblLocalRasPort = new Label(grpLocalRasParameters, SWT.NONE);
 		lblLocalRasPort.setSize(77, 15);
-		lblLocalRasPort.setText("Port");
+		lblLocalRasPort.setText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		
 		comboV8Version = new Combo(grpLocalRasParameters, SWT.READ_ONLY);
-		GridData gd_comboV8Version = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_comboV8Version.widthHint = 140;
-		comboV8Version.setLayoutData(gd_comboV8Version);
+		GridData gdcomboV8Version = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gdcomboV8Version.widthHint = 140;
+		comboV8Version.setLayoutData(gdcomboV8Version);
 		comboV8Version.setSize(389, 21);
-		comboV8Version.setToolTipText("V8 version");
+		comboV8Version.setToolTipText(Messages.getString("ServerDialog.V8Version")); //$NON-NLS-1$
 		
 		txtLocalRasPort = new Text(grpLocalRasParameters, SWT.BORDER);
-		GridData gd_txtLocalRasPort = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
-		gd_txtLocalRasPort.widthHint = 50;
-		txtLocalRasPort.setLayoutData(gd_txtLocalRasPort);
-		txtLocalRasPort.setToolTipText("local RAS port");
+		GridData gdtxtLocalRasPort = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
+		gdtxtLocalRasPort.widthHint = 50;
+		txtLocalRasPort.setLayoutData(gdtxtLocalRasPort);
+		txtLocalRasPort.setToolTipText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		
 		Group grpRagentParameters = new Group(connectContainer, SWT.NONE);
-		grpRagentParameters.setText("Cluster Agent Parameters");
+		grpRagentParameters.setText(Messages.getString("ServerDialog.AgentParameters")); //$NON-NLS-1$
 		grpRagentParameters.setLayout(new GridLayout(2, false));
 		
 		Label lblAgentHost = new Label(grpRagentParameters, SWT.NONE);
-		lblAgentHost.setText("Host");
+		lblAgentHost.setText(Messages.getString("ServerDialog.Host")); //$NON-NLS-1$
 		
 		Label lblAgentPort = new Label(grpRagentParameters, SWT.NONE);
-		lblAgentPort.setText("Port");
+		lblAgentPort.setText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		
 		txtAgentHost = new Text(grpRagentParameters, SWT.BORDER);
-		GridData gd_txtAgentHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_txtAgentHost.widthHint = 200;
-		txtAgentHost.setLayoutData(gd_txtAgentHost);
-		txtAgentHost.setToolTipText("Agent host");
+		GridData gdtxtAgentHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gdtxtAgentHost.widthHint = 200;
+		txtAgentHost.setLayoutData(gdtxtAgentHost);
+		txtAgentHost.setToolTipText(Messages.getString("ServerDialog.Host")); //$NON-NLS-1$
 		
 		txtAgentPort = new Text(grpRagentParameters, SWT.BORDER);
-		GridData gd_txtAgentPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
-		gd_txtAgentPort.widthHint = 50;
-		txtAgentPort.setLayoutData(gd_txtAgentPort);
-		txtAgentPort.setToolTipText("Agent Port");
+		GridData gdtxtAgentPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtAgentPort.widthHint = 50;
+		txtAgentPort.setLayoutData(gdtxtAgentPort);
+		txtAgentPort.setToolTipText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		new Label(connectContainer, SWT.NONE);
 		
 		TabItem tabCredentials = new TabItem(tabFolder, SWT.NONE);
-		tabCredentials.setText("Credentials");
+		tabCredentials.setText(Messages.getString("ServerDialog.Credentials")); //$NON-NLS-1$
 		
 		Composite credentialsContainer = new Composite(tabFolder, SWT.NONE);
 		tabCredentials.setControl(credentialsContainer);
@@ -238,71 +212,64 @@ public class CreateEditServerDialog extends Dialog {
 		btnSaveCredentials = new Button(credentialsContainer, SWT.CHECK);
 		btnSaveCredentials.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		btnSaveCredentials.setSize(155, 16);
-		btnSaveCredentials.setText("Save credentials");
-		
-//		grpCredentials = new Group(credentialsContainer, SWT.NONE);
-//		GridData gd_grpCredentials = new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1);
-//		gd_grpCredentials.widthHint = 624;
-//		grpCredentials.setLayoutData(gd_grpCredentials);
-//		grpCredentials.setLayout(new GridLayout(2, false));
-//		grpCredentials.setText("Credentials");
+		btnSaveCredentials.setText(Messages.getString("ServerDialog.SaveCredentials")); //$NON-NLS-1$
 		
 		Group grpCentralServerCredential = new Group(credentialsContainer, SWT.NONE);
-		grpCentralServerCredential.setText("Central server adminstrator");
+		grpCentralServerCredential.setText(Messages.getString("ServerDialog.CentralServerAdminstrator")); //$NON-NLS-1$
 		grpCentralServerCredential.setLayout(new GridLayout(4, false));
-		GridData gd_grpCentralServerCredential = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
-		gd_grpCentralServerCredential.verticalIndent = 5;
-		grpCentralServerCredential.setLayoutData(gd_grpCentralServerCredential);
+		GridData gdgrpCentralServerCredential = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
+		gdgrpCentralServerCredential.verticalIndent = 5;
+		grpCentralServerCredential.setLayoutData(gdgrpCentralServerCredential);
 		
 		Label lblAgentUser = new Label(grpCentralServerCredential, SWT.NONE);
 		lblAgentUser.setSize(23, 15);
-		lblAgentUser.setText("User");
+		lblAgentUser.setText(Messages.getString("ServerDialog.User")); //$NON-NLS-1$
 		
 		txtAgentUser = new Text(grpCentralServerCredential, SWT.BORDER);
-		GridData gd_txtAgentUser = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
-		gd_txtAgentUser.widthHint = 200;
-		txtAgentUser.setLayoutData(gd_txtAgentUser);
+		GridData gdtxtAgentUser = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtAgentUser.widthHint = 200;
+		txtAgentUser.setLayoutData(gdtxtAgentUser);
 		txtAgentUser.setSize(76, 21);
-		txtAgentUser.setToolTipText("Agent host");
+		txtAgentUser.setToolTipText(Messages.getString("ServerDialog.User")); //$NON-NLS-1$
 		
 		Label lblAgentPwd = new Label(grpCentralServerCredential, SWT.NONE);
 		lblAgentPwd.setSize(50, 15);
-		lblAgentPwd.setText("Password");
+		lblAgentPwd.setText(Messages.getString("ServerDialog.Password")); //$NON-NLS-1$
 		
 		txtAgentPasswors = new Text(grpCentralServerCredential, SWT.BORDER | SWT.PASSWORD);
-		GridData gd_txtAgentPasswors = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
-		gd_txtAgentPasswors.widthHint = 100;
-		txtAgentPasswors.setLayoutData(gd_txtAgentPasswors);
+		GridData gdtxtAgentPasswors = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtAgentPasswors.widthHint = 100;
+		txtAgentPasswors.setLayoutData(gdtxtAgentPasswors);
 		txtAgentPasswors.setSize(76, 21);
-		txtAgentPasswors.setToolTipText("Agent password");
+		txtAgentPasswors.setToolTipText(Messages.getString("ServerDialog.Password")); //$NON-NLS-1$
 		
 		tableCredentials = new Table(credentialsContainer, SWT.BORDER | SWT.FULL_SELECTION);
-		GridData gd_tableCredentials = new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1);
-		gd_tableCredentials.heightHint = 183;
-		gd_tableCredentials.verticalIndent = 5;
-		tableCredentials.setLayoutData(gd_tableCredentials);
+		GridData gdtableCredentials = new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1);
+		gdtableCredentials.heightHint = 183;
+		gdtableCredentials.verticalIndent = 5;
+		tableCredentials.setLayoutData(gdtableCredentials);
 		tableCredentials.setHeaderVisible(true);
 		tableCredentials.setLinesVisible(true);
 		
 		TableColumn tblclmnType = new TableColumn(tableCredentials, SWT.NONE);
 		tblclmnType.setWidth(60);
-		tblclmnType.setText("Type");
+		tblclmnType.setText(Messages.getString("ServerDialog.Type")); //$NON-NLS-1$
 		
 		TableColumn tblclmnName = new TableColumn(tableCredentials, SWT.NONE);
 		tblclmnName.setWidth(160);
-		tblclmnName.setText("Name");
+		tblclmnName.setText(Messages.getString("ServerDialog.Name")); //$NON-NLS-1$
 		
 		TableColumn tblclmnID = new TableColumn(tableCredentials, SWT.NONE);
 		tblclmnID.setWidth(100);
-		tblclmnID.setText("ID");
+		tblclmnID.setText(Messages.getString("ServerDialog.ID")); //$NON-NLS-1$
 		
 		TableColumn tblclmnUsername = new TableColumn(tableCredentials, SWT.NONE);
 		tblclmnUsername.setWidth(100);
-		tblclmnUsername.setText("Username");
+		tblclmnUsername.setText(Messages.getString("ServerDialog.Username")); //$NON-NLS-1$
 		
 		TableColumn tblclmnPassword = new TableColumn(tableCredentials, SWT.NONE);
 		tblclmnPassword.setWidth(100);
-		tblclmnPassword.setText("Password");
+		tblclmnPassword.setText(Messages.getString("ServerDialog.Password")); //$NON-NLS-1$
 		new Label(container, SWT.NONE);
 		
 		initServerProperties();
@@ -338,12 +305,12 @@ public class CreateEditServerDialog extends Dialog {
 				
 				TableItem credentialItem = new TableItem(this.tableCredentials, SWT.NONE);
 				
-				String[] itemText = { "cluster", userPass[2], // clusterName
+				String[] itemText = { "cluster", userPass[2], // clusterName //$NON-NLS-1$
 						uuid.toString(), userPass[0], // username
 						userPass[1] }; // pass
 				
 				credentialItem.setText(itemText);
-				credentialItem.setData("UUID", uuid);
+				credentialItem.setData("UUID", uuid); //$NON-NLS-1$
 				credentialItem.setChecked(false);
 				
 			});
@@ -358,7 +325,7 @@ public class CreateEditServerDialog extends Dialog {
 			if (btnSaveCredentials.getSelection()) {
 				TableItem[] credentials = tableCredentials.getItems();
 				for (TableItem credential : credentials) {
-					UUID uuid = (UUID) credential.getData("UUID");
+					UUID uuid = (UUID) credential.getData("UUID"); //$NON-NLS-1$
 					credentialsClustersCashe.put(uuid, new String[] { credential.getText(3), credential.getText(4), credential.getText(1) });
 				}
 			}

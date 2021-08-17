@@ -57,28 +57,20 @@ public class DropInfobaseDialog extends Dialog {
 	 */
 	@Override
 	protected Control createDialogArea(Composite parent) {
-//		parent.addDisposeListener(new DisposeListener() {
-//			public void widgetDisposed(DisposeEvent e) {
-////				extractInfobaseVariablesFromControls();
-//			}
-//		});
+
 		Composite container = (Composite) super.createDialogArea(parent);
 		GridLayout gridLayout = (GridLayout) container.getLayout();
 		gridLayout.numColumns = 2;
 
 		Label lblInfo = new Label(container, SWT.WRAP);
-		GridData gd_lblInfo = new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1);
-		gd_lblInfo.heightHint = 34;
-		lblInfo.setLayoutData(gd_lblInfo);
-		lblInfo.setText(
-				"When deleting an information database, you can choose one of 3 actions on the database that contains the information database data:");
-		// lblInfo.setText("При удалении информационной базы можно выбрать одно из 3-х
-		// действий над базой данных, в которой содержатся данные информационной
-		// базы:");
+		GridData gdlblInfo = new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1);
+		gdlblInfo.heightHint = 34;
+		lblInfo.setLayoutData(gdlblInfo);
+		lblInfo.setText(Messages.getString("Dialogs.DropInfobaseDescription")); //$NON-NLS-1$
 		new Label(container, SWT.NONE);
 
 		btnNotDelete = new Button(container, SWT.RADIO);
-		btnNotDelete.setText("Leave the database and its contents unchanged");
+		btnNotDelete.setText(Messages.getString("Dialogs.LeaveDatabaseUnchanged")); //$NON-NLS-1$
 		btnNotDelete.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -86,11 +78,9 @@ public class DropInfobaseDialog extends Dialog {
 			}
 		});
 		new Label(container, SWT.NONE);
-		// btnNotDelete.setText("Оставить базу данных и ее содержимое без изменений");
 
 		btnDeleteTheDatabase = new Button(container, SWT.RADIO);
-		btnDeleteTheDatabase.setText("Delete the entire database");
-		// btnDeleteTheDatabase.setText("Удалить базу данных целиком");
+		btnDeleteTheDatabase.setText(Messages.getString("Dialogs.DeleteTheEntireDatabase")); //$NON-NLS-1$
 		btnDeleteTheDatabase.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -100,8 +90,7 @@ public class DropInfobaseDialog extends Dialog {
 		new Label(container, SWT.NONE);
 
 		btnClearTheDatabase = new Button(container, SWT.RADIO);
-		btnClearTheDatabase.setText("Clear the database by removing the information database data from it");
-//		btnClearTheDatabase.setText("Очистить базу данных, убрав из нее данные информационной базы");
+		btnClearTheDatabase.setText(Messages.getString("Dialogs.ClearTheDatabase")); //$NON-NLS-1$
 		btnClearTheDatabase.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
