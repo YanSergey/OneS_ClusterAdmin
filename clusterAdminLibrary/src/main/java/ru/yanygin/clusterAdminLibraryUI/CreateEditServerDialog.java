@@ -290,7 +290,7 @@ public class CreateEditServerDialog extends Dialog {
 			this.radioUseRemoteRAS.setSelection(!serverParams.useLocalRas);
 			this.radioUseLocalRAS.setSelection(serverParams.useLocalRas);
 			ClusterProvider.getInstalledV8Versions().forEach( (desc, path) -> {
-				comboV8Version.add(desc);		
+				comboV8Version.add(desc);
 			});
 			this.comboV8Version.setText(serverParams.localRasV8version);
 

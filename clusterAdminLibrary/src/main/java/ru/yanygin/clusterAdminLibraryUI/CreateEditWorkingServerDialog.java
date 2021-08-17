@@ -341,24 +341,17 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			txtSafeWorkingProcessesMemoryLimit.setEditable(false);
 			txtWorkingProcessMemoryLimit.setEditable(false);
 			
-			txtSafeWorkingProcessesMemoryLimit.setToolTipText("deprecated in 8.3.15"); //$NON-NLS-1$
-			txtWorkingProcessMemoryLimit.setToolTipText("deprecated in 8.3.15"); //$NON-NLS-1$
+			txtSafeWorkingProcessesMemoryLimit.setToolTipText(Messages.getString("Dialogs.DeprecatedInFifteen")); //$NON-NLS-1$
+			txtWorkingProcessMemoryLimit.setToolTipText(Messages.getString("Dialogs.DeprecatedInFifteen")); //$NON-NLS-1$
 		} else { // 8.3.15-
 			txtCriticalProcessesTotalMemory.setEditable(false);
 			txtTemporaryAllowedProcessesTotalMemory.setEditable(false);
 			txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setEditable(false);
 			
-			txtCriticalProcessesTotalMemory.setToolTipText("8.3.15+"); //$NON-NLS-1$
-			txtTemporaryAllowedProcessesTotalMemory.setToolTipText("8.3.15+"); //$NON-NLS-1$
-			txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText("8.3.15+"); //$NON-NLS-1$
+			txtCriticalProcessesTotalMemory.setToolTipText(Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
+			txtTemporaryAllowedProcessesTotalMemory.setToolTipText(Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
+			txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText(Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
 		}
-			
-//		serverInfo.getSafeWorkingProcessesMemoryLimit(); // (8.3.15-)	// максимальный объем памяти рабочих процессов (до 8.3.15)
-//		serverInfo.getSafeCallMemoryLimit(); 							// безопасный расход памяти за один вызов (c 8.3.15 находится первым в группе)
-//		serverInfo.getWorkingProcessMemoryLimit();		 // (8.3.15-)	// объем памяти рабочих процессов, до которого сервер считается производительным (до 8.3.15)
-//		serverInfo.getCriticalProcessesTotalMemory(); 					// критический объем памяти процессов (c 8.3.15+)
-//		serverInfo.getTemporaryAllowedProcessesTotalMemory(); 			// временно допустимый объем памяти процессов (c 8.3.15+)
-//		serverInfo.getTemporaryAllowedProcessesTotalMemoryTimeLimit();	// интервал превышения допустимомо объема памяти процессов (c 8.3.15+)
 		
 		if (workingServerId != null) { // У уже созданного кластера запрещено менять хост и порт
 			txtServerName.setEditable(false);
@@ -514,22 +507,22 @@ public class CreateEditWorkingServerDialog extends Dialog {
 		
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 		
-		Button buttonApply = createButton(parent, IDialogConstants.PROCEED_ID, "Apply", false); //$NON-NLS-1$
+		Button buttonApply = createButton(parent, IDialogConstants.PROCEED_ID, Messages.getString("Dialogs.Apply"), false); //$NON-NLS-1$
 		buttonApply.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				saveNewClusterProperties();
 			}
 		});
-		Button buttonReset = createButton(parent, IDialogConstants.RETRY_ID, "Reset", false); //$NON-NLS-1$
-		buttonReset.setText("Reset"); //$NON-NLS-1$
+		Button buttonReset = createButton(parent, IDialogConstants.RETRY_ID, Messages.getString("Dialogs.Reset"), false); //$NON-NLS-1$
+		buttonReset.setText(Messages.getString("Dialogs.Reset")); //$NON-NLS-1$
 		buttonReset.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				initServerProperties();
 			}
 		});
-		Button buttonResetToProf = createButton(parent, IDialogConstants.RETRY_ID, "Reset to PROF", false); //$NON-NLS-1$
+		Button buttonResetToProf = createButton(parent, IDialogConstants.RETRY_ID, Messages.getString("Dialogs.ResetToPROF"), false); //$NON-NLS-1$
 		buttonResetToProf.addMouseTrackListener(new MouseTrackAdapter() {
 			@Override
 			public void mouseEnter(MouseEvent e) {
@@ -546,7 +539,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 				txtInfoBasesPerWorkingProcessLimit.setBackground(SWTResourceManager.getWhiteColor());
 			}
 		});
-		buttonResetToProf.setText("Reset to PROF"); //$NON-NLS-1$
+		buttonResetToProf.setText(Messages.getString("Dialogs.ResetToPROF")); //$NON-NLS-1$
 		buttonResetToProf.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {

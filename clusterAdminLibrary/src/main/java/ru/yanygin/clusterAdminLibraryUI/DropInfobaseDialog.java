@@ -4,30 +4,25 @@ import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Shell;
-import com._1c.v8.ibis.admin.IClusterInfo;
-import ru.yanygin.clusterAdminLibrary.Server;
-
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
+
+import ru.yanygin.clusterAdminLibrary.Server;
 
 public class DropInfobaseDialog extends Dialog {
 	
-//	private IClusterInfo clusterInfo;
 	private UUID clusterId;
 	private Server server;
-	private Button btnClearTheDatabase;
-	private Button btnNotDelete;
-	private Button btnDeleteTheDatabase;
 	
 	private int databaseDropMode;
 	private UUID infobaseID;
@@ -69,7 +64,7 @@ public class DropInfobaseDialog extends Dialog {
 		lblInfo.setText(Messages.getString("Dialogs.DropInfobaseDescription")); //$NON-NLS-1$
 		new Label(container, SWT.NONE);
 
-		btnNotDelete = new Button(container, SWT.RADIO);
+		Button btnNotDelete = new Button(container, SWT.RADIO);
 		btnNotDelete.setText(Messages.getString("Dialogs.LeaveDatabaseUnchanged")); //$NON-NLS-1$
 		btnNotDelete.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -79,7 +74,7 @@ public class DropInfobaseDialog extends Dialog {
 		});
 		new Label(container, SWT.NONE);
 
-		btnDeleteTheDatabase = new Button(container, SWT.RADIO);
+		Button btnDeleteTheDatabase = new Button(container, SWT.RADIO);
 		btnDeleteTheDatabase.setText(Messages.getString("Dialogs.DeleteTheEntireDatabase")); //$NON-NLS-1$
 		btnDeleteTheDatabase.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -89,7 +84,7 @@ public class DropInfobaseDialog extends Dialog {
 		});
 		new Label(container, SWT.NONE);
 
-		btnClearTheDatabase = new Button(container, SWT.RADIO);
+		Button btnClearTheDatabase = new Button(container, SWT.RADIO);
 		btnClearTheDatabase.setText(Messages.getString("Dialogs.ClearTheDatabase")); //$NON-NLS-1$
 		btnClearTheDatabase.addSelectionListener(new SelectionAdapter() {
 			@Override

@@ -4,24 +4,21 @@ import java.util.Locale;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Text;
 
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
 import ru.yanygin.clusterAdminLibrary.Config;
-import ru.yanygin.clusterAdminLibrary.Server;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.widgets.Group;
 
 public class SettingsDialog extends Dialog {
 	
@@ -37,7 +34,6 @@ public class SettingsDialog extends Dialog {
 	private Button btnShowServerDescription;
 	private Button btnShowInfobaseDescription;
 	private Button btnShowLocalRasConnectInfo;
-	private Group grpLocale;
 	private Button btnLocaleSystem;
 	private Button btnLocaleEnglish;
 	private Button btnLocaleRussian;
@@ -117,7 +113,7 @@ public class SettingsDialog extends Dialog {
 		btnShowLocalRasConnectInfo.setText(Messages.getString("SettingsDialog.ShowLocalRASConnectInfo")); //$NON-NLS-1$
 		new Label(container, SWT.NONE);
 		
-		grpLocale = new Group(container, SWT.NONE);
+		Group grpLocale = new Group(container, SWT.NONE);
 		grpLocale.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
 		grpLocale.setText(Messages.getString("SettingsDialog.Locale")); //$NON-NLS-1$
 		grpLocale.setLayout(new GridLayout(1, false));
