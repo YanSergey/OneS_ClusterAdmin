@@ -404,7 +404,7 @@ public class ViewerArea extends Composite {
 		
 		columnServer = new TreeColumn(serversTree, SWT.LEFT);
 		columnServer.setText(Messages.getString("ViewerArea.Server")); //$NON-NLS-1$
-		columnServer.setWidth(300);
+		columnServer.setWidth(350);
 		columnServer.addListener(SWT.Selection, sortListener);
 //		columnServer.addSelectionListener(new SelectionAdapter() {
 //			@Override
@@ -971,13 +971,12 @@ public class ViewerArea extends Composite {
 				TreeItem selectItem = item[0];
 				
 				Server server = getCurrentServerConfig(selectItem);
-//				IClusterInfo clusterInfo = getClusterInfoFromItem(selectItem);
-//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
-
-				UUID clusterId = getCurrentClusterId(item[0]);
-				UUID infobaseId = getCurrentInfobaseId(item[0]);
+				UUID clusterId = getCurrentClusterId(selectItem);
+				UUID infobaseId = getCurrentInfobaseId(selectItem);
 				
 				IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, infobaseId);
+				if (infoBaseInfo == null)
+					return;
 
 				infoBaseInfo.setScheduledJobsDenied(true);
 				infoBaseInfo.setSessionsDenied(true);
@@ -1138,11 +1137,10 @@ public class ViewerArea extends Composite {
 					UUID clusterId = (UUID) item.getData(CLUSTER_ID);
 					UUID pricessId = (UUID) item.getData(WORKINGPROCESS_ID);
 					UUID connectionId = (UUID) item.getData(CONNECTION_ID);
+					UUID infobaseId = (UUID) item.getData(INFOBASE_ID);
 					
-					server.disconnectConnection(clusterId, pricessId, connectionId);
-					
-					// update tableConnections
-					item.dispose();
+					if (server.disconnectConnection(clusterId, pricessId, connectionId, infobaseId))
+						item.dispose(); // update tableConnections
 				}
 				
 			}
@@ -1209,7 +1207,7 @@ public class ViewerArea extends Composite {
 	private void initWorkingServersTable(TabFolder tabFolder) {
 
 		tabWorkingServers = new TabItem(tabFolder, SWT.NONE);
-		tabWorkingServers.setText(Messages.getString("ViewerArea.WorkingProcesses")); //$NON-NLS-1$
+		tabWorkingServers.setText(Messages.getString("ViewerArea.WorkingServers")); //$NON-NLS-1$
 		
 		tableWorkingServers = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
 		tabWorkingServers.setControl(tableWorkingServers);

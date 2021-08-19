@@ -98,6 +98,7 @@ public class ClusterProvider {
 		else {
 			
 			if (commonConfig.locale != null) {
+				LOGGER.debug("Set locale is <{}>", commonConfig.locale); //$NON-NLS-1$
 				Locale locale = Locale.forLanguageTag(commonConfig.locale);
 				java.util.Locale.setDefault(locale);
 				Messages.reloadBundle(locale);

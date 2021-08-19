@@ -382,11 +382,13 @@ public class EditInfobaseDialog extends Dialog {
 		safeModeSecurityProfile = txtSafeModeSecurityProfile.getText();
 	}
 	
-	private void saveInfobaseProperties() {
+	private boolean saveInfobaseProperties() {
 
 		extractInfobaseVariablesFromControls();
 		
 		IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, infoBaseId);
+		if (infoBaseInfo == null)
+			return false;
 		
 		// Common properties
 		infoBaseInfo.setName(infobaseName);
@@ -417,8 +419,7 @@ public class EditInfobaseDialog extends Dialog {
 		infoBaseInfo.setSecurityProfileName(securityProfile);
 		infoBaseInfo.setSafeModeSecurityProfileName(safeModeSecurityProfile);
 		
-		server.updateInfoBase(clusterId, infoBaseInfo);
-		
+		return server.updateInfoBase(clusterId, infoBaseInfo);		
 	}
 	
 	private Date convertDateTime(DateTime date, DateTime time) {
@@ -443,8 +444,8 @@ public class EditInfobaseDialog extends Dialog {
 		buttonOK.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				saveInfobaseProperties();
-				close();
+				if (saveInfobaseProperties())
+					close();
 			}
 		});
 		
@@ -464,7 +465,7 @@ public class EditInfobaseDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(450, 740);
+		return new Point(450, 745);
 	}
 
 }
