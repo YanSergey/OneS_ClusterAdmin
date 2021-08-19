@@ -14,7 +14,6 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 
 import ru.yanygin.clusterAdminLibrary.Server;
@@ -25,7 +24,7 @@ public class DropInfobaseDialog extends Dialog {
 	private Server server;
 	
 	private int databaseDropMode;
-	private UUID infobaseID;
+	private UUID infobaseId;
 
 
 	/**
@@ -33,14 +32,14 @@ public class DropInfobaseDialog extends Dialog {
 	 * @param parentShell
 	 * @param serverParams 
 	 */
-	public DropInfobaseDialog(Shell parentShell, Server server, UUID clusterId, UUID infobaseID) {
+	public DropInfobaseDialog(Shell parentShell, Server server, UUID clusterId, UUID infobaseId) {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
 //		super.configureShell(parentShell);
 //		parentShell.setText("Parameters of the 1C:Enterprise infobase");
 	    
-		this.infobaseID = infobaseID;
+		this.infobaseId = infobaseId;
 		this.clusterId = clusterId;
 		this.server = server;
 		
@@ -97,17 +96,9 @@ public class DropInfobaseDialog extends Dialog {
 	}
 
 	private void runRemoveInfobase() {
-
-		try {
-			server.dropInfoBase(clusterId, infobaseID, databaseDropMode);
+		
+		if (server.dropInfoBase(clusterId, infobaseId, databaseDropMode))
 			close();
-		} catch (Exception excp) {
-			excp.printStackTrace();
-			MessageBox messageBox = new MessageBox(getParentShell());
-			messageBox.setMessage(excp.getLocalizedMessage());
-			messageBox.open();
-		}
-
 	}
 	
 	/**
