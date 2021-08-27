@@ -1,6 +1,8 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -289,9 +291,13 @@ public class CreateEditServerDialog extends Dialog {
 			
 			this.radioUseRemoteRAS.setSelection(!serverParams.useLocalRas);
 			this.radioUseLocalRAS.setSelection(serverParams.useLocalRas);
+			List<String> installedV8Versions = new ArrayList<>();
 			ClusterProvider.getInstalledV8Versions().forEach( (desc, path) -> {
-				comboV8Version.add(desc);
+				installedV8Versions.add(desc);
 			});
+			installedV8Versions.sort(String.CASE_INSENSITIVE_ORDER);
+			comboV8Version.setItems(installedV8Versions.toArray(new String[0]));
+			
 			this.comboV8Version.setText(serverParams.localRasV8version);
 
 			this.txtLocalRasPort.setText(serverParams.getLocalRasPortAsString());
