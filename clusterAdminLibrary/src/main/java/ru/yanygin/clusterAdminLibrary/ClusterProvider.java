@@ -237,7 +237,7 @@ public class ClusterProvider {
 			if (dir.isDirectory()) {
 				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
 				if (ras.exists() && ras.isFile())
-					versions.put(dir.getName().concat(" (x64)"), ras.getAbsolutePath()); //$NON-NLS-1$
+					versions.put(dir.getName().concat(" (x86_64)"), ras.getAbsolutePath()); //$NON-NLS-1$
 			}
 		}
 		
@@ -246,7 +246,7 @@ public class ClusterProvider {
 			if (dir.isDirectory()) {
 				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
 				if (ras.exists() && ras.isFile())
-					versions.put(dir.getName().concat(" (x86)"), ras.getAbsolutePath()); //$NON-NLS-1$
+					versions.put(dir.getName(), ras.getAbsolutePath()); //$NON-NLS-1$
 			}
 		}
 		

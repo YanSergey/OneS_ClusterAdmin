@@ -444,7 +444,7 @@ public class Server {
 		if (!useLocalRas)
 			return true;
 		
-		if (localRasPath.isBlank() || localRasPort == 0) {
+		if (localRasV8version.isBlank() || localRasPort == 0) {
 			var message = String.format(Messages.getString("Server.LocalRasParamsIsEmpty"), this.getServerKey()); //$NON-NLS-1$
 			LOGGER.error(message);
 			
@@ -458,6 +458,17 @@ public class Server {
 		///////////////////////////// пока только Windows
 		var processBuilder = new ProcessBuilder();
 		var processOutput = ""; //$NON-NLS-1$
+		var localRasPath = ClusterProvider.getInstalledV8Versions().get(localRasV8version);
+		if (localRasPath == null) {
+			var message = String.format(Messages.getString("Server.LocalRasNotFound"), this.getServerKey()); //$NON-NLS-1$
+			LOGGER.error(message);
+			
+			var messageBox = new MessageBox(Display.getDefault().getActiveShell());
+			messageBox.setMessage(message);
+			messageBox.open();
+			
+			return false;
+		}
 
 		Map<String, String> env = processBuilder.environment();
 
