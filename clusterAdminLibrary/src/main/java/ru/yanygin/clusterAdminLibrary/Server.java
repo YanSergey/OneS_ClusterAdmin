@@ -512,9 +512,23 @@ public class Server {
 			return true;
 		} catch (Exception excp) {
 			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage()); //$NON-NLS-1$
-			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCentralServer")) || //$NON-NLS-1$
-					excp.getLocalizedMessage().contains(Messages.getString("Server.CentralServerAdminIsNotAuthenticated"))) // TODO учесть английский вариант //$NON-NLS-1$
-				needAuthenticate = true;
+			
+			String[] rightStrings = { // TODO проверить английские варианты
+					"Недостаточно прав пользователя на управление центральным сервером",
+					"Администратор центрального сервера не аутентифицирован",
+					"The user's rights to manage the central server are insufficient",
+					"The administrator of the central server is not authenticated"
+			};
+			for (String rightString : rightStrings) {
+				if (excp.getLocalizedMessage().contains(rightString)) {
+					needAuthenticate = true;
+					break;
+				}
+			}
+
+//			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCentralServer")) || //$NON-NLS-1$
+//					excp.getLocalizedMessage().contains(Messages.getString("Server.CentralServerAdminIsNotAuthenticated"))) // TODO учесть английский вариант //$NON-NLS-1$
+//				needAuthenticate = true;
 		}
 		
 		if (needAuthenticate)
@@ -627,9 +641,23 @@ public class Server {
 			return true;
 		} catch (Exception excp) {
 			LOGGER.error("Error autenticate of cluster: <{}>", excp.getLocalizedMessage()); //$NON-NLS-1$
-			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCluster")) || //$NON-NLS-1$
-					excp.getLocalizedMessage().contains(Messages.getString("Server.ClusterAdminIsNotAuthenticate"))) // TODO учесть английский вариант //$NON-NLS-1$
-				needAuthenticate = true;
+			
+			String[] rightStrings = { // TODO проверить английские варианты
+					"Недостаточно прав пользователя на управление кластером",
+					"Администратор кластера не аутентифицирован",
+					"Insufficient user rights to manage the cluster",
+					"The cluster administrator is not authenticated"
+			};
+			for (String rightString : rightStrings) {
+				if (excp.getLocalizedMessage().contains(rightString)) {
+					needAuthenticate = true;
+					break;
+				}
+			}
+			
+//			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCluster")) || //$NON-NLS-1$
+//					excp.getLocalizedMessage().contains(Messages.getString("Server.ClusterAdminIsNotAuthenticate"))) //$NON-NLS-1$
+//				needAuthenticate = true;
 		}
 		
 		if (needAuthenticate)
