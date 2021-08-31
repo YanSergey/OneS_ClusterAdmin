@@ -215,7 +215,7 @@ public class ViewerArea extends Composite {
 		lockUsersIcon			= getImage("lock_users_16.png"); //$NON-NLS-1$
 		updateIcon				= getImage("update.png"); //$NON-NLS-1$
 		
-		LOGGER.info("Start init succesfully"); //$NON-NLS-1$
+		LOGGER.info("Icon init succesfully"); //$NON-NLS-1$
 	}
 	
 	private void initToolbar(Composite parent, ToolBar toolBar) {
