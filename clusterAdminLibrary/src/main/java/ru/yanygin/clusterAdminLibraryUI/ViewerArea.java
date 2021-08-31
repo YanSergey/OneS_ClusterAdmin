@@ -319,7 +319,7 @@ public class ViewerArea extends Composite {
 			}
 		});
 	}
-
+	
 	private void initServersTree(SashForm sashForm) {
 	
 		serversTree = new Tree(sashForm, SWT.BORDER | SWT.FULL_SELECTION);
