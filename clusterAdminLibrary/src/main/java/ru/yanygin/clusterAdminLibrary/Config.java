@@ -3,6 +3,7 @@ package ru.yanygin.clusterAdminLibrary;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -66,7 +67,36 @@ public class Config {
 
 	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
 	
-	public Server CreateNewServer() {
+	private OSType currrentOS;
+	
+	private enum OSType {
+		WINDOWS, MACOS, LINUX, OTHER
+	}
+	
+	public void init() {
+		getOperatingSystemType();
+		
+		this.servers.forEach((key, server) -> {
+			server.init();
+		});
+	}
+	
+	private void getOperatingSystemType() {
+		if (currrentOS == null) {
+			String osName = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+			if ((osName.indexOf("mac") >= 0) || (osName.indexOf("darwin") >= 0)) {
+				currrentOS = OSType.MACOS;
+			} else if (osName.indexOf("win") >= 0) {
+				currrentOS = OSType.WINDOWS;
+			} else if (osName.indexOf("nux") >= 0) {
+				currrentOS = OSType.LINUX;
+			} else {
+				currrentOS = OSType.OTHER;
+			}
+		}
+	}
+	
+	public Server createNewServer() {
 		return new Server("newServerAddress:1541"); //$NON-NLS-1$
 	}
 	
@@ -102,8 +132,20 @@ public class Config {
 			config.connectAndAuthenticate(true);
 		});
 	}
-
-
+	
+	public boolean isWindows() {
+		return currrentOS == OSType.WINDOWS;
+	}
+	
+	public boolean isLinux() {
+		return currrentOS == OSType.LINUX;
+	}
+	
+	public boolean isMacOS() {
+		return currrentOS == OSType.MACOS;
+	}
+	
+	
 }
 
 

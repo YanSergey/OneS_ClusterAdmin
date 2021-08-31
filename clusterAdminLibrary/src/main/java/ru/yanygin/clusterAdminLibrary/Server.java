@@ -441,6 +441,10 @@ public class Server {
 	 * @return {@code true} если локальный RAS выключен либо включен и удачно запустился, {@code false} если локальный RAS включен и не удалось его запустить
 	 */
 	private boolean checkAndRunLocalRAS() {
+		
+		if (!ClusterProvider.getCommonConfig().isWindows())
+			return true;
+		
 		if (!useLocalRas)
 			return true;
 		

@@ -96,6 +96,8 @@ public class ClusterProvider {
 			commonConfig = new Config();
 		}
 		else {
+
+			commonConfig.init();
 			
 			if (commonConfig.locale != null) {
 				LOGGER.debug("Set locale is <{}>", commonConfig.locale); //$NON-NLS-1$
@@ -103,10 +105,6 @@ public class ClusterProvider {
 				java.util.Locale.setDefault(locale);
 				Messages.reloadBundle(locale);
 			}
-
-			commonConfig.servers.forEach((key, server) -> {
-				server.init();
-			});
 		}
 		LOGGER.info("Config file read successfully"); //$NON-NLS-1$
 	}
@@ -145,7 +143,7 @@ public class ClusterProvider {
 	}
 	
 	public Server createNewServer() {
-		return getCommonConfig().CreateNewServer();
+		return getCommonConfig().createNewServer();
 	}
 	
 	public void addNewServer(Server server) {
@@ -222,6 +220,9 @@ public class ClusterProvider {
 	public static Map<String, String> getInstalledV8Versions() {
 		
 		Map<String, String> versions = new HashMap<>();
+		
+		if (!commonConfig.isWindows())
+			return versions;
 		
 		String v8x64CommonPath = "C:\\Program Files\\1cv8"; //$NON-NLS-1$
 		String v8x86CommonPath = "C:\\Program Files (x86)\\1cv8"; //$NON-NLS-1$
