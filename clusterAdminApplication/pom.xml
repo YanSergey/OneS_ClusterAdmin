@@ -14,6 +14,46 @@
 		<maven.compiler.target>11</maven.compiler.target>
 <!-- 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding> -->
 	</properties>
+	
+	<profiles>
+	    <profile>
+	        <id>unix-amd64</id>
+	        <activation>
+	            <os>
+	                <family>unix</family>
+	                <arch>amd64</arch>
+	            </os>
+	        </activation>
+	        <properties>
+	            <swt.artifactId>org.eclipse.swt.gtk.linux.x86_64</swt.artifactId>
+	        </properties>
+	    </profile>
+	    <profile>
+	        <id>windows-x86</id>
+	        <activation>
+	            <os>
+	                <family>windows</family>
+	                <arch>x86</arch>
+	            </os>
+	        </activation>
+	        <properties>
+	            <swt.artifactId>org.eclipse.swt.win32.win32.x86</swt.artifactId>
+	        </properties>
+	    </profile>
+	    <profile>
+	        <id>windows-x86_64</id>
+	        <activation>
+	        	<activeByDefault>true</activeByDefault>
+	            <os>
+	                <family>windows</family>
+	                <arch>x86_64</arch>
+	            </os>
+	        </activation>
+	        <properties>
+	            <swt.artifactId>org.eclipse.swt.win32.win32.x86_64</swt.artifactId>
+	        </properties>
+	    </profile>
+	</profiles>
 
 	<dependencies>
 
@@ -45,19 +85,25 @@
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.win32.win32.x86_64 -->
-		<dependency>
-			<groupId>org.eclipse.platform</groupId>
-			<artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
-			<version>3.116.0</version>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.eclipse.platform</groupId> -->
+<!-- 			<artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId> -->
+<!-- 			<version>3.116.0</version> -->
+<!-- 		</dependency> -->
 		
 		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.gtk.linux.x86_64 -->
+<!-- 		<dependency> -->
+<!-- 		    <groupId>org.eclipse.platform</groupId> -->
+<!-- 		    <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId> -->
+<!-- 		    <version>3.116.0</version> -->
+<!-- 		</dependency> -->
+		
 		<dependency>
 		    <groupId>org.eclipse.platform</groupId>
-		    <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
+		    <artifactId>${swt.artifactId}</artifactId>
 		    <version>3.116.0</version>
 		</dependency>
-
+		
 		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.jface -->
 		<dependency>
 			<groupId>org.eclipse.platform</groupId>
@@ -198,6 +244,7 @@
 
 			<!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-assembly-plugin -->
 			<!-- сборка uberjar: mvn clean compile assembly:single -->
+			<!-- сборка для linux: mvn clean compile assembly:single -Punix-amd64 -->
 			<plugin>
 			    <groupId>org.apache.maven.plugins</groupId>
 			    <artifactId>maven-assembly-plugin</artifactId>
