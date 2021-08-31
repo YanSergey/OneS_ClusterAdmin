@@ -1,7 +1,5 @@
 package ru.yanygin.clusterAdminApplication;
 
-import java.util.Map;
-
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.StatusLineManager;
 import org.eclipse.jface.action.ToolBarManager;
@@ -10,17 +8,23 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Cursor;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.Tree;
@@ -28,25 +32,10 @@ import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
-import ru.yanygin.clusterAdminLibrary.Server;
-//import ru.yanygin.clusterAdminLibraryUI.ServersTree;
 import ru.yanygin.clusterAdminLibraryUI.ViewerArea;
-
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.swt.widgets.TabFolder;
-import org.eclipse.swt.widgets.TabItem;
-import org.eclipse.swt.events.MouseAdapter;
-import org.eclipse.swt.events.MouseEvent;
 
 public class ClusterViewer extends ApplicationWindow {
 	
-	Image serverIcon;
-	Image serverIconUp;
-	Image serverIconDown;
-	Image infobaseIcon;
-
 	Tree serversTree;
 	Composite mainForm;
 	
@@ -68,18 +57,7 @@ public class ClusterViewer extends ApplicationWindow {
 
 	@Override
 	public boolean close() {
-		
 		clusterProvider.close();
-		
-//		Map<String, Server> servers = clusterProvider.getServers();
-//			
-//		if (!servers.isEmpty()) {
-//			servers.forEach((server, config) -> {
-//				if (config.isConnected())
-//					config.disconnectFromAgent();
-//			});
-//		}
-		
 		return super.close();
 	}
 	/**
@@ -243,22 +221,7 @@ public class ClusterViewer extends ApplicationWindow {
 		StatusLineManager statusLineManager = new StatusLineManager();
 		return statusLineManager;
 	}
-
-//	/**
-//	 * Launch the application.
-//	 * @param args
-//	 */
-//	public static void main(String args[]) {
-//		try {
-//			ClusterViewer window = new ClusterViewer();
-//			window.setBlockOnOpen(true);
-//			window.open();
-//			Display.getCurrent().dispose();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-
+	
 	/**
 	 * Configure the shell.
 	 * @param newShell
