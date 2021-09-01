@@ -1293,7 +1293,28 @@ public class ViewerArea extends Composite {
 				if (dialogResult == 0) {
 				}
 			}
-		});	}
+		});
+		
+		MenuItem menuItemDeleteWorkingServer = new MenuItem(workingServersMenu, SWT.NONE);
+		menuItemDeleteWorkingServer.setText(Messages.getString("ViewerArea.DeleteWorkingServer")); //$NON-NLS-1$
+		menuItemDeleteWorkingServer.setImage(deleteIcon);
+		menuItemDeleteWorkingServer.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+				TableItem[] item = tableWorkingServers.getSelection();
+				if (item.length == 0)
+					return;
+				
+				Server server = (Server) item[0].getData(SERVER_INFO);
+				UUID clusterId = (UUID) item[0].getData(CLUSTER_ID);
+				UUID workingServerId = (UUID) item[0].getData(WORKINGSERVER_ID);
+				
+				server.unregWorkingServer(clusterId, workingServerId);
+				
+			}
+		});
+		
+	}
 
 	private void fillServersList() {
 		// TODO Auto-generated method stub

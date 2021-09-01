@@ -554,7 +554,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(520, 650);
+		return new Point(560, 650);
 	}
 
 	private String convertToMegabytes(Text textControl) {
