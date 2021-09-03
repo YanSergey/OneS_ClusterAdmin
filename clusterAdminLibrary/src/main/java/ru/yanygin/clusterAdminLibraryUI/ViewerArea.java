@@ -1675,7 +1675,7 @@ public class ViewerArea extends Composite {
 		
 		var item = new TreeItem(serversTree, SWT.NONE);
 		
-		item.setText(new String[] { server.getDescription()});
+		item.setText(new String[] { server.getDescription() });
 		item.setData("Type", TreeItemType.SERVER); //$NON-NLS-1$
 		item.setData(SERVER_INFO, server);
 		
@@ -1690,48 +1690,27 @@ public class ViewerArea extends Composite {
 	
 	private TreeItem addClusterItemInServersTree(TreeItem serverItem, IClusterInfo clusterInfo) {
 		
-		var clusterTitle 				= String.format("%s (%s)", clusterInfo.getName(), clusterInfo.getMainPort()); //$NON-NLS-1$
-//		var infobasesNodeTitle 			= String.format("Infobases (%s)", 0);
-//		var workingProcessesNodeTitle 	= String.format("Working processes (%s)", 0);
-//		var workingServerNodeTitle 		= String.format("Working servers (%s)", 0);
+		var clusterTitle = String.format("%s (%s)", clusterInfo.getName(), clusterInfo.getMainPort()); //$NON-NLS-1$
 		
 		var clusterItem = new TreeItem(serverItem, SWT.NONE);
 		clusterItem.setText(new String[] { clusterTitle });
 		clusterItem.setData("Type", TreeItemType.CLUSTER); //$NON-NLS-1$
-//		item.setData("ClusterName", clusterInfo.getName()); // Зачем?
 		clusterItem.setData(CLUSTER_ID, clusterInfo.getClusterId());
 		clusterItem.setImage(clusterIcon);
-
-//		var infobasesNodeItem = new TreeItem(clusterItem, SWT.NONE);
-//		infobasesNodeItem.setText(new String[] { infobasesNodeTitle });
-//		infobasesNodeItem.setData("Type", TreeItemType.INFOBASE_NODE);
-//		infobasesNodeItem.setImage(infobasesIcon);
-//		infobasesNodeItem.setChecked(false);
-
-//		if (ClusterProvider.getCommonConfig().showWorkingProcessesTree) {
-//			var workingProcessesNodeItem = new TreeItem(clusterItem, SWT.NONE);
-//			workingProcessesNodeItem.setText(new String[] { workingProcessesNodeTitle });
-//			workingProcessesNodeItem.setData("Type", TreeItemType.WORKINGPROCESS_NODE);
-//			workingProcessesNodeItem.setImage(workingProcessesIcon);
-//			workingProcessesNodeItem.setChecked(false);
-//		}
-		
-//		if (ClusterProvider.getCommonConfig().showWorkingServersTree) {
-//			var workingServerNodeItem = new TreeItem(clusterItem, SWT.NONE);
-//			workingServerNodeItem.setText(new String[] { workingServerNodeTitle });
-//			workingServerNodeItem.setData("Type", TreeItemType.WORKINGSERVER_NODE);
-//			workingServerNodeItem.setImage(workingServerIcon);
-//			workingServerNodeItem.setChecked(false);
-//		}
-		
 		
 		return clusterItem;
 	}
 		
 	private void addInfobaseItemInInfobaseNode(TreeItem infobaseNode, IInfoBaseInfoShort ibInfo) {
-		var item = new TreeItem(infobaseNode, SWT.NONE);
+
+		String infobaseTitle;
+		if (ClusterProvider.getCommonConfig().showInfobaseDescription && !ibInfo.getDescr().isBlank())
+			infobaseTitle = String.format("%s (%s)", ibInfo.getName(), ibInfo.getDescr()); //$NON-NLS-1$
+		else
+			infobaseTitle = String.format("%s", ibInfo.getName()); //$NON-NLS-1$
 		
-		item.setText(new String[] { ibInfo.getName()});
+		var item = new TreeItem(infobaseNode, SWT.NONE);
+		item.setText(new String[] { infobaseTitle });
 		item.setData("Type", TreeItemType.INFOBASE); //$NON-NLS-1$
 		item.setData(INFOBASE_ID, ibInfo.getInfoBaseId());
 		item.setImage(0, infobaseIcon);
