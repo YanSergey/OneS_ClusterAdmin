@@ -229,7 +229,7 @@ public class ClusterViewer extends ApplicationWindow {
 	@Override
 	protected void configureShell(Shell newShell) {
 		super.configureShell(newShell);
-		newShell.setText("Cluster Administrator");
+		newShell.setText("OneS Cluster Administrator");
 		// icon
 	}
 
