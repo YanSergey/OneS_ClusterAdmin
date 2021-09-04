@@ -136,8 +136,7 @@ public class ViewerArea extends Composite {
 		
 		this.clusterProvider = clusterProvider;
 
-		String configPath = ".\\config.json"; //$NON-NLS-1$
-		this.clusterProvider.readConfig(configPath);
+		this.clusterProvider.readConfig(ClusterProvider.DEFAULT_CONFIG_PATH);
 
 		SashForm sashForm = new SashForm(this, SWT.NONE);
 		

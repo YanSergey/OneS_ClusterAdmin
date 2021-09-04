@@ -34,7 +34,7 @@ public class ClusterProvider {
 	
 	File configFile;
 	static Config commonConfig;
-	String defaultConfigPath = ".\\config.json"; //$NON-NLS-1$
+	public static final String DEFAULT_CONFIG_PATH = "config.json"; //$NON-NLS-1$
 
 	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
 
@@ -71,7 +71,7 @@ public class ClusterProvider {
 		} catch (FileNotFoundException excp) {
 			LOGGER.debug("Config file read error: {}", excp); //$NON-NLS-1$
 			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
-			configFile = new File(defaultConfigPath);
+			configFile = new File(DEFAULT_CONFIG_PATH);
 			commonConfig = new Config();
 			return;
 		}
@@ -84,7 +84,7 @@ public class ClusterProvider {
 		} catch (Exception excp) {
 			LOGGER.debug("error convert config from json"); //$NON-NLS-1$
 			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
-			configFile = new File(defaultConfigPath);
+			configFile = new File(DEFAULT_CONFIG_PATH);
 			commonConfig = new Config();
 			return;
 		}
@@ -92,7 +92,7 @@ public class ClusterProvider {
 		if (commonConfig == null) {
 			LOGGER.debug("config is null, after read json"); //$NON-NLS-1$
 			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
-			configFile = new File(defaultConfigPath);
+			configFile = new File(DEFAULT_CONFIG_PATH);
 			commonConfig = new Config();
 		}
 		else {
