@@ -69,7 +69,7 @@ public class ClusterProvider {
 			jsonReader = new JsonReader(
 					new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
 		} catch (FileNotFoundException excp) {
-			LOGGER.debug("Config file read error: {}", excp); //$NON-NLS-1$
+			LOGGER.debug("Config file read error:", excp); //$NON-NLS-1$
 			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
 			configFile = new File(DEFAULT_CONFIG_PATH);
 			commonConfig = new Config();
