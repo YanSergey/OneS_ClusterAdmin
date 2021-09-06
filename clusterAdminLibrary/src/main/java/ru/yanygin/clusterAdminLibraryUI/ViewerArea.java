@@ -102,6 +102,7 @@ public class ViewerArea extends Composite {
 	TabItem tabLocks;
 	TabItem tabWorkingProcesses;
 	TabItem tabWorkingServers;
+	TabItem currentTabitem;
 	
 	Table tableSessions;
 	Table tableConnections;
@@ -151,6 +152,15 @@ public class ViewerArea extends Composite {
 		initServersTree(sashForm);
 		
 		TabFolder tabFolder = new TabFolder(sashForm, SWT.NONE);
+		
+		tabFolder.addSelectionListener(new SelectionAdapter() {
+			 
+            @Override
+            public void widgetSelected(SelectionEvent evt) {
+            	currentTabitem = tabFolder.getSelection()[0];
+                clickItemInServerTree(1);
+            }
+        });
 		
 		initSessionTable(tabFolder);
 		initConnectionsTable(tabFolder);
@@ -329,24 +339,7 @@ public class ViewerArea extends Composite {
 			@Override
 			public void mouseDown(MouseEvent e) {
 
-				TreeItem[] item = serversTree.getSelection();
-				if (item.length == 0)
-					return;
-
-				TreeItem serverItem = item[0];
-				
-				switch (e.button) {
-					case 1: // left click
-						selectItemInTree(serverItem);
-						break;
-						
-					case 3: // right click
-						setContestMenuInTree(serverItem);
-						break;
-
-					default:
-						break;
-				}
+				clickItemInServerTree(e.button);
 			}
 		});
 		
@@ -2222,7 +2215,7 @@ public class ViewerArea extends Composite {
 		}
 	}
 	
-	private void selectItemInTree(TreeItem treeItem) {
+	private void fillTabs(TreeItem treeItem) {
 		
 		highlightTreeItem(treeItem);
 		
@@ -2294,29 +2287,22 @@ public class ViewerArea extends Composite {
 		}
 
 		tabSessions.setText(String.format(Messages.getString("ViewerArea.SessionsCount"), sessions.size())); //$NON-NLS-1$
-		sessions.forEach(session -> {
-			addSessionInTable(server, clusterId, infobaseId, session, connections);
-		});
-
 		tabConnections.setText(String.format(Messages.getString("ViewerArea.ConnectionsCount"), connections.size())); //$NON-NLS-1$
-		connections.forEach(connection -> {
-			addConnectionInTable(server, clusterId, infobaseId, connection);
-		});
-
 		tabLocks.setText(String.format(Messages.getString("ViewerArea.LocksCount"), locks.size())); //$NON-NLS-1$
-		locks.forEach(lock -> {
-			addLocksInTable(server, clusterId, infobaseId, lock, sessions, connections);
-		});
-
 		tabWorkingProcesses.setText(String.format(Messages.getString("ViewerArea.WorkingProcessesCount"), workingProcesses.size())); //$NON-NLS-1$
-		workingProcesses.forEach(workingProcess -> {
-			addWorkingProcessInTable(server, clusterId, workingProcess);
-		});
-
 		tabWorkingServers.setText(String.format(Messages.getString("ViewerArea.WorkingServersCount"), workingServers.size())); //$NON-NLS-1$
-		workingServers.forEach(workingServer -> {
-			addWorkingServerInTable(server, clusterId, workingServer);
-		});
+		
+		if (currentTabitem.equals(tabSessions))
+			sessions.forEach(session -> addSessionInTable(server, clusterId, infobaseId, session, connections));
+		else if (currentTabitem.equals(tabConnections))
+			connections.forEach(connection -> addConnectionInTable(server, clusterId, infobaseId, connection));
+		else if (currentTabitem.equals(tabLocks))
+			locks.forEach(lock -> addLocksInTable(server, clusterId, infobaseId, lock, sessions, connections));
+		else if (currentTabitem.equals(tabWorkingProcesses))
+			workingProcesses.forEach(workingProcess -> addWorkingProcessInTable(server, clusterId, workingProcess));
+		else if (currentTabitem.equals(tabWorkingServers))
+			workingServers.forEach(workingServer -> addWorkingServerInTable(server, clusterId, workingServer));
+		
 	}
 
 	private void highlightTreeItem(TreeItem treeItem) {
@@ -2374,6 +2360,27 @@ public class ViewerArea extends Composite {
 		tableLocks.removeAll();
 		tableWorkingProcesses.removeAll();
 		tableWorkingServers.removeAll();
+	}
+
+	private void clickItemInServerTree(int mouseButton) {
+		TreeItem[] item = serversTree.getSelection();
+		if (item.length == 0)
+			return;
+
+		TreeItem treeItem = item[0];
+		
+		switch (mouseButton) {
+			case 1: // left click
+				fillTabs(treeItem);
+				break;
+				
+			case 3: // right click
+				setContestMenuInTree(treeItem);
+				break;
+
+			default:
+				break;
+		}
 	}
 
 	
