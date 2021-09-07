@@ -207,7 +207,7 @@ public class EditInfobaseDialog extends Dialog {
 		Composite compositeDeniedFrom = new Composite(container, SWT.NONE);
 		compositeDeniedFrom.setLayout(new FillLayout(SWT.HORIZONTAL));
 		
-		deniedFromDate = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.DATE | SWT.DROP_DOWN);
+		deniedFromDate = new CDateTime(compositeDeniedFrom, SWT.BORDER | SWT.DATE | SWT.DROP_DOWN);
 		
 		deniedFromTime = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.TIME);
 		
@@ -315,25 +315,29 @@ public class EditInfobaseDialog extends Dialog {
 			Date emptyDate =  new Date(70, 0, 1, 3, 0, 0);
 			Date deniedFrom = infoBaseInfo.getDeniedFrom();
 			if (deniedFrom.equals(emptyDate)) {
-				this.deniedFromDate.setDate(0, 0, 0);
-				this.deniedFromDate.setTime(0, 0, 0);
-				this.deniedFromTime.setDate(0, 0, 0);
-				this.deniedFromTime.setTime(0, 0, 0);
-			} else {	
+//				this.deniedFromDate.setDate(0, 0, 0);
+//				this.deniedFromDate.setTime(0, 0, 0);
+//				this.deniedFromTime.setDate(0, 0, 0);
+//				this.deniedFromTime.setTime(0, 0, 0);
+				this.deniedFromDate.setDate(null, null, null);
+				this.deniedFromDate.setTime(null, null, null);
+				this.deniedFromTime.setDate(null, null, null);
+				this.deniedFromTime.setTime(null, null, null);
+//			} else {	
 				this.deniedFromDate.setDate(1900 + deniedFrom.getYear(), deniedFrom.getMonth(), deniedFrom.getDate());
 				this.deniedFromTime.setTime(deniedFrom.getHours(), deniedFrom.getMinutes(), deniedFrom.getSeconds());
 			}
 			
 			Date deniedTo  	= infoBaseInfo.getDeniedTo();
-			if (deniedTo.equals(emptyDate)) {
-				this.deniedToDate.setDate(0, 0, 0);
-				this.deniedToDate.setTime(0, 0, 0);
-				this.deniedToTime.setDate(0, 0, 0);
-				this.deniedToTime.setTime(0, 0, 0);
-			} else {	
+//			if (deniedTo.equals(emptyDate)) {
+//				this.deniedToDate.setDate(0, 0, 0);
+//				this.deniedToDate.setTime(0, 0, 0);
+//				this.deniedToTime.setDate(0, 0, 0);
+//				this.deniedToTime.setTime(0, 0, 0);
+//			} else {	
 				this.deniedToDate.setDate(1900 + deniedTo.getYear(), deniedTo.getMonth(), deniedTo.getDate());
 				this.deniedToTime.setTime(deniedTo.getHours(), deniedTo.getMinutes(), deniedTo.getSeconds());
-			}
+//			}
 			
 			this.txtDeniedMessage.setText(infoBaseInfo.getDeniedMessage());
 			this.txtPermissionCode.setText(infoBaseInfo.getPermissionCode());

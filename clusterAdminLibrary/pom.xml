@@ -15,6 +15,13 @@
 <!-- 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding> -->
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>jabylon</id>
+			<url>http://www.jabylon.org/maven/</url>
+		</repository>
+	</repositories>
+	
 	<dependencies>
 
 		<dependency>
@@ -116,6 +123,13 @@
 		    <groupId>org.jboss.netty</groupId>
 		    <artifactId>netty</artifactId>
 		    <version>3.2.6.Final</version>
+		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.eclipse.wb.rcp/nebula -->
+		<dependency>
+		    <groupId>org.eclipse.wb.rcp</groupId>
+		    <artifactId>nebula</artifactId>
+		    <version>1.6.0</version>
 		</dependency>
 		
 		<!-- 1c-libs from local repo -->
