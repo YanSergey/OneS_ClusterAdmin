@@ -1,6 +1,11 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.eclipse.jface.dialogs.Dialog;
@@ -16,10 +21,10 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.DateTime;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.wb.swt.SWTResourceManager;
 
 import com._1c.v8.ibis.admin.IInfoBaseInfo;
 
@@ -50,38 +55,8 @@ public class EditInfobaseDialog extends Dialog {
 	private Text txtSafeModeSecurityProfile;
 	private Text txtDeniedMessage;
 	private Combo comboServerDBType;
-	private DateTime deniedFromDate;
-	private DateTime deniedFromTime;
-	private DateTime deniedToDate;
-	private DateTime deniedToTime;
-
-	// fields of infobase
-	private String infobaseName;
-	private String infobaseDescription;
-	
-	private String serverDBName;
-	private String serverDBType; // MSSQLServer, PostgreSQL, IBMDB2, OracleDatabase
-	private String databaseDbName;
-	private String databaseDbUser;
-	private String databaseDbPassword;
-	
-	private int allowDistributeLicense;
-	
-	private boolean sessionsDenied;
-	private Date sessionsDeniedFrom;
-	private Date sessionsDeniedTo;
-	private String deniedMessage;
-	private String permissionCode;
-	private String deniedParameter;
-	
-	private boolean sheduledJobsDenied;
-	
-	private String externalSessionManagerConnectionString;
-	private boolean externalSessionManagerRequired;
-	
-	private String securityProfile;
-	private String safeModeSecurityProfile;
-	
+	private Text deniedFromDate;
+	private Text deniedToDate;
 
 	/**
 	 * Create the dialog.
@@ -129,14 +104,12 @@ public class EditInfobaseDialog extends Dialog {
 		
 		Label lblSecurityLevel = new Label(container, SWT.NONE);
 		lblSecurityLevel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-//		lblSecurityLevel.setToolTipText("");
 		lblSecurityLevel.setText(Messages.getString("Dialogs.SecurityLevel")); //$NON-NLS-1$
 		
 		comboSecurityLevel = new Combo(container, SWT.READ_ONLY);
 		comboSecurityLevel.setEnabled(false);
 		comboSecurityLevel.setToolTipText(Messages.getString("Dialogs.SecurityLevel")); //$NON-NLS-1$
 		comboSecurityLevel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-//		comboSecurityLevel.setText(Messages.getString("Dialogs.DisNable")); //$NON-NLS-1$
 		
 		comboSecurityLevel.add(Messages.getString("Dialogs.Disable")); //$NON-NLS-1$
 		comboSecurityLevel.setData(Messages.getString("Dialogs.Disable"), 0); //$NON-NLS-1$
@@ -205,31 +178,29 @@ public class EditInfobaseDialog extends Dialog {
 		lblDeniedFrom.setText(Messages.getString("InfobaseDialog.DeniedFrom")); //$NON-NLS-1$
 		
 		Composite compositeDeniedFrom = new Composite(container, SWT.NONE);
+		compositeDeniedFrom.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		compositeDeniedFrom.setLayout(new FillLayout(SWT.HORIZONTAL));
 		
-		deniedFromDate = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.DATE | SWT.DROP_DOWN);
-		
-		deniedFromTime = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.TIME);
+		deniedFromDate = new Text(compositeDeniedFrom, SWT.BORDER | SWT.DATE | SWT.DROP_DOWN);
 		
 		Label lblDeniedTo = new Label(container, SWT.NONE);
 		lblDeniedTo.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblDeniedTo.setText(Messages.getString("InfobaseDialog.DeniedTo")); //$NON-NLS-1$
 		
 		Composite compositeDeniedTo = new Composite(container, SWT.NONE);
+		compositeDeniedTo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		compositeDeniedTo.setLayout(new FillLayout(SWT.HORIZONTAL));
 		
-		deniedToDate = new DateTime(compositeDeniedTo, SWT.NONE | SWT.DROP_DOWN);
-		
-		deniedToTime = new DateTime(compositeDeniedTo, SWT.BORDER | SWT.TIME);
+		deniedToDate = new Text(compositeDeniedTo, SWT.BORDER);
 
 		Label lblDeniedMessage = new Label(container, SWT.NONE);
 		lblDeniedMessage.setText(Messages.getString("InfobaseDialog.DeniedMessage")); //$NON-NLS-1$
 		
 		txtDeniedMessage = new Text(container, SWT.BORDER);
 		txtDeniedMessage.setToolTipText(Messages.getString("InfobaseDialog.DeniedMessage")); //$NON-NLS-1$
-		GridData gd_txtDeniedMessage = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
-		gd_txtDeniedMessage.heightHint = 63;
-		txtDeniedMessage.setLayoutData(gd_txtDeniedMessage);
+		GridData gdtxtDeniedMessage = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
+		gdtxtDeniedMessage.heightHint = 63;
+		txtDeniedMessage.setLayoutData(gdtxtDeniedMessage);
 		
 		Label lblPermissionCode = new Label(container, SWT.NONE);
 		lblPermissionCode.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -280,7 +251,6 @@ public class EditInfobaseDialog extends Dialog {
 		txtSafeModeSecurityProfile.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		initInfobaseProperties();
-
 		
 		return container;
 	}
@@ -295,143 +265,143 @@ public class EditInfobaseDialog extends Dialog {
 			}
 
 			// Common properties
-			this.txtInfobaseName.setText(infoBaseInfo.getName());
-			this.txtInfobaseDescription.setText(infoBaseInfo.getDescr());
-			this.comboSecurityLevel.setText(Integer.toString(infoBaseInfo.getSecurityLevel()));
-			this.btnAllowDistributeLicense.setSelection(infoBaseInfo.getLicenseDistributionAllowed() == 1);
-			this.btnSheduledJobsDenied.setSelection(infoBaseInfo.isScheduledJobsDenied());
+			txtInfobaseName.setText(infoBaseInfo.getName());
+			txtInfobaseDescription.setText(infoBaseInfo.getDescr());
+			comboSecurityLevel.setText(Integer.toString(infoBaseInfo.getSecurityLevel()));
+			btnAllowDistributeLicense.setSelection(infoBaseInfo.getLicenseDistributionAllowed() == 1);
+			btnSheduledJobsDenied.setSelection(infoBaseInfo.isScheduledJobsDenied());
 			
 			// DB properties
-			this.txtServerDBName.setText(infoBaseInfo.getDbServerName());
-			this.comboServerDBType.setText(infoBaseInfo.getDbms());
-			this.txtDatabaseDbName.setText(infoBaseInfo.getDbName());
-			this.txtDatabaseDbUser.setText(infoBaseInfo.getDbUser());
-			this.txtDatabaseDbPassword.setText(infoBaseInfo.getDbPassword());
+			txtServerDBName.setText(infoBaseInfo.getDbServerName());
+			comboServerDBType.setText(infoBaseInfo.getDbms());
+			txtDatabaseDbName.setText(infoBaseInfo.getDbName());
+			txtDatabaseDbUser.setText(infoBaseInfo.getDbUser());
+			txtDatabaseDbPassword.setText(infoBaseInfo.getDbPassword());
 			
 			// Lock properties
-			this.btnSessionsDenied.setSelection(infoBaseInfo.isSessionsDenied());
+			btnSessionsDenied.setSelection(infoBaseInfo.isSessionsDenied());
+			deniedFromDate.setText(convertDateToString(infoBaseInfo.getDeniedFrom()));
+			deniedToDate.setText(convertDateToString(infoBaseInfo.getDeniedTo()));
 			
-			// TODO: Надо разбираться с датами/ Пустая дата не устанавливается в контрол
-			Date emptyDate =  new Date(70, 0, 1, 3, 0, 0);
-			Date deniedFrom = infoBaseInfo.getDeniedFrom();
-			if (deniedFrom.equals(emptyDate)) {
-				this.deniedFromDate.setDate(0, 0, 0);
-				this.deniedFromDate.setTime(0, 0, 0);
-				this.deniedFromTime.setDate(0, 0, 0);
-				this.deniedFromTime.setTime(0, 0, 0);
-			} else {	
-				this.deniedFromDate.setDate(1900 + deniedFrom.getYear(), deniedFrom.getMonth(), deniedFrom.getDate());
-				this.deniedFromTime.setTime(deniedFrom.getHours(), deniedFrom.getMinutes(), deniedFrom.getSeconds());
-			}
-			
-			Date deniedTo  	= infoBaseInfo.getDeniedTo();
-			if (deniedTo.equals(emptyDate)) {
-				this.deniedToDate.setDate(0, 0, 0);
-				this.deniedToDate.setTime(0, 0, 0);
-				this.deniedToTime.setDate(0, 0, 0);
-				this.deniedToTime.setTime(0, 0, 0);
-			} else {	
-				this.deniedToDate.setDate(1900 + deniedTo.getYear(), deniedTo.getMonth(), deniedTo.getDate());
-				this.deniedToTime.setTime(deniedTo.getHours(), deniedTo.getMinutes(), deniedTo.getSeconds());
-			}
-			
-			this.txtDeniedMessage.setText(infoBaseInfo.getDeniedMessage());
-			this.txtPermissionCode.setText(infoBaseInfo.getPermissionCode());
-			this.txtDeniedParameter.setText(infoBaseInfo.getDeniedParameter());
+			txtDeniedMessage.setText(infoBaseInfo.getDeniedMessage());
+			txtPermissionCode.setText(infoBaseInfo.getPermissionCode());
+			txtDeniedParameter.setText(infoBaseInfo.getDeniedParameter());
 			
 			// ExternalSessionManager properties
-			this.txtExternalSessionManagerConnectionString.setText(infoBaseInfo.getExternalSessionManagerConnectionString());
-			this.btnExternalSessionManagerRequired.setSelection(infoBaseInfo.getExternalSessionManagerRequired());
+			txtExternalSessionManagerConnectionString.setText(infoBaseInfo.getExternalSessionManagerConnectionString());
+			btnExternalSessionManagerRequired.setSelection(infoBaseInfo.getExternalSessionManagerRequired());
 			
 			// SecurityProfile properties			
-			this.txtSecurityProfile.setText(infoBaseInfo.getSecurityProfileName());
-			this.txtSafeModeSecurityProfile.setText(infoBaseInfo.getSafeModeSecurityProfileName());
+			txtSecurityProfile.setText(infoBaseInfo.getSecurityProfileName());
+			txtSafeModeSecurityProfile.setText(infoBaseInfo.getSafeModeSecurityProfileName());
 			
 		}
 	}
-
-	private void extractInfobaseVariablesFromControls() {
+	
+	private boolean checkVariablesFromControls() {
 		
-		// Common properties
-		infobaseName 			= txtInfobaseName.getText();
-		infobaseDescription 	= txtInfobaseDescription.getText();
-		allowDistributeLicense 	= btnAllowDistributeLicense.getSelection() ? 1 : 0;
-		sheduledJobsDenied 		= btnSheduledJobsDenied.getSelection();
+		var existsError = false;
 		
-		// DB properties
-		serverDBName 		= txtServerDBName.getText();
-		serverDBType 		= comboServerDBType.getText();
-		databaseDbName 		= txtDatabaseDbName.getText();
-		databaseDbUser 		= txtDatabaseDbUser.getText();
-		databaseDbPassword 	= txtDatabaseDbPassword.getText();
+		List<Text> checksTextControls = new ArrayList<>();
+		checksTextControls.add(txtInfobaseName);
+		checksTextControls.add(txtServerDBName);
+		checksTextControls.add(txtDatabaseDbName);
+		checksTextControls.add(txtDatabaseDbUser);
 		
-		// Lock properties
-		sessionsDenied 		= btnSessionsDenied.getSelection();
-		sessionsDeniedFrom 	= convertDateTime(deniedFromDate, deniedFromTime);
-		sessionsDeniedTo 	= convertDateTime(deniedToDate, deniedToTime);
-		deniedMessage 		= txtDeniedMessage.getText();
-		permissionCode 		= txtPermissionCode.getText();
-		deniedParameter 	= txtDeniedParameter.getText();
+		for (Text control : checksTextControls) {
+			if (control.getText().isBlank()) {
+				control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+				existsError = true;
+			} else {
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			}			
+		}
 		
-		// ExternalSessionManager properties
-		externalSessionManagerConnectionString 	= txtExternalSessionManagerConnectionString.getText();
-		externalSessionManagerRequired 			= btnExternalSessionManagerRequired.getSelection();
+		List<Text> checksDateControls = new ArrayList<>();
+		checksDateControls.add(deniedFromDate);
+		checksDateControls.add(deniedToDate);
 		
-		// SecurityProfile properties			
-		securityProfile 		= txtSecurityProfile.getText();
-		safeModeSecurityProfile = txtSafeModeSecurityProfile.getText();
+		for (Text control : checksDateControls) {
+			if (control.getText().isBlank()) {
+				control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+			} else {
+				if (convertStringToDate(control.getText()).equals(new Date(0))) {
+					control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+					existsError = true;
+				}
+			}			
+		}
+		
+		return existsError;
 	}
 	
 	private boolean saveInfobaseProperties() {
 
-		extractInfobaseVariablesFromControls();
+		if (checkVariablesFromControls())
+			return false;
 		
 		IInfoBaseInfo infoBaseInfo = server.getInfoBaseInfo(clusterId, infoBaseId);
 		if (infoBaseInfo == null)
 			return false;
 		
 		// Common properties
-		infoBaseInfo.setName(infobaseName);
-		infoBaseInfo.setDescr(infobaseDescription);
-		infoBaseInfo.setLicenseDistributionAllowed(allowDistributeLicense);
-		infoBaseInfo.setScheduledJobsDenied(sheduledJobsDenied);
+		infoBaseInfo.setName(txtInfobaseName.getText());
+		infoBaseInfo.setDescr(txtInfobaseDescription.getText());
+		infoBaseInfo.setLicenseDistributionAllowed(btnAllowDistributeLicense.getSelection() ? 1 : 0);
+		infoBaseInfo.setScheduledJobsDenied(btnSheduledJobsDenied.getSelection());
 		
 		// DB properties
-		infoBaseInfo.setDbServerName(serverDBName);
-		infoBaseInfo.setDbms(serverDBType);
-		infoBaseInfo.setDbName(databaseDbName);
-		infoBaseInfo.setDbUser(databaseDbUser);
-		infoBaseInfo.setDbPassword(databaseDbPassword);
+		infoBaseInfo.setDbServerName(txtServerDBName.getText());
+		infoBaseInfo.setDbms(comboServerDBType.getText());
+		infoBaseInfo.setDbName(txtDatabaseDbName.getText());
+		infoBaseInfo.setDbUser(txtDatabaseDbUser.getText());
+		infoBaseInfo.setDbPassword(txtDatabaseDbPassword.getText());
 		
 		// Lock properties
-		infoBaseInfo.setSessionsDenied(sessionsDenied);
-		infoBaseInfo.setDeniedFrom(sessionsDeniedFrom);
-		infoBaseInfo.setDeniedTo(sessionsDeniedTo);
-		infoBaseInfo.setDeniedMessage(deniedMessage);
-		infoBaseInfo.setPermissionCode(permissionCode);
-		infoBaseInfo.setDeniedParameter(deniedParameter);
+		infoBaseInfo.setSessionsDenied(btnSessionsDenied.getSelection());
+		infoBaseInfo.setDeniedFrom(convertStringToDate(deniedFromDate.getText()));
+		infoBaseInfo.setDeniedTo(convertStringToDate(deniedToDate.getText()));
+		
+		infoBaseInfo.setDeniedMessage(txtDeniedMessage.getText());
+		infoBaseInfo.setPermissionCode(txtPermissionCode.getText());
+		infoBaseInfo.setDeniedParameter(txtDeniedParameter.getText());
 		
 		// ExternalSessionManager properties
-		infoBaseInfo.setExternalSessionManagerConnectionString(externalSessionManagerConnectionString);
-		infoBaseInfo.setExternalSessionManagerRequired(externalSessionManagerRequired);
+		infoBaseInfo.setExternalSessionManagerConnectionString(txtExternalSessionManagerConnectionString.getText());
+		infoBaseInfo.setExternalSessionManagerRequired(btnExternalSessionManagerRequired.getSelection());
 		
 		// SecurityProfile properties
-		infoBaseInfo.setSecurityProfileName(securityProfile);
-		infoBaseInfo.setSafeModeSecurityProfileName(safeModeSecurityProfile);
+		infoBaseInfo.setSecurityProfileName(txtSecurityProfile.getText());
+		infoBaseInfo.setSafeModeSecurityProfileName(txtSafeModeSecurityProfile.getText());
 		
 		return server.updateInfoBase(clusterId, infoBaseInfo);		
 	}
 	
-	private Date convertDateTime(DateTime date, DateTime time) {
+	private Date convertStringToDate(String date) {
 		
-		int year = date.getYear() - 1900; // чтото не так с конвертацией
-		int month = date.getMonth();
-		int day = date.getDay();
-		int hrs = time.getHours();
-		int min = time.getMinutes();
-		int sec = time.getSeconds();
-
-		return new Date(year, month, day, hrs, min, sec);
+		Date emptyDate = new Date(0);
+		
+		if (date.isBlank())
+			return emptyDate;
+		
+		Date convertDate;
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		try {
+			convertDate = dateFormat.parse(date);
+		} catch (ParseException excp) {
+			excp.printStackTrace();
+			convertDate = emptyDate;
+		}
+		
+		return convertDate;
+	}
+	
+	private String convertDateToString(Date date) {
+		
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date emptyDate =  new Date(0);
+		
+		return date.equals(emptyDate) ? "" : dateFormat.format(date);
 	}
 	
 	/**
