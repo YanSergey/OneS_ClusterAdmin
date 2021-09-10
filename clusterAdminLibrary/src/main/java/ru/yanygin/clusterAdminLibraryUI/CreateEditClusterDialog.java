@@ -7,9 +7,10 @@ import java.util.UUID;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -27,8 +28,6 @@ import com._1c.v8.ibis.admin.ClusterInfo;
 import com._1c.v8.ibis.admin.IClusterInfo;
 
 import ru.yanygin.clusterAdminLibrary.Server;
-import org.eclipse.swt.events.MouseTrackAdapter;
-import org.eclipse.swt.events.MouseEvent;
 
 public class CreateEditClusterDialog extends Dialog {
 	
@@ -84,9 +83,9 @@ public class CreateEditClusterDialog extends Dialog {
 		lblClusterName.setText(Messages.getString("ClusterDialog.ClusterName")); //$NON-NLS-1$
 		
 		txtClusterName = new Text(container, SWT.BORDER);
-		txtClusterName.setToolTipText(Messages.getString("ClusterDialog.ClusterName")); //$NON-NLS-1$
-		GridData gdtxtClusterName = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtClusterName.widthHint = 250;
+		txtClusterName.setToolTipText(Messages.getString("ClusterDialog.ClusterName"));
+		GridData gdtxtClusterName = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtClusterName.widthHint = 200;
 		txtClusterName.setLayoutData(gdtxtClusterName);
 		
 		Label lblComputerName = new Label(container, SWT.NONE);
@@ -94,9 +93,9 @@ public class CreateEditClusterDialog extends Dialog {
 		lblComputerName.setText(Messages.getString("ClusterDialog.ComputerName")); //$NON-NLS-1$
 		
 		txtComputerName = new Text(container, SWT.BORDER);
-		txtComputerName.setToolTipText(Messages.getString("ClusterDialog.ComputerName")); //$NON-NLS-1$
-		GridData gdtxtComputerName = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtComputerName.widthHint = 250;
+		txtComputerName.setToolTipText(Messages.getString("ClusterDialog.ComputerName"));
+		GridData gdtxtComputerName = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtComputerName.widthHint = 200;
 		txtComputerName.setLayoutData(gdtxtComputerName);
 		
 		Label lblIPPort = new Label(container, SWT.NONE);
@@ -104,9 +103,9 @@ public class CreateEditClusterDialog extends Dialog {
 		lblIPPort.setText(Messages.getString("ClusterDialog.IPPort")); //$NON-NLS-1$
 		
 		txtIPPort = new Text(container, SWT.BORDER);
-		txtIPPort.setToolTipText(Messages.getString("ClusterDialog.IPPort")); //$NON-NLS-1$
-		GridData gdtxtIPPort = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtIPPort.widthHint = 250;
+		txtIPPort.setToolTipText(Messages.getString("ClusterDialog.IPPort"));
+		GridData gdtxtIPPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtIPPort.widthHint = 200;
 		txtIPPort.setLayoutData(gdtxtIPPort);
 		
 		Label lblSecurityLevel = new Label(container, SWT.NONE);
@@ -116,9 +115,9 @@ public class CreateEditClusterDialog extends Dialog {
 		comboSecurityLevel = new Combo(container, SWT.READ_ONLY);
 		comboSecurityLevel.setVisibleItemCount(3);
 		comboSecurityLevel.setTouchEnabled(true);
-		comboSecurityLevel.setToolTipText(Messages.getString("Dialogs.SecurityLevel")); //$NON-NLS-1$
-		GridData gdcomboSecurityLevel = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdcomboSecurityLevel.widthHint = 235;
+		comboSecurityLevel.setToolTipText(Messages.getString("Dialogs.SecurityLevel"));
+		GridData gdcomboSecurityLevel = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdcomboSecurityLevel.widthHint = 200;
 		comboSecurityLevel.setLayoutData(gdcomboSecurityLevel);
 		
 		comboSecurityLevel.add(Messages.getString("Dialogs.Disable")); //$NON-NLS-1$
@@ -134,62 +133,54 @@ public class CreateEditClusterDialog extends Dialog {
 		GridLayout glgroupWorkProcessesParams = new GridLayout(2, true);
 		glgroupWorkProcessesParams.verticalSpacing = 8;
 		groupWorkProcessesParams.setLayout(glgroupWorkProcessesParams);
-		GridData gdgroupWorkProcessesParams = new GridData(SWT.FILL, SWT.CENTER, false, false, 3, 1);
-		gdgroupWorkProcessesParams.widthHint = 450;
-		groupWorkProcessesParams.setLayoutData(gdgroupWorkProcessesParams);
+		groupWorkProcessesParams.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 3, 1));
 		
 		Label lblLifeTimeLimit = new Label(groupWorkProcessesParams, SWT.NONE);
 		lblLifeTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblLifeTimeLimit.setText(Messages.getString("ClusterDialog.RestartInterval")); //$NON-NLS-1$
 		
 		txtLifeTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
-		GridData gdtxtLifeTimeLimit = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtLifeTimeLimit.widthHint = 250;
+		GridData gdtxtLifeTimeLimit = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		gdtxtLifeTimeLimit.widthHint = 200;
 		txtLifeTimeLimit.setLayoutData(gdtxtLifeTimeLimit);
 		txtLifeTimeLimit.setToolTipText(Messages.getString("ClusterDialog.RestartInterval")); //$NON-NLS-1$
 		
 		Label lblMaxMemorySize = new Label(groupWorkProcessesParams, SWT.NONE);
 		lblMaxMemorySize.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblMaxMemorySize.setText(Messages.getString("ClusterDialog.AllowedAmountOfMemoryWithLineBreak")); //$NON-NLS-1$
-		lblMaxMemorySize.setBounds(0, 0, 35, 15);
 		
 		txtMaxMemorySize = new Text(groupWorkProcessesParams, SWT.BORDER);
-		GridData gdtxtMaxMemorySize = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtMaxMemorySize.widthHint = 250;
+		GridData gdtxtMaxMemorySize = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		gdtxtMaxMemorySize.widthHint = 200;
 		txtMaxMemorySize.setLayoutData(gdtxtMaxMemorySize);
 		txtMaxMemorySize.setToolTipText(Messages.getString("ClusterDialog.AllowedAmountOfMemory")); //$NON-NLS-1$
-		txtMaxMemorySize.setBounds(0, 0, 76, 21);
 		
 		Label lblMaxMemoryTimeLimit = new Label(groupWorkProcessesParams, SWT.WRAP);
 		lblMaxMemoryTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
 		lblMaxMemoryTimeLimit.setText(Messages.getString("ClusterDialog.IntervalExceedingAllowedAmountOfMemoryWithLineBreak")); //$NON-NLS-1$
-		lblMaxMemoryTimeLimit.setBounds(0, 0, 35, 15);
 		
 		txtMaxMemoryTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
-		GridData gdtxtMaxMemoryTimeLimit = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtMaxMemoryTimeLimit.widthHint = 250;
+		GridData gdtxtMaxMemoryTimeLimit = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		gdtxtMaxMemoryTimeLimit.widthHint = 200;
 		txtMaxMemoryTimeLimit.setLayoutData(gdtxtMaxMemoryTimeLimit);
 		txtMaxMemoryTimeLimit.setToolTipText(Messages.getString("ClusterDialog.IntervalExceedingAllowedAmountOfMemory")); //$NON-NLS-1$
-		txtMaxMemoryTimeLimit.setBounds(0, 0, 76, 21);
 		
 		Label lblAcceptableDeviationOfNumberOfServerErrors = new Label(groupWorkProcessesParams, SWT.WRAP);
 		lblAcceptableDeviationOfNumberOfServerErrors.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
 		lblAcceptableDeviationOfNumberOfServerErrors.setText(Messages.getString("ClusterDialog.AcceptableDeviationOfTheNumberOfServerErrorsWithLineBreak")); //$NON-NLS-1$
-		lblAcceptableDeviationOfNumberOfServerErrors.setBounds(0, 0, 35, 30);
 		
 		txtClusterRecyclingErrorsCountThreshold = new Text(groupWorkProcessesParams, SWT.BORDER);
-		GridData gdtxtClusterRecyclingErrorsCountThreshold = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtClusterRecyclingErrorsCountThreshold.widthHint = 250;
+		GridData gdtxtClusterRecyclingErrorsCountThreshold = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		gdtxtClusterRecyclingErrorsCountThreshold.widthHint = 200;
 		txtClusterRecyclingErrorsCountThreshold.setLayoutData(gdtxtClusterRecyclingErrorsCountThreshold);
 		txtClusterRecyclingErrorsCountThreshold.setToolTipText(Messages.getString("ClusterDialog.AcceptableDeviationOfTheNumberOfServerErrors")); //$NON-NLS-1$
-		txtClusterRecyclingErrorsCountThreshold.setBounds(0, 0, 76, 21);
 		
 		btnClusterRecyclingKillProblemProcesses = new Button(groupWorkProcessesParams, SWT.CHECK);
-		btnClusterRecyclingKillProblemProcesses.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true, 2, 1));
+		btnClusterRecyclingKillProblemProcesses.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, true, 2, 1));
 		btnClusterRecyclingKillProblemProcesses.setText(Messages.getString("ClusterDialog.ForceShutdownOfProblematicProcesses")); //$NON-NLS-1$
 		
 		btnClusterRecyclingKillByMemoryWithDump = new Button(groupWorkProcessesParams, SWT.CHECK);
-		btnClusterRecyclingKillByMemoryWithDump.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1));
+		btnClusterRecyclingKillByMemoryWithDump.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 2, 1));
 		btnClusterRecyclingKillByMemoryWithDump.setText(Messages.getString("ClusterDialog.ClusterRecyclingKillByMemoryWithDump")); //$NON-NLS-1$
 		
 		Label lblExpirationTimeout = new Label(container, SWT.NONE);
@@ -197,9 +188,9 @@ public class CreateEditClusterDialog extends Dialog {
 		lblExpirationTimeout.setText(Messages.getString("ClusterDialog.ShutDownProcessesStopAfterSecond")); //$NON-NLS-1$
 		
 		txtExpirationTimeout = new Text(container, SWT.BORDER);
-		txtExpirationTimeout.setToolTipText(Messages.getString("ClusterDialog.ShutDownProcessesStopAfter")); //$NON-NLS-1$
-		GridData gdtxtExpirationTimeout = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtExpirationTimeout.widthHint = 250;
+		txtExpirationTimeout.setToolTipText(Messages.getString("ClusterDialog.ShutDownProcessesStopAfter"));
+		GridData gdtxtExpirationTimeout = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtExpirationTimeout.widthHint = 200;
 		txtExpirationTimeout.setLayoutData(gdtxtExpirationTimeout);
 		
 		Label lblSessionFaultToleranceLevel = new Label(container, SWT.NONE);
@@ -207,9 +198,9 @@ public class CreateEditClusterDialog extends Dialog {
 		lblSessionFaultToleranceLevel.setText(Messages.getString("ClusterDialog.FaultToleranceLevel")); //$NON-NLS-1$
 		
 		txtSessionFaultToleranceLevel = new Text(container, SWT.BORDER);
-		txtSessionFaultToleranceLevel.setToolTipText(Messages.getString("ClusterDialog.FaultToleranceLevel")); //$NON-NLS-1$
-		GridData gdtxtSessionFaultToleranceLevel = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdtxtSessionFaultToleranceLevel.widthHint = 250;
+		txtSessionFaultToleranceLevel.setToolTipText(Messages.getString("ClusterDialog.FaultToleranceLevel"));
+		GridData gdtxtSessionFaultToleranceLevel = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdtxtSessionFaultToleranceLevel.widthHint = 200;
 		txtSessionFaultToleranceLevel.setLayoutData(gdtxtSessionFaultToleranceLevel);
 		
 		Label lblLoadBalancingMode = new Label(container, SWT.NONE);
@@ -218,9 +209,9 @@ public class CreateEditClusterDialog extends Dialog {
 		
 		comboLoadBalancingMode = new Combo(container, SWT.READ_ONLY);
 		comboLoadBalancingMode.setVisibleItemCount(2);
-		comboLoadBalancingMode.setToolTipText(Messages.getString("ClusterDialog.LoadBalancingMode")); //$NON-NLS-1$
-		GridData gdcomboLoadBalancingMode = new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1);
-		gdcomboLoadBalancingMode.widthHint = 235;
+		comboLoadBalancingMode.setToolTipText(Messages.getString("ClusterDialog.LoadBalancingMode"));
+		GridData gdcomboLoadBalancingMode = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		gdcomboLoadBalancingMode.widthHint = 200;
 		comboLoadBalancingMode.setLayoutData(gdcomboLoadBalancingMode);
 		
 		comboLoadBalancingMode.add(Messages.getString("Dialogs.PerformancePriority")); //$NON-NLS-1$
@@ -429,13 +420,4 @@ public class CreateEditClusterDialog extends Dialog {
 		});
 
 	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(590, 550);
-	}
-
 }
