@@ -430,12 +430,4 @@ public class EditInfobaseDialog extends Dialog {
 		});
 	}
 
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(450, 745);
-	}
-
 }

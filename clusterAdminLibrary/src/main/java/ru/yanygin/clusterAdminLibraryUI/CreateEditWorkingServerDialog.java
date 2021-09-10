@@ -549,14 +549,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
 
 	}
 
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(560, 650);
-	}
-
 	private String convertToMegabytes(Text textControl) {
 		long inMb = Long.parseLong(textControl.getText()) / (1024*1024);
 		return Long.toString(inMb).concat(Messages.getString("WorkingServerDialog.Megabytes")); //$NON-NLS-1$
