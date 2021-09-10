@@ -1,0 +1,121 @@
+{
+    "Servers": {
+        "server2:1040": {
+            "AgentHost": "server2",
+            "AgentPort": 1040,
+            "RasHost": "server2",
+            "RasPort": 1045,
+            "UseLocalRas": false,
+            "LocalRasPort": 0,
+            "Autoconnect": false,
+            "SaveCredentials": false,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {}
+        },
+        "server2:1540": {
+            "AgentHost": "server2",
+            "AgentPort": 1340,
+            "RasHost": "server2",
+            "RasPort": 1345,
+            "UseLocalRas": false,
+            "LocalRasPort": 0,
+            "LocalRasPath": "",
+            "Autoconnect": true,
+            "SaveCredentials": true,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {
+                "701453f0-c23f-4ce4-9e50-1771be85fd68": [
+                    "CAdmin",
+                    "123",
+                    "Локальный кластер"
+                ]
+            }
+        },
+        "192.168.56.103:1340": {
+            "AgentHost": "192.168.56.103",
+            "AgentPort": 1340,
+            "RasHost": "newServerAddress",
+            "RasPort": 1545,
+            "UseLocalRas": true,
+            "LocalRasPort": 1345,
+            "LocalRasPath": "\"C:\\Program Files\\1cv8\\8.3.13.1690\\bin\\ras.exe\"",
+            "Autoconnect": false,
+            "SaveCredentials": false,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {}
+        },
+        "server2:1440": {
+            "AgentHost": "server2",
+            "AgentPort": 1440,
+            "RasHost": "server2",
+            "RasPort": 1445,
+            "UseLocalRas": false,
+            "LocalRasPort": 0,
+            "LocalRasPath": "",
+            "Autoconnect": false,
+            "SaveCredentials": false,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {}
+        },
+        "server2:1640": {
+            "AgentHost": "server2",
+            "AgentPort": 1640,
+            "RasHost": "server2",
+            "RasPort": 1645,
+            "UseLocalRas": false,
+            "LocalRasPort": 0,
+            "LocalRasPath": "",
+            "Autoconnect": false,
+            "SaveCredentials": false,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {}
+        },
+        "server2:1740": {
+            "AgentHost": "server2",
+            "AgentPort": 1740,
+            "RasHost": "server2",
+            "RasPort": 1745,
+            "UseLocalRas": false,
+            "LocalRasPort": 0,
+            "LocalRasPath": "",
+            "Autoconnect": false,
+            "SaveCredentials": false,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {}
+        },
+        "server2:1840": {
+            "AgentHost": "server2",
+            "AgentPort": 1840,
+            "RasHost": "server2",
+            "RasPort": 1845,
+            "UseLocalRas": false,
+            "LocalRasPort": 0,
+            "LocalRasPath": "",
+            "Autoconnect": false,
+            "SaveCredentials": false,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {}
+        },
+        "newServerAddress:2540": {
+            "AgentHost": "newServerAddress",
+            "AgentPort": 2340,
+            "RasHost": "newServerAddress",
+            "RasPort": 2345,
+            "UseLocalRas": false,
+            "LocalRasPort": 0,
+            "LocalRasPath": "",
+            "Autoconnect": false,
+            "SaveCredentials": false,
+            "AgentUser": "",
+            "AgentPassword": "",
+            "ClustersCredentials": {}
+        }
+    }
+}
