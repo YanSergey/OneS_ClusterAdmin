@@ -1,7 +1,11 @@
 # OneS_ClusterAdmin
+
+[![Download](https://img.shields.io/github/release/YanSergey/OneS_ClusterAdmin?label=download&style=flat)](https://github.com/YanSergey/OneS_ClusterAdmin/releases/latest)
+[![GitHub Releases](https://img.shields.io/github/downloads/YanSergey/OneS_ClusterAdmin/latest/total?style=flat-square)](https://github.com/YanSergey/OneS_ClusterAdmin/releases)
+[![GitHub All Releases](https://img.shields.io/github/downloads/YanSergey/OneS_ClusterAdmin/total?style=flat-square)](https://github.com/YanSergey/OneS_ClusterAdmin/releases)
 ## Утилита для интерактивного администрирования серверов 1С
 
-Готовится статья с описанием возможностей утилиты на Infostart https://infostart.ru/public/1489055/
+Статья с описанием возможностей утилиты на Infostart https://infostart.ru/public/1489055/
 
 Разработка ведется в `Eclipse IDE for Java Developers`
 
