@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
@@ -481,7 +482,8 @@ public class Server {
 		env.put("AGENT_HOST",	agentHost); //$NON-NLS-1$
 		env.put("AGENT_PORT",	getAgentPortAsString()); //$NON-NLS-1$
 
-		processBuilder.command("cmd.exe", "/c", "%RAS_PATH% cluster %AGENT_HOST%:%AGENT_PORT% --port=%RAS_PORT%"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+		processBuilder.command("cmd.exe", "/c", "\"%RAS_PATH%\" cluster %AGENT_HOST%:%AGENT_PORT% --port=%RAS_PORT%"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+		LOGGER.debug("Try launch local RAS <{}> <{} --port={}>", localRasPath, this.getServerKey(), getLocalRasPortAsString()); //$NON-NLS-1$
 		try {
 			localRASProcess = processBuilder.start();
 		} catch (Exception excp) {
@@ -490,8 +492,18 @@ public class Server {
 			return false;
 		}
 		
-		/////////////////////////////
-//		localRASpid = localRASProcess.pid();
+		try {
+			Thread.sleep(1000); // Дочерний процесс RAS не сразу стартует и в лог о нем не попадает информация
+		} catch (InterruptedException excp) {
+			LOGGER.error("Error: ", excp); //$NON-NLS-1$
+		}
+		
+		LOGGER.debug("Local RAS runnung = {}", localRASProcess.isAlive()); //$NON-NLS-1$
+		LOGGER.debug("Local RAS parent CMD pid = {}", localRASProcess.pid()); //$NON-NLS-1$
+		Stream<ProcessHandle> ch = localRASProcess.children();
+		ch.forEach(ch1 -> {
+			LOGGER.debug("\tchildren exe = {}, pid = {}", ch1.info().command().get(), ch1.pid()); //$NON-NLS-1$
+		});
 		
 		return localRASProcess.isAlive();
 	}
@@ -577,6 +589,8 @@ public class Server {
 			return;
 		
 		if (useLocalRas && localRASProcess.isAlive()) {
+			Stream<ProcessHandle> ch = localRASProcess.children();
+			ch.forEach(ch1 -> ch1.destroy());
 			localRASProcess.destroy();
 			LOGGER.info("Local RAS of Server <{}> is shutdown now", this.getServerKey()); //$NON-NLS-1$
 		}
