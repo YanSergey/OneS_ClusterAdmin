@@ -36,7 +36,7 @@ public class ClusterProvider {
 	static Config commonConfig;
 	public static final String DEFAULT_CONFIG_PATH = "config.json"; //$NON-NLS-1$
 
-	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
+	private static Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
 
 	public ClusterProvider() {
 		
@@ -94,11 +94,10 @@ public class ClusterProvider {
 			LOGGER.debug("Create new config in root folder"); //$NON-NLS-1$
 			configFile = new File(DEFAULT_CONFIG_PATH);
 			commonConfig = new Config();
-		}
-		else {
+		} else {
 
 			commonConfig.init();
-			
+
 			if (commonConfig.locale != null) {
 				LOGGER.debug("Set locale is <{}>", commonConfig.locale); //$NON-NLS-1$
 				Locale locale = Locale.forLanguageTag(commonConfig.locale);
@@ -218,14 +217,15 @@ public class ClusterProvider {
 	}	
 	
 	public static Map<String, String> getInstalledV8Versions() {
+		LOGGER.debug("Get installed v8 platform versions"); //$NON-NLS-1$
 		
 		Map<String, String> versions = new HashMap<>();
 		
 		if (!commonConfig.isWindows())
 			return versions;
 		
-		String v8x64CommonPath = "C:\\Program Files\\1cv8"; //$NON-NLS-1$
-		String v8x86CommonPath = "C:\\Program Files (x86)\\1cv8"; //$NON-NLS-1$
+		File v8x64CommonPath = new File("C:\\Program Files\\1cv8"); //$NON-NLS-1$
+		File v8x86CommonPath = new File("C:\\Program Files (x86)\\1cv8"); //$NON-NLS-1$
 		
 		FilenameFilter filter = new FilenameFilter() {
 			public boolean accept(File f, String name) {
@@ -233,22 +233,34 @@ public class ClusterProvider {
 			}
 		};
 		
-		File[] v8x64dirs = new File(v8x64CommonPath).listFiles(filter);
-		for (File dir : v8x64dirs) {
-			if (dir.isDirectory()) {
-				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
-				if (ras.exists() && ras.isFile())
-					versions.put(dir.getName().concat(" (x86_64)"), ras.getAbsolutePath()); //$NON-NLS-1$
+		try {
+			if (v8x64CommonPath.exists()) {
+				File[] v8x64dirs = v8x64CommonPath.listFiles(filter);
+				for (File dir : v8x64dirs) {
+					if (dir.isDirectory()) {
+						File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
+						if (ras.exists() && ras.isFile())
+							versions.put(dir.getName().concat(" (x86_64)"), ras.getAbsolutePath()); //$NON-NLS-1$
+					}
+				}
 			}
+		} catch (Exception excp) {
+			LOGGER.error("Error read dir <{}>", v8x64CommonPath.getAbsolutePath(), excp); //$NON-NLS-1$
 		}
 		
-		File[] v8x86dirs = new File(v8x86CommonPath).listFiles(filter);
-		for (File dir : v8x86dirs) {
-			if (dir.isDirectory()) {
-				File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
-				if (ras.exists() && ras.isFile())
-					versions.put(dir.getName(), ras.getAbsolutePath()); //$NON-NLS-1$
+		try {
+			if (v8x86CommonPath.exists()) {
+				File[] v8x86dirs = v8x86CommonPath.listFiles(filter);
+				for (File dir : v8x86dirs) {
+					if (dir.isDirectory()) {
+						File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
+						if (ras.exists() && ras.isFile())
+							versions.put(dir.getName(), ras.getAbsolutePath()); // $NON-NLS-1$
+					}
+				}
 			}
+		} catch (Exception excp) {
+			LOGGER.error("Error read dir <{}>", v8x64CommonPath.getAbsolutePath(), excp); //$NON-NLS-1$
 		}
 		
 		return versions;
