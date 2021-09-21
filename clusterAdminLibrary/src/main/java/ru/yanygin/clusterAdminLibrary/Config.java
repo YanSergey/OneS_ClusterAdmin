@@ -73,6 +73,10 @@ public class Config {
 		WINDOWS, MACOS, LINUX, OTHER
 	}
 	
+	public Config() {
+		this.init();
+	}
+	
 	public void init() {
 		getOperatingSystemType();
 		
@@ -84,6 +88,8 @@ public class Config {
 	private void getOperatingSystemType() {
 		if (currrentOS == null) {
 			String osName = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+			LOGGER.debug("Current OS is <{}>", osName); //$NON-NLS-1$
+
 			if ((osName.indexOf("mac") >= 0) || (osName.indexOf("darwin") >= 0)) {
 				currrentOS = OSType.MACOS;
 			} else if (osName.indexOf("win") >= 0) {
