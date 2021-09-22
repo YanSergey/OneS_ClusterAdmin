@@ -1,1 +1,1 @@
-mvn clean package -Pwindows-x86_64 & mvn package -Plinux & mvn package -PmacOS
+mvn clean package -Pwindows-x86_64 & mvn package -Plinux & mvn package -PmacOS & cmd /k

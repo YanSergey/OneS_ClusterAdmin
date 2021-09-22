@@ -1,1 +1,1 @@
-mvn clean install
+mvn clean install & cmd /k
