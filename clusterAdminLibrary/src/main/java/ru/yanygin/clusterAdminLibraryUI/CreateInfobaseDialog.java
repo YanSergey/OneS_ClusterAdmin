@@ -44,9 +44,9 @@ public class CreateInfobaseDialog extends Dialog {
 	private Text txtDatabaseDbUser;
 	private Text txtDatabaseDbPassword;
 	private Text txtInfobaseDescription;
-	private Combo comboSecurityLevel; // Disable, Connection only, Constantly (Выключено, Только соединение, Постоянно)
+	private Combo comboSecurityLevel; // Disable, Connection only, Constantly (Р’С‹РєР»СЋС‡РµРЅРѕ, РўРѕР»СЊРєРѕ СЃРѕРµРґРёРЅРµРЅРёРµ, РџРѕСЃС‚РѕСЏРЅРЅРѕ)
 	private Combo comboServerDBType; // MSSQLServer, PostgreSQL, IBMDB2, OracleDatabase
-	private Combo comboLocale; // Откуда то загрузить все возможные локали
+	private Combo comboLocale; // РћС‚РєСѓРґР° С‚Рѕ Р·Р°РіСЂСѓР·РёС‚СЊ РІСЃРµ РІРѕР·РјРѕР¶РЅС‹Рµ Р»РѕРєР°Р»Рё
 	private Combo comboDateOffset;
 
 	private UUID newInfobaseUUID;

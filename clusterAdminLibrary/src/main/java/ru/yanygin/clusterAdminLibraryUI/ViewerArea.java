@@ -143,8 +143,8 @@ public class ViewerArea extends Composite {
 		
 		initIcon();
 		
-//		toolBar = new ToolBar(this, SWT.FLAT | SWT.RIGHT); // Для отладки
-//		toolBar.setBounds(0, 0, 500, 23); // Для отладки
+//		toolBar = new ToolBar(this, SWT.FLAT | SWT.RIGHT); // Р”Р»СЏ РѕС‚Р»Р°РґРєРё
+//		toolBar.setBounds(0, 0, 500, 23); // Р”Р»СЏ РѕС‚Р»Р°РґРєРё
 		
 //		initToolbar(parent, toolBar);
 		initMainMenu(sashForm, menu);
@@ -170,12 +170,12 @@ public class ViewerArea extends Composite {
 		
 		this.setLayout(new FillLayout(SWT.HORIZONTAL));
 		
-		// Заполнение списка серверов
+		// Р—Р°РїРѕР»РЅРµРЅРёРµ СЃРїРёСЃРєР° СЃРµСЂРІРµСЂРѕРІ
 		clusterProvider.getServers().forEach((serverKey, server) -> {
 			TreeItem serverItem = addServerItemInServersTree(server);
 		});
 		
-		// Пропорции областей
+		// РџСЂРѕРїРѕСЂС†РёРё РѕР±Р»Р°СЃС‚РµР№
 		sashForm.setWeights(new int[] {3, 10});
 		
 		connectToAllServers(false);
@@ -183,7 +183,7 @@ public class ViewerArea extends Composite {
 	}
 	
 	@Override
-	public void addPaintListener(PaintListener listener) { // не работает
+	public void addPaintListener(PaintListener listener) { // РЅРµ СЂР°Р±РѕС‚Р°РµС‚
 		connectToAllServers(false);
 
 		super.addPaintListener(listener);
@@ -347,9 +347,9 @@ public class ViewerArea extends Composite {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
 
-				// нужно сделать, что бы была реакция только на левый клик мышью
-				// по правому клику только устанавливать нужное меню
-				// перенесено в addMouseListener
+				// РЅСѓР¶РЅРѕ СЃРґРµР»Р°С‚СЊ, С‡С‚Рѕ Р±С‹ Р±С‹Р»Р° СЂРµР°РєС†РёСЏ С‚РѕР»СЊРєРѕ РЅР° Р»РµРІС‹Р№ РєР»РёРє РјС‹С€СЊСЋ
+				// РїРѕ РїСЂР°РІРѕРјСѓ РєР»РёРєСѓ С‚РѕР»СЊРєРѕ СѓСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ РЅСѓР¶РЅРѕРµ РјРµРЅСЋ
+				// РїРµСЂРµРЅРµСЃРµРЅРѕ РІ addMouseListener
 
 //				TreeItem[] item = serversTree.getSelection();
 //				if (item.length == 0)
@@ -367,7 +367,7 @@ public class ViewerArea extends Composite {
 		
 		
 		/////////////////////////
-		// сортировка не работает
+		// СЃРѕСЂС‚РёСЂРѕРІРєР° РЅРµ СЂР°Р±РѕС‚Р°РµС‚
 		Listener sortListener = new Listener() {
 			public void handleEvent(Event e) {
 				TreeItem[] items = serversTree.getItems();
@@ -416,7 +416,7 @@ public class ViewerArea extends Composite {
 		// Server Menu
 		serverMenu = new Menu(serversTree);
 		
-		// установка активности элементов контекстного меню
+		// СѓСЃС‚Р°РЅРѕРІРєР° Р°РєС‚РёРІРЅРѕСЃС‚Рё СЌР»РµРјРµРЅС‚РѕРІ РєРѕРЅС‚РµРєСЃС‚РЅРѕРіРѕ РјРµРЅСЋ
 		serverMenu.addListener(SWT.Show, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -561,7 +561,7 @@ public class ViewerArea extends Composite {
 				
 				int dialogResult = connectionDialog.open();
 				if (dialogResult == 0) {
-					// перерисовать в дереве
+					// РїРµСЂРµСЂРёСЃРѕРІР°С‚СЊ РІ РґРµСЂРµРІРµ
 					serverItem.setText(new String[] { server.getDescription() });
 					clusterProvider.saveConfig();
 //					fillClustersInTree(serverItem);
@@ -943,7 +943,7 @@ public class ViewerArea extends Composite {
 			}
 		});
 		
-		// Создание вложенных подпунктов меню
+		// РЎРѕР·РґР°РЅРёРµ РІР»РѕР¶РµРЅРЅС‹С… РїРѕРґРїСѓРЅРєС‚РѕРІ РјРµРЅСЋ
 		Menu infobaseSubMenuSessionManage = new Menu(infobaseMenu);
 		
 		MenuItem infobaseMenuSessionManage = new MenuItem(infobaseMenu, SWT.CASCADE);
@@ -1165,7 +1165,7 @@ public class ViewerArea extends Composite {
 	}
 	
 	private void initLocksTableContextMenu() {
-		// Пока не понятен состав меню
+		// РџРѕРєР° РЅРµ РїРѕРЅСЏС‚РµРЅ СЃРѕСЃС‚Р°РІ РјРµРЅСЋ
 	}
 	
 	private void initWorkingProcessesTable(TabFolder tabFolder) {
@@ -1193,7 +1193,7 @@ public class ViewerArea extends Composite {
 	}
 	
 	private void initWorkingProcessesTableContextMenu() {
-		// Пока не понятен состав меню
+		// РџРѕРєР° РЅРµ РїРѕРЅСЏС‚РµРЅ СЃРѕСЃС‚Р°РІ РјРµРЅСЋ
 	}
 	
 	private void initWorkingServersTable(TabFolder tabFolder) {
@@ -1315,7 +1315,7 @@ public class ViewerArea extends Composite {
 	
 	private void fillClustersInTree(TreeItem serverItem) {
 		
-		// Пока что удалить все кластера из списка, может лучше добавить недостающие?
+		// РџРѕРєР° С‡С‚Рѕ СѓРґР°Р»РёС‚СЊ РІСЃРµ РєР»Р°СЃС‚РµСЂР° РёР· СЃРїРёСЃРєР°, РјРѕР¶РµС‚ Р»СѓС‡С€Рµ РґРѕР±Р°РІРёС‚СЊ РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ?
 		TreeItem[] clustersItems = serverItem.getItems();
 		for (TreeItem clusterItem : clustersItems) {
 //			clusterItem.dispose();
@@ -1324,7 +1324,7 @@ public class ViewerArea extends Composite {
 
 		Server server = getCurrentServerConfig(serverItem);
 		
-//		// смена иконки сервера на вкл/выкл
+//		// СЃРјРµРЅР° РёРєРѕРЅРєРё СЃРµСЂРІРµСЂР° РЅР° РІРєР»/РІС‹РєР»
 //		serverItem.setImage(server.isConnected() ? serverIconUp : serverIconDown);
 		
 		if (!server.isConnected()) {
@@ -1335,19 +1335,19 @@ public class ViewerArea extends Composite {
 		clusters.forEach(clusterInfo -> {
 			TreeItem clusterItem = addClusterItemInServersTree(serverItem, clusterInfo);
 			
-			// Пока что удалить все из списка, может лучше добавить недостающие?
-			// Тут же у нас пусто?
+			// РџРѕРєР° С‡С‚Рѕ СѓРґР°Р»РёС‚СЊ РІСЃРµ РёР· СЃРїРёСЃРєР°, РјРѕР¶РµС‚ Р»СѓС‡С€Рµ РґРѕР±Р°РІРёС‚СЊ РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ?
+			// РўСѓС‚ Р¶Рµ Сѓ РЅР°СЃ РїСѓСЃС‚Рѕ?
 //			TreeItem[] ibItems = clusterItem.getItems();
 //			for (TreeItem treeItem : ibItems) {
 //				treeItem.dispose();
 //			}
 			
-			// Заполнение дерева кластера
+			// Р—Р°РїРѕР»РЅРµРЅРёРµ РґРµСЂРµРІР° РєР»Р°СЃС‚РµСЂР°
 			fillChildrenItemsOfCluster(clusterItem, server);
 
 		});
 		
-		// Разворачиваем дерево, если список кластеров не пустой
+		// Р Р°Р·РІРѕСЂР°С‡РёРІР°РµРј РґРµСЂРµРІРѕ, РµСЃР»Рё СЃРїРёСЃРѕРє РєР»Р°СЃС‚РµСЂРѕРІ РЅРµ РїСѓСЃС‚РѕР№
 		serverItem.setExpanded(clusterProvider.getCommonConfig().expandServersTree);
 	}
 	
@@ -1356,7 +1356,7 @@ public class ViewerArea extends Composite {
 		Server server = getCurrentServerConfig(serverItem);
 		TreeItem[] clustersItems = serverItem.getItems();
 		
-		// у отключенного сервера удаляем все дочерние элементы
+		// Сѓ РѕС‚РєР»СЋС‡РµРЅРЅРѕРіРѕ СЃРµСЂРІРµСЂР° СѓРґР°Р»СЏРµРј РІСЃРµ РґРѕС‡РµСЂРЅРёРµ СЌР»РµРјРµРЅС‚С‹
 		if (!server.isConnected()) {
 			for (TreeItem clusterItem : clustersItems) {
 				disposeTreeItemWithChildren(clusterItem);
@@ -1366,7 +1366,7 @@ public class ViewerArea extends Composite {
 		
 		List<IClusterInfo> clusters = server.getClusters();
 		
-		// удаление несуществующих элементов
+		// СѓРґР°Р»РµРЅРёРµ РЅРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… СЌР»РµРјРµРЅС‚РѕРІ
 		for (TreeItem clusterItem : clustersItems) {
 			UUID currentClusterId = getCurrentClusterId(clusterItem);
 			List<IClusterInfo> foundCluster = clusters.stream()
@@ -1378,7 +1378,7 @@ public class ViewerArea extends Composite {
 			}
 		}
 		
-		// добавление новых элементов
+		// РґРѕР±Р°РІР»РµРЅРёРµ РЅРѕРІС‹С… СЌР»РµРјРµРЅС‚РѕРІ
 //		clustersItems = serverItem.getItems();
 		clusters.forEach(clusterInfo -> {
 			var itemFound = false;
@@ -1392,14 +1392,14 @@ public class ViewerArea extends Composite {
 			if (!itemFound) {
 				TreeItem clusterItem = addClusterItemInServersTree(serverItem, clusterInfo);
 				
-				// Заполнение дерева кластера
+				// Р—Р°РїРѕР»РЅРµРЅРёРµ РґРµСЂРµРІР° РєР»Р°СЃС‚РµСЂР°
 				fillChildrenItemsOfCluster(clusterItem, server);
 			}
 			
 		});
 		
 		
-		// Разворачиваем дерево, если список кластеров не пустой
+		// Р Р°Р·РІРѕСЂР°С‡РёРІР°РµРј РґРµСЂРµРІРѕ, РµСЃР»Рё СЃРїРёСЃРѕРє РєР»Р°СЃС‚РµСЂРѕРІ РЅРµ РїСѓСЃС‚РѕР№
 		serverItem.setExpanded(!clusters.isEmpty());
 	}
 	
@@ -1408,7 +1408,7 @@ public class ViewerArea extends Composite {
 		Server server = getCurrentServerConfig(serverItem);
 		TreeItem[] clustersItems = serverItem.getItems();
 		
-		// у отключенного сервера удаляем все дочерние элементы
+		// Сѓ РѕС‚РєР»СЋС‡РµРЅРЅРѕРіРѕ СЃРµСЂРІРµСЂР° СѓРґР°Р»СЏРµРј РІСЃРµ РґРѕС‡РµСЂРЅРёРµ СЌР»РµРјРµРЅС‚С‹
 		if (!server.isConnected()) {
 			for (TreeItem clusterItem : clustersItems) {
 				disposeTreeItemWithChildren(clusterItem);
@@ -1418,7 +1418,7 @@ public class ViewerArea extends Composite {
 		
 		List<IClusterInfo> clusters = server.getClusters();
 		
-		// удаление несуществующих элементов
+		// СѓРґР°Р»РµРЅРёРµ РЅРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… СЌР»РµРјРµРЅС‚РѕРІ
 		for (TreeItem clusterItem : clustersItems) {
 			UUID currentClusterId = getCurrentClusterId(clusterItem);
 			List<IClusterInfo> foundCluster = clusters.stream()
@@ -1430,7 +1430,7 @@ public class ViewerArea extends Composite {
 			}
 		}
 		
-		// добавление новых элементов
+		// РґРѕР±Р°РІР»РµРЅРёРµ РЅРѕРІС‹С… СЌР»РµРјРµРЅС‚РѕРІ
 		clusters.forEach(clusterInfo -> {
 			var itemFound = false;
 			TreeItem currentClusterItem = null;
@@ -1445,14 +1445,14 @@ public class ViewerArea extends Composite {
 			if (!itemFound)
 				currentClusterItem = addClusterItemInServersTree(serverItem, clusterInfo);
 				
-			// Заполнение дерева кластера
+			// Р—Р°РїРѕР»РЅРµРЅРёРµ РґРµСЂРµРІР° РєР»Р°СЃС‚РµСЂР°
 			if (currentClusterItem != null)
 				fillChildrenItemsOfCluster(currentClusterItem, server);
 			
 		});
 		
 		
-		// Разворачиваем дерево, если список кластеров не пустой
+		// Р Р°Р·РІРѕСЂР°С‡РёРІР°РµРј РґРµСЂРµРІРѕ, РµСЃР»Рё СЃРїРёСЃРѕРє РєР»Р°СЃС‚РµСЂРѕРІ РЅРµ РїСѓСЃС‚РѕР№
 		serverItem.setExpanded(ClusterProvider.getCommonConfig().expandServersTree);
 	}
 	
@@ -1497,7 +1497,7 @@ public class ViewerArea extends Composite {
 			return;
 		}
 		
-		// удаление несуществующих элементов
+		// СѓРґР°Р»РµРЅРёРµ РЅРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… СЌР»РµРјРµРЅС‚РѕРІ
 		for (TreeItem infobaseItem : infobasesNode.getItems()) {
 			UUID currentInfobaseId = getCurrentInfobaseId(infobaseItem);
 			List<IInfoBaseInfoShort> foundItems = infoBases.stream()
@@ -1509,7 +1509,7 @@ public class ViewerArea extends Composite {
 			}
 		}
 		
-		// добавление новых элементов
+		// РґРѕР±Р°РІР»РµРЅРёРµ РЅРѕРІС‹С… СЌР»РµРјРµРЅС‚РѕРІ
 		for (IInfoBaseInfoShort infoBaseInfo : infoBases) {
 //		infoBases.forEach(infoBaseInfo -> {
 			
@@ -1566,7 +1566,7 @@ public class ViewerArea extends Composite {
 			return;
 		}
 		
-		// удаление несуществующих элементов
+		// СѓРґР°Р»РµРЅРёРµ РЅРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… СЌР»РµРјРµРЅС‚РѕРІ
 		for (TreeItem workingProcessItem : workingProcessesNode.getItems()) {
 			UUID currentWorkingProcessId = getCurrentWorkingProcessId(workingProcessItem);
 			List<IWorkingProcessInfo> foundItems = wProcesses.stream()
@@ -1578,7 +1578,7 @@ public class ViewerArea extends Composite {
 			}
 		}
 		
-		// добавление новых элементов
+		// РґРѕР±Р°РІР»РµРЅРёРµ РЅРѕРІС‹С… СЌР»РµРјРµРЅС‚РѕРІ
 		for (IWorkingProcessInfo workingProcessInfo : wProcesses) {
 //		wProcesses.forEach(workingProcessInfo -> {
 			
@@ -1633,7 +1633,7 @@ public class ViewerArea extends Composite {
 			return;
 		}
 		
-		// удаление несуществующих элементов
+		// СѓРґР°Р»РµРЅРёРµ РЅРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… СЌР»РµРјРµРЅС‚РѕРІ
 		for (TreeItem workingServerItem : workingServersNode.getItems()) {
 			UUID currentWorkingServerId = getCurrentWorkingServerId(workingServerItem);
 			List<IWorkingServerInfo> foundItems = wServers.stream()
@@ -1645,7 +1645,7 @@ public class ViewerArea extends Composite {
 			}
 		}
 		
-		// добавление новых элементов
+		// РґРѕР±Р°РІР»РµРЅРёРµ РЅРѕРІС‹С… СЌР»РµРјРµРЅС‚РѕРІ
 		for (IWorkingServerInfo workingServerInfo : wServers) {
 //		wServers.forEach(workingServerInfo -> {
 			
@@ -1781,7 +1781,7 @@ public class ViewerArea extends Composite {
 							wpMainPort,
 							wpPid,
 							license,
-							Boolean.toString(sessionInfo.getHibernate()), // сеанс уснул
+							Boolean.toString(sessionInfo.getHibernate()), // СЃРµР°РЅСЃ СѓСЃРЅСѓР»
 							Integer.toString(sessionInfo.getPassiveSessionHibernateTime()),
 							Integer.toString(sessionInfo.getHibernateSessionTerminationTime())
 							
@@ -1811,7 +1811,7 @@ public class ViewerArea extends Composite {
 //							sessionInfo.getDurationLast5Min(),
 //							sessionInfo.getDurationLast5MinDbms(),
 //							sessionInfo.getDurationLast5MinService(),
-//							sessionInfo.getHibernate(), // уснул
+//							sessionInfo.getHibernate(), // СѓСЃРЅСѓР»
 //							sessionInfo.getPassiveSessionHibernateTime(),
 //							sessionInfo.getHibernateSessionTerminationTime(),
 //							sessionInfo.getLicenses(),
@@ -1921,7 +1921,7 @@ public class ViewerArea extends Composite {
 					
 		String lockDescr = lockInfo.getLockDescr();
 		Date lockedAt = lockInfo.getLockedAt();
-//		UUID lockedObject = lockInfo.getObject(); // Почему то всегда нули
+//		UUID lockedObject = lockInfo.getObject(); // РџРѕС‡РµРјСѓ С‚Рѕ РІСЃРµРіРґР° РЅСѓР»Рё
 		
 		String[] itemText = {
 				lockDescr,
@@ -2187,7 +2187,7 @@ public class ViewerArea extends Composite {
 	
 	private void connectServerItem(TreeItem serverItem) {
 		
-		// async не работает асинхронно
+		// async РЅРµ СЂР°Р±РѕС‚Р°РµС‚ Р°СЃРёРЅС…СЂРѕРЅРЅРѕ
 		serverItem.setImage(serverIconConnecting);
 		Display.getDefault().asyncExec(new Runnable() {
 			
