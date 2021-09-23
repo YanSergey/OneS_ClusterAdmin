@@ -269,7 +269,7 @@ public class CreateEditClusterDialog extends Dialog {
 			btnClusterRecyclingKillByMemoryWithDump.setToolTipText(Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
 		}
 
-		// У уже созданного кластера запрещено менять хост и порт
+		// РЈ СѓР¶Рµ СЃРѕР·РґР°РЅРЅРѕРіРѕ РєР»Р°СЃС‚РµСЂР° Р·Р°РїСЂРµС‰РµРЅРѕ РјРµРЅСЏС‚СЊ С…РѕСЃС‚ Рё РїРѕСЂС‚
 		if (clusterId != null) {
 			txtComputerName.setEditable(false);
 			txtIPPort.setEditable(false);

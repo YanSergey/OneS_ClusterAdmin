@@ -1,1 +1,1 @@
-mvn clean install
+mvn clean install -Pwindows-x86_64 & mvn install -Plinux & mvn install -PmacOS & cmd /k

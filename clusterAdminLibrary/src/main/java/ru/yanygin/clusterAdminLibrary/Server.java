@@ -103,7 +103,7 @@ public class Server {
 	
 	@SerializedName("ClustersCredentials")
 	@Expose
-	public Map<UUID, String[]> credentialsClustersCashe; // TODO Креды инфобаз хранить тут же или в отдельном списке?
+	public Map<UUID, String[]> credentialsClustersCashe; // TODO РљСЂРµРґС‹ РёРЅС„РѕР±Р°Р· С…СЂР°РЅРёС‚СЊ С‚СѓС‚ Р¶Рµ РёР»Рё РІ РѕС‚РґРµР»СЊРЅРѕРј СЃРїРёСЃРєРµ?
 	
 	public Map<UUID, String[]> credentialsInfobasesCashe;
 	
@@ -180,7 +180,7 @@ public class Server {
 	
 	public void init() {
 		
-		// При чтении конфиг-файла отсутствующие поля, инициализируются значением null
+		// РџСЂРё С‡С‚РµРЅРёРё РєРѕРЅС„РёРі-С„Р°Р№Р»Р° РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‰РёРµ РїРѕР»СЏ, РёРЅРёС†РёР°Р»РёР·РёСЂСѓСЋС‚СЃСЏ Р·РЅР°С‡РµРЅРёРµРј null
 		if (agentUserName == null)
 			agentUserName = ""; //$NON-NLS-1$
 		if (agentPassword == null)
@@ -199,8 +199,8 @@ public class Server {
 		
 	}
 	
-	// Надо определиться что должно являться ключем, агент (Server:1540) или
-	// менеджер (Server:1541) или RAS (Server:1545)
+	// РќР°РґРѕ РѕРїСЂРµРґРµР»РёС‚СЊСЃСЏ С‡С‚Рѕ РґРѕР»Р¶РЅРѕ СЏРІР»СЏС‚СЊСЃСЏ РєР»СЋС‡РµРј, Р°РіРµРЅС‚ (Server:1540) РёР»Рё
+	// РјРµРЅРµРґР¶РµСЂ (Server:1541) РёР»Рё RAS (Server:1545)
 	public String getServerKey() {
 		return agentHost.concat(":").concat(Integer.toString(agentPort)); //$NON-NLS-1$
 	}
@@ -316,12 +316,12 @@ public class Server {
 	}
 	
 	/**
-	 * Вычисляет имя хоста, на котором запущены процессы кластера
+	 * Р’С‹С‡РёСЃР»СЏРµС‚ РёРјСЏ С…РѕСЃС‚Р°, РЅР° РєРѕС‚РѕСЂРѕРј Р·Р°РїСѓС‰РµРЅС‹ РїСЂРѕС†РµСЃСЃС‹ РєР»Р°СЃС‚РµСЂР°
 	 * 
-	 * @param serverAddress - Имя инф.базы из списка баз. Может содержать номер
-	 *                      порта менеджера кластера (Если не указан, то
-	 *                      по-умолчанию 1541). Примеры: Server1c, Server1c:2541
-	 * @return Имя хоста, на котором запущены процессы кластера
+	 * @param serverAddress - РРјСЏ РёРЅС„.Р±Р°Р·С‹ РёР· СЃРїРёСЃРєР° Р±Р°Р·. РњРѕР¶РµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ РЅРѕРјРµСЂ
+	 *                      РїРѕСЂС‚Р° РјРµРЅРµРґР¶РµСЂР° РєР»Р°СЃС‚РµСЂР° (Р•СЃР»Рё РЅРµ СѓРєР°Р·Р°РЅ, С‚Рѕ
+	 *                      РїРѕ-СѓРјРѕР»С‡Р°РЅРёСЋ 1541). РџСЂРёРјРµСЂС‹: Server1c, Server1c:2541
+	 * @return РРјСЏ С…РѕСЃС‚Р°, РЅР° РєРѕС‚РѕСЂРѕРј Р·Р°РїСѓС‰РµРЅС‹ РїСЂРѕС†РµСЃСЃС‹ РєР»Р°СЃС‚РµСЂР°
 	 */
 	private String cutHostName(String serverAddress) {
 		String serverName;
@@ -361,7 +361,7 @@ public class Server {
 		
 		String agentHost;
 		String rasHost;
-		int managerPort; // не нужен
+		int managerPort; // РЅРµ РЅСѓР¶РµРЅ
 		int agentPort;
 		int rasPort;
 		
@@ -401,7 +401,7 @@ public class Server {
 	public boolean isConnected() {
 		boolean isConnected = (agentConnection != null);
 //		if (isConnected)
-//			LOGGER.debug("Server {} is already connected", this.getServerKey()); // засоряет лог
+//			LOGGER.debug("Server {} is already connected", this.getServerKey()); // Р·Р°СЃРѕСЂСЏРµС‚ Р»РѕРі
 		
 		if (!isConnected)
 			LOGGER.info("The connection a server <{}> is not established", this.getServerKey()); //$NON-NLS-1$
@@ -409,7 +409,7 @@ public class Server {
 		return isConnected;
 	}
 	
-	public boolean connectAndAuthenticate(boolean disconnectAfter) { // TODO здесь аутентификации не делается же?
+	public boolean connectAndAuthenticate(boolean disconnectAfter) { // TODO Р·РґРµСЃСЊ Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё РЅРµ РґРµР»Р°РµС‚СЃСЏ Р¶Рµ?
 		LOGGER.debug("Server <{}> start connection", this.getServerKey()); //$NON-NLS-1$
 		
 		if (isConnected())
@@ -437,9 +437,9 @@ public class Server {
 	}
 	
 	/**
-	 * Проверяет включено ли использование локального RAS и запускает его
+	 * РџСЂРѕРІРµСЂСЏРµС‚ РІРєР»СЋС‡РµРЅРѕ Р»Рё РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ Р»РѕРєР°Р»СЊРЅРѕРіРѕ RAS Рё Р·Р°РїСѓСЃРєР°РµС‚ РµРіРѕ
 	 *
-	 * @return {@code true} если локальный RAS выключен либо включен и удачно запустился, {@code false} если локальный RAS включен и не удалось его запустить
+	 * @return {@code true} РµСЃР»Рё Р»РѕРєР°Р»СЊРЅС‹Р№ RAS РІС‹РєР»СЋС‡РµРЅ Р»РёР±Рѕ РІРєР»СЋС‡РµРЅ Рё СѓРґР°С‡РЅРѕ Р·Р°РїСѓСЃС‚РёР»СЃСЏ, {@code false} РµСЃР»Рё Р»РѕРєР°Р»СЊРЅС‹Р№ RAS РІРєР»СЋС‡РµРЅ Рё РЅРµ СѓРґР°Р»РѕСЃСЊ РµРіРѕ Р·Р°РїСѓСЃС‚РёС‚СЊ
 	 */
 	private boolean checkAndRunLocalRAS() {
 		
@@ -460,7 +460,7 @@ public class Server {
 			return false;
 		}
 		
-		///////////////////////////// пока только Windows
+		///////////////////////////// РїРѕРєР° С‚РѕР»СЊРєРѕ Windows
 		var processBuilder = new ProcessBuilder();
 		var processOutput = ""; //$NON-NLS-1$
 		var localRasPath = ClusterProvider.getInstalledV8Versions().get(localRasV8version);
@@ -493,7 +493,7 @@ public class Server {
 		}
 		
 		try {
-			Thread.sleep(1000); // Дочерний процесс RAS не сразу стартует и в лог о нем не попадает информация
+			Thread.sleep(1000); // Р”РѕС‡РµСЂРЅРёР№ РїСЂРѕС†РµСЃСЃ RAS РЅРµ СЃСЂР°Р·Сѓ СЃС‚Р°СЂС‚СѓРµС‚ Рё РІ Р»РѕРі Рѕ РЅРµРј РЅРµ РїРѕРїР°РґР°РµС‚ РёРЅС„РѕСЂРјР°С†РёСЏ
 		} catch (InterruptedException excp) {
 			LOGGER.error("Error: ", excp); //$NON-NLS-1$
 		}
@@ -509,11 +509,11 @@ public class Server {
 	}
 	
 	/**
-	 * Проверяет действительна ли еще авторизация на центральном сервере
-	 * и если нет - запускает процесс авторизации.
+	 * РџСЂРѕРІРµСЂСЏРµС‚ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅР° Р»Рё РµС‰Рµ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ РЅР° С†РµРЅС‚СЂР°Р»СЊРЅРѕРј СЃРµСЂРІРµСЂРµ
+	 * Рё РµСЃР»Рё РЅРµС‚ - Р·Р°РїСѓСЃРєР°РµС‚ РїСЂРѕС†РµСЃСЃ Р°РІС‚РѕСЂРёР·Р°С†РёРё.
 	 *
 	 * @param clusterId cluster ID
-	 * @return boolean истекла/не истекла
+	 * @return boolean РёСЃС‚РµРєР»Р°/РЅРµ РёСЃС‚РµРєР»Р°
 	 */
 	private boolean checkAutenticateAgent() {
 		
@@ -525,9 +525,9 @@ public class Server {
 		} catch (Exception excp) {
 			LOGGER.error("Error get the list of of server administrators: <{}>", excp.getLocalizedMessage()); //$NON-NLS-1$
 			
-			String[] rightStrings = { // TODO проверить английские варианты
-					"Недостаточно прав пользователя на управление центральным сервером",
-					"Администратор центрального сервера не аутентифицирован",
+			String[] rightStrings = { // TODO РїСЂРѕРІРµСЂРёС‚СЊ Р°РЅРіР»РёР№СЃРєРёРµ РІР°СЂРёР°РЅС‚С‹
+					"РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅР° СѓРїСЂР°РІР»РµРЅРёРµ С†РµРЅС‚СЂР°Р»СЊРЅС‹Рј СЃРµСЂРІРµСЂРѕРј",
+					"РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ С†РµРЅС‚СЂР°Р»СЊРЅРѕРіРѕ СЃРµСЂРІРµСЂР° РЅРµ Р°СѓС‚РµРЅС‚РёС„РёС†РёСЂРѕРІР°РЅ",
 					"The user's rights to manage the central server are insufficient",
 					"The administrator of the central server is not authenticated"
 			};
@@ -539,7 +539,7 @@ public class Server {
 			}
 
 //			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCentralServer")) || //$NON-NLS-1$
-//					excp.getLocalizedMessage().contains(Messages.getString("Server.CentralServerAdminIsNotAuthenticated"))) // TODO учесть английский вариант //$NON-NLS-1$
+//					excp.getLocalizedMessage().contains(Messages.getString("Server.CentralServerAdminIsNotAuthenticated"))) // TODO СѓС‡РµСЃС‚СЊ Р°РЅРіР»РёР№СЃРєРёР№ РІР°СЂРёР°РЅС‚ //$NON-NLS-1$
 //				needAuthenticate = true;
 		}
 		
@@ -625,7 +625,7 @@ public class Server {
 			this.agentConnection.authenticateAgent(userName, password);
 			LOGGER.debug("Authentication to the agent server <{}> was successful", this.getServerKey()); //$NON-NLS-1$
 			
-			// сохраняем новые user/pass после успешной авторизации
+			// СЃРѕС…СЂР°РЅСЏРµРј РЅРѕРІС‹Рµ user/pass РїРѕСЃР»Рµ СѓСЃРїРµС€РЅРѕР№ Р°РІС‚РѕСЂРёР·Р°С†РёРё
 			if (saveNewUserpass) {
 				this.agentUserName = userName;
 				this.agentPassword = password;
@@ -639,11 +639,11 @@ public class Server {
 	}
 	
 	/**
-	 * Проверяет действительна ли еще авторизация на кластере
-	 * и если нет - запускает процесс авторизации.
+	 * РџСЂРѕРІРµСЂСЏРµС‚ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅР° Р»Рё РµС‰Рµ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ РЅР° РєР»Р°СЃС‚РµСЂРµ
+	 * Рё РµСЃР»Рё РЅРµС‚ - Р·Р°РїСѓСЃРєР°РµС‚ РїСЂРѕС†РµСЃСЃ Р°РІС‚РѕСЂРёР·Р°С†РёРё.
 	 *
 	 * @param clusterId cluster ID
-	 * @return boolean действительна/не действительна
+	 * @return boolean РґРµР№СЃС‚РІРёС‚РµР»СЊРЅР°/РЅРµ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅР°
 	 */
 	private boolean checkAutenticateCluster(UUID clusterId) {
 		
@@ -656,9 +656,9 @@ public class Server {
 		} catch (Exception excp) {
 			LOGGER.error("Error autenticate of cluster: <{}>", excp.getLocalizedMessage()); //$NON-NLS-1$
 			
-			String[] rightStrings = { // TODO проверить английские варианты
-					"Недостаточно прав пользователя на управление кластером",
-					"Администратор кластера не аутентифицирован",
+			String[] rightStrings = { // TODO РїСЂРѕРІРµСЂРёС‚СЊ Р°РЅРіР»РёР№СЃРєРёРµ РІР°СЂРёР°РЅС‚С‹
+					"РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅР° СѓРїСЂР°РІР»РµРЅРёРµ РєР»Р°СЃС‚РµСЂРѕРј",
+					"РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РєР»Р°СЃС‚РµСЂР° РЅРµ Р°СѓС‚РµРЅС‚РёС„РёС†РёСЂРѕРІР°РЅ",
 					"Insufficient user rights to manage the cluster",
 					"The cluster administrator is not authenticated"
 			};
@@ -681,12 +681,12 @@ public class Server {
 	}
 
 	/**
-	 * Проверяет действительна ли еще авторизация в инфобазе
-	 * и если нет - запускает процесс авторизации.
+	 * РџСЂРѕРІРµСЂСЏРµС‚ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅР° Р»Рё РµС‰Рµ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ РІ РёРЅС„РѕР±Р°Р·Рµ
+	 * Рё РµСЃР»Рё РЅРµС‚ - Р·Р°РїСѓСЃРєР°РµС‚ РїСЂРѕС†РµСЃСЃ Р°РІС‚РѕСЂРёР·Р°С†РёРё.
 	 *
 	 * @param clusterId cluster ID
 	 * @param infobaseId infobase ID
-	 * @return boolean действительна/не действительна
+	 * @return boolean РґРµР№СЃС‚РІРёС‚РµР»СЊРЅР°/РЅРµ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅР°
 	 */
 	private boolean checkAutenticateInfobase(UUID clusterId, UUID infobaseId) {
 		
@@ -717,7 +717,7 @@ public class Server {
 			LOGGER.debug("Authentication to the cluster <{}> of server <{}> was successful", clusterName, //$NON-NLS-1$
 					this.getServerKey());
 			
-			// сохраняем новые user/pass после успешной авторизации
+			// СЃРѕС…СЂР°РЅСЏРµРј РЅРѕРІС‹Рµ user/pass РїРѕСЃР»Рµ СѓСЃРїРµС€РЅРѕР№ Р°РІС‚РѕСЂРёР·Р°С†РёРё
 			if (this.saveCredentials && saveNewUserpass) { // ||
 				this.credentialsClustersCashe.put(clusterId, new String[] { userName, password, clusterName });
 				LOGGER.debug("New credentials for the cluster <{}> of server <{}> are saved", clusterName, //$NON-NLS-1$
@@ -736,8 +736,8 @@ public class Server {
 	private boolean runAuthProcessWithRequestToUser(String authDescription, String userName, String password,
 			IRunAuthenticate authMethod) {
 		try {
-			// Сперва пытаемся авторизоваться под сохраненной учеткой (она может быть
-			// инициализирована пустыми строками)
+			// РЎРїРµСЂРІР° РїС‹С‚Р°РµРјСЃСЏ Р°РІС‚РѕСЂРёР·РѕРІР°С‚СЊСЃСЏ РїРѕРґ СЃРѕС…СЂР°РЅРµРЅРЅРѕР№ СѓС‡РµС‚РєРѕР№ (РѕРЅР° РјРѕР¶РµС‚ Р±С‹С‚СЊ
+			// РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅР° РїСѓСЃС‚С‹РјРё СЃС‚СЂРѕРєР°РјРё)
 			authMethod.performAutenticate(userName, password, false);
 			
 		} catch (Exception excp) {
@@ -747,7 +747,7 @@ public class Server {
 			String authExcpMessage = excp.getLocalizedMessage();
 			int dialogResult;
 			
-			while (true) { // крутимся, пока не подойдет пароль, или пользователь не нажмет Отмена
+			while (true) { // РєСЂСѓС‚РёРјСЃСЏ, РїРѕРєР° РЅРµ РїРѕРґРѕР№РґРµС‚ РїР°СЂРѕР»СЊ, РёР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р¶РјРµС‚ РћС‚РјРµРЅР°
 				
 				try {
 					LOGGER.debug("Requesting new user credentials for the server <{}>", this.getServerKey()); //$NON-NLS-1$
@@ -828,7 +828,7 @@ public class Server {
 			LOGGER.debug("\tCluster: name=<{}>, ID=<{}>, host:port=<{}:{}>", //$NON-NLS-1$
 					cluster.getName(), cluster.getClusterId(), cluster.getHostName(), cluster.getMainPort());
 			
-			// обновление имени кластера в кеше credentials
+			// РѕР±РЅРѕРІР»РµРЅРёРµ РёРјРµРЅРё РєР»Р°СЃС‚РµСЂР° РІ РєРµС€Рµ credentials
 			if (saveCredentials) {
 				String[] credentialClustersCashe = credentialsClustersCashe.get(cluster.getClusterId());
 				if (credentialClustersCashe != null && !credentialClustersCashe[2].equals(cluster.getName())) {
@@ -838,7 +838,7 @@ public class Server {
 			}
 		}
 		if (needSaveConfig) {
-			// TODO надо сохранить
+			// TODO РЅР°РґРѕ СЃРѕС…СЂР°РЅРёС‚СЊ
 		}
 		
 		return clusters;
@@ -1137,7 +1137,7 @@ public class Server {
 		if (!checkAutenticateCluster(clusterId))
 			return null;
 		
-//		addInfoBaseCredentials(clusterID, "", ""); // в добавлении пустых кредов нет необходимости
+//		addInfoBaseCredentials(clusterID, "", ""); // РІ РґРѕР±Р°РІР»РµРЅРёРё РїСѓСЃС‚С‹С… РєСЂРµРґРѕРІ РЅРµС‚ РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё
 			
 		IInfoBaseInfo infobaseInfo;
 		
@@ -1151,7 +1151,7 @@ public class Server {
 			
 			var userName = ""; //$NON-NLS-1$
 			var authDescription = Messages.getString("Server.AuthenticationOfInfobase"); //$NON-NLS-1$
-			while (true) { // пока не подойдет пароль, или пользователь не нажмет Отмена
+			while (true) { // РїРѕРєР° РЅРµ РїРѕРґРѕР№РґРµС‚ РїР°СЂРѕР»СЊ, РёР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р¶РјРµС‚ РћС‚РјРµРЅР°
 				
 				try {
 					LOGGER.debug("Requesting new user credentials for the infobase <{}>", infobaseId); //$NON-NLS-1$
@@ -1265,7 +1265,7 @@ public class Server {
 	 * Changes infobase parameters.
 	 * <ul>
 	 * Infobase authentication is required
-	 * (Здесь не нужно авторизоваться в базе, метод необходимо вызывать сразу после getInfoBaseInfo)
+	 * (Р—РґРµСЃСЊ РЅРµ РЅСѓР¶РЅРѕ Р°РІС‚РѕСЂРёР·РѕРІР°С‚СЊСЃСЏ РІ Р±Р°Р·Рµ, РјРµС‚РѕРґ РЅРµРѕР±С…РѕРґРёРјРѕ РІС‹Р·С‹РІР°С‚СЊ СЃСЂР°Р·Сѓ РїРѕСЃР»Рµ getInfoBaseInfo)
 	 *
 	 * @param clusterId cluster ID
 	 * @param info      infobase parameters

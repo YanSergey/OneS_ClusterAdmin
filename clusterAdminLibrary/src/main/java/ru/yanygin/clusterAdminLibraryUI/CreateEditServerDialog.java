@@ -63,7 +63,7 @@ public class CreateEditServerDialog extends Dialog {
 		super(parentShell);
 		setShellStyle(SWT.DIALOG_TRIM);
 		
-		// найти способ установить заголовок окна
+		// РЅР°Р№С‚Рё СЃРїРѕСЃРѕР± СѓСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РіРѕР»РѕРІРѕРє РѕРєРЅР°
 //		parentShell.setText("Parameters of the central server 1C:Enterprise");
 		
 		this.serverParams = serverParams;

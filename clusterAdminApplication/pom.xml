@@ -6,13 +6,13 @@
 
 	<groupId>ru.yanygin</groupId>
 	<artifactId>ru.yanygin.clusterAdminApplication</artifactId>
-	<version>0.1.0</version>
+	<version>0.1.1</version>
 	<packaging>jar</packaging>
 
 	<properties>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-<!-- 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding> -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	
 	<profiles>
@@ -25,6 +25,7 @@
 	            </os>
 	        </activation>
 	        <properties>
+	            <clusterAdminLibrary.artifactId>ru.yanygin.clusterAdminLibrary.linux</clusterAdminLibrary.artifactId>
 	            <swt.artifactId>org.eclipse.swt.gtk.linux.x86_64</swt.artifactId>
 	        </properties>
 	        <build>
@@ -39,6 +40,7 @@
 	            </os>
 	        </activation>
 	        <properties>
+	            <clusterAdminLibrary.artifactId>ru.yanygin.clusterAdminLibrary.macOS</clusterAdminLibrary.artifactId>
 	            <swt.artifactId>org.eclipse.swt.cocoa.macosx.x86_64</swt.artifactId>
 	        </properties>
 	        <build>
@@ -54,6 +56,7 @@
 	            </os>
 	        </activation>
 	        <properties>
+	            <clusterAdminLibrary.artifactId>ru.yanygin.clusterAdminLibrary.windows_x86</clusterAdminLibrary.artifactId>
 	            <swt.artifactId>org.eclipse.swt.win32.win32.x86</swt.artifactId>
 	        </properties>
 	        <build>
@@ -70,6 +73,7 @@
 	            </os>
 	        </activation>
 	        <properties>
+	            <clusterAdminLibrary.artifactId>ru.yanygin.clusterAdminLibrary.windows_x64</clusterAdminLibrary.artifactId>
 	            <swt.artifactId>org.eclipse.swt.win32.win32.x86_64</swt.artifactId>
 	        </properties>
 	        <build>
@@ -79,6 +83,13 @@
 	</profiles>
 
 	<dependencies>
+
+		<dependency>
+		    <groupId>ru.yanygin</groupId>
+<!-- 		    <artifactId>ru.yanygin.clusterAdminLibrary</artifactId> -->
+		    <artifactId>${clusterAdminLibrary.artifactId}</artifactId>
+		    <version>0.1.1-SNAPSHOT</version>
+		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -167,13 +178,6 @@
 		    <artifactId>com._1c.v8.swp</artifactId>
 		    <version>1.0.3-SNAPSHOT</version>
 		</dependency>
-
-		<dependency>
-		    <groupId>ru.yanygin</groupId>
-		    <artifactId>ru.yanygin.clusterAdminLibrary</artifactId>
-		    <version>0.1.0-SNAPSHOT</version>
-		</dependency>
-
 
 	</dependencies>
 

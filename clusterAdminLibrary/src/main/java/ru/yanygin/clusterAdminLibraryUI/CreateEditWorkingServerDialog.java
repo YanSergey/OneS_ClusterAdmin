@@ -300,7 +300,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 	private void initServerProperties() {
 		IWorkingServerInfo serverInfo;
 		
-		if (workingServerId != null) { // Редактируем существующий рабочий сервер
+		if (workingServerId != null) { // Р РµРґР°РєС‚РёСЂСѓРµРј СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ СЂР°Р±РѕС‡РёР№ СЃРµСЂРІРµСЂ
 			serverInfo = server.getWorkingServerInfo(clusterId, workingServerId);
 			
 			txtServerName.setText(serverInfo.getName());
@@ -313,7 +313,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			txtInfoBasesPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getInfoBasesPerWorkingProcessLimit()));
 			txtConnectionsPerWorkingProcessLimit.setText(Integer.toString(serverInfo.getConnectionsPerWorkingProcessLimit()));
 			
-		} else { // Создаем новый рабочий сервер
+		} else { // РЎРѕР·РґР°РµРј РЅРѕРІС‹Р№ СЂР°Р±РѕС‡РёР№ СЃРµСЂРІРµСЂ
 			serverInfo = new WorkingServerInfo();
 			
 			txtServerName.setText(""); //$NON-NLS-1$
@@ -353,12 +353,12 @@ public class CreateEditWorkingServerDialog extends Dialog {
 			txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText(Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
 		}
 		
-		if (workingServerId != null) { // У уже созданного кластера запрещено менять хост и порт
+		if (workingServerId != null) { // РЈ СѓР¶Рµ СЃРѕР·РґР°РЅРЅРѕРіРѕ РєР»Р°СЃС‚РµСЂР° Р·Р°РїСЂРµС‰РµРЅРѕ РјРµРЅСЏС‚СЊ С…РѕСЃС‚ Рё РїРѕСЂС‚
 			txtServerName.setEditable(false);
 			txtComputerName.setEditable(false);
 			txtIPPort.setEditable(false);
 		} else {
-			btnIsMainServer.setEnabled(false); // Почему новому серверу запрещено сразу ставить галочку Центральный сервер?
+			btnIsMainServer.setEnabled(false); // РџРѕС‡РµРјСѓ РЅРѕРІРѕРјСѓ СЃРµСЂРІРµСЂСѓ Р·Р°РїСЂРµС‰РµРЅРѕ СЃСЂР°Р·Сѓ СЃС‚Р°РІРёС‚СЊ РіР°Р»РѕС‡РєСѓ Р¦РµРЅС‚СЂР°Р»СЊРЅС‹Р№ СЃРµСЂРІРµСЂ?
 			txtIPPortMainManager.setText("<auto>"); //$NON-NLS-1$
 		}
 		txtIPPortMainManager.setEditable(false);

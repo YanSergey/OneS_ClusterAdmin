@@ -5,18 +5,114 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>ru.yanygin</groupId>
-	<artifactId>ru.yanygin.clusterAdminLibrary</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<artifactId>${artifactId}</artifactId>
+	<version>0.1.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<properties>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-<!-- 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding> -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
+	
+	<profiles>
+	    <profile>
+	        <id>linux</id>
+	        <activation>
+	            <os>
+	                <family>unix</family>
+	                <arch>amd64</arch>
+	            </os>
+	        </activation>
+	        <properties>
+	            <artifactId>ru.yanygin.clusterAdminLibrary.linux</artifactId>
+	            <swt.artifactId>org.eclipse.swt.gtk.linux.x86_64</swt.artifactId>
+	        </properties>
+	        <build>
+    			<finalName>ru.yanygin.clusterAdminLibrary.linux-${project.version}</finalName>
+            </build>
+	    </profile>
+		<profile>
+	        <id>macOS</id>
+	        <activation>
+	            <os>
+	                <family>mac</family>
+	            </os>
+	        </activation>
+	        <properties>
+	            <artifactId>ru.yanygin.clusterAdminLibrary.macOS</artifactId>
+	            <swt.artifactId>org.eclipse.swt.cocoa.macosx.x86_64</swt.artifactId>
+	        </properties>
+	        <build>
+    			<finalName>ru.yanygin.clusterAdminLibrary.macOS-${project.version}</finalName>
+            </build>
+	    </profile>
+	    <profile>
+	        <id>windows-x86</id>
+	        <activation>
+	            <os>
+	                <family>windows</family>
+	                <arch>x86</arch>
+	            </os>
+	        </activation>
+	        <properties>
+	            <artifactId>ru.yanygin.clusterAdminLibrary.windows_x86</artifactId>
+	            <swt.artifactId>org.eclipse.swt.win32.win32.x86</swt.artifactId>
+	        </properties>
+	        <build>
+    			<finalName>ru.yanygin.clusterAdminLibrary.windows_x86-${project.version}</finalName>
+            </build>
+	    </profile>
+	    <profile>
+	        <id>windows-x86_64</id>
+	        <activation>
+	        	<activeByDefault>true</activeByDefault>
+	            <os>
+	                <family>windows</family>
+	                <arch>x86_64</arch>
+	            </os>
+	        </activation>
+	        <properties>
+	            <artifactId>ru.yanygin.clusterAdminLibrary.windows_x64</artifactId>
+	            <swt.artifactId>org.eclipse.swt.win32.win32.x86_64</swt.artifactId>
+	        </properties>
+	        <build>
+    			<finalName>ru.yanygin.clusterAdminLibrary.windows_x64-${project.version}</finalName>
+            </build>
+	    </profile>
+	</profiles>
 
 	<dependencies>
 
+		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.win32.win32.x86_64 -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.eclipse.platform</groupId> -->
+<!-- 			<artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId> -->
+<!-- 			<version>3.116.0</version> -->
+<!-- 		</dependency> -->
+    			
+		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.gtk.linux.x86_64 -->
+<!-- 		<dependency> -->
+<!-- 		    <groupId>org.eclipse.platform</groupId> -->
+<!-- 		    <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId> -->
+<!-- 		    <version>3.116.0</version> -->
+<!-- 		</dependency> -->
+	
+		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.win32.win32.x86_64 -->
+		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.gtk.linux.x86_64 -->
+		<dependency>
+		    <groupId>org.eclipse.platform</groupId>
+		    <artifactId>${swt.artifactId}</artifactId>
+		    <version>3.116.0</version>
+		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt -->
+		<dependency>
+		    <groupId>org.eclipse.platform</groupId>
+		    <artifactId>org.eclipse.swt</artifactId>
+		    <version>3.116.0</version>
+		</dependency>
+		
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -43,20 +139,6 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
 			<version>1.2.3</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.win32.win32.x86_64 -->
-		<dependency>
-			<groupId>org.eclipse.platform</groupId>
-			<artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
-			<version>3.116.0</version>
-		</dependency>
-		
-		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt -->
-		<dependency>
-		    <groupId>org.eclipse.platform</groupId>
-		    <artifactId>org.eclipse.swt</artifactId>
-		    <version>3.116.0</version>
 		</dependency>
 		
 		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.commands -->
@@ -89,13 +171,7 @@
 <!-- 	      <scope>compile</scope> -->
 <!-- 	      <optional>true</optional> -->
 <!-- 	    </dependency> -->
-    			
-		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.swt.gtk.linux.x86_64 -->
-		<dependency>
-		    <groupId>org.eclipse.platform</groupId>
-		    <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
-		    <version>3.116.0</version>
-		</dependency>
+
 
 		<!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.jface -->
 		<dependency>
@@ -269,27 +345,28 @@
 				</configuration>
 			</plugin>
 			
-			<plugin>
-			  <groupId>org.reficio</groupId>
-			  <artifactId>p2-maven-plugin</artifactId>
-			  <version>1.3.0</version>
-			  <executions>
-			    <execution>
-			      <id>default-cli</id>
-			      <phase>package</phase>
-			      <goals>
-			        <goal>site</goal>
-			      </goals>
-					<configuration>
-						<artifacts>
-							<artifact>
-								<id>ru.yanygin:ru.yanygin.clusterAdminLibrary:0.1.0-SNAPSHOT</id>
-							</artifact>
-						</artifacts>
-					</configuration>
-			    </execution>
-			  </executions>
-			</plugin>
+<!-- 			Пока отключил создание сайта для плагина EDT -->
+<!-- 			<plugin> -->
+<!-- 			  <groupId>org.reficio</groupId> -->
+<!-- 			  <artifactId>p2-maven-plugin</artifactId> -->
+<!-- 			  <version>1.3.0</version> -->
+<!-- 			  <executions> -->
+<!-- 			    <execution> -->
+<!-- 			      <id>default-cli</id> -->
+<!-- 			      <phase>package</phase> -->
+<!-- 			      <goals> -->
+<!-- 			        <goal>site</goal> -->
+<!-- 			      </goals> -->
+<!-- 					<configuration> -->
+<!-- 						<artifacts> -->
+<!-- 							<artifact> -->
+<!-- 								<id>ru.yanygin:ru.yanygin.clusterAdminLibrary:${project.version}</id> -->
+<!-- 							</artifact> -->
+<!-- 						</artifacts> -->
+<!-- 					</configuration> -->
+<!-- 			    </execution> -->
+<!-- 			  </executions> -->
+<!-- 			</plugin> -->
 
 		</plugins>
 	</build>

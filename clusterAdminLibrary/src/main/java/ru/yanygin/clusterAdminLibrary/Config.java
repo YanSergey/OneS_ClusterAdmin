@@ -73,6 +73,10 @@ public class Config {
 		WINDOWS, MACOS, LINUX, OTHER
 	}
 	
+	public Config() {
+		this.init();
+	}
+	
 	public void init() {
 		getOperatingSystemType();
 		
@@ -84,6 +88,8 @@ public class Config {
 	private void getOperatingSystemType() {
 		if (currrentOS == null) {
 			String osName = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+			LOGGER.debug("Current OS is <{}>", osName); //$NON-NLS-1$
+
 			if ((osName.indexOf("mac") >= 0) || (osName.indexOf("darwin") >= 0)) {
 				currrentOS = OSType.MACOS;
 			} else if (osName.indexOf("win") >= 0) {
@@ -101,14 +107,14 @@ public class Config {
 	}
 	
 	public List<String> addNewServers(List<String> servers) {
-		// Пакетное добавление серверов в список, предполагается для механизма импорта из списка информационных баз
+		// РџР°РєРµС‚РЅРѕРµ РґРѕР±Р°РІР»РµРЅРёРµ СЃРµСЂРІРµСЂРѕРІ РІ СЃРїРёСЃРѕРє, РїСЂРµРґРїРѕР»Р°РіР°РµС‚СЃСЏ РґР»СЏ РјРµС…Р°РЅРёР·РјР° РёРјРїРѕСЂС‚Р° РёР· СЃРїРёСЃРєР° РёРЅС„РѕСЂРјР°С†РёРѕРЅРЅС‹С… Р±Р°Р·
 
 		List<String> addedServers = new ArrayList<>();
 
-		// Имя сервера, которое приходит сюда не равно Представлению сервера, выводимому в списке
-		// Имя сервера. оно же Key в map и json, строка вида Server:1541, с обязательным указанием порта менеджера, к которому подключаемся
-		// если порт менеджера не задан - ставим стандартный 1541
-		// переделать
+		// РРјСЏ СЃРµСЂРІРµСЂР°, РєРѕС‚РѕСЂРѕРµ РїСЂРёС…РѕРґРёС‚ СЃСЋРґР° РЅРµ СЂР°РІРЅРѕ РџСЂРµРґСЃС‚Р°РІР»РµРЅРёСЋ СЃРµСЂРІРµСЂР°, РІС‹РІРѕРґРёРјРѕРјСѓ РІ СЃРїРёСЃРєРµ
+		// РРјСЏ СЃРµСЂРІРµСЂР°. РѕРЅРѕ Р¶Рµ Key РІ map Рё json, СЃС‚СЂРѕРєР° РІРёРґР° Server:1541, СЃ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рј СѓРєР°Р·Р°РЅРёРµРј РїРѕСЂС‚Р° РјРµРЅРµРґР¶РµСЂР°, Рє РєРѕС‚РѕСЂРѕРјСѓ РїРѕРґРєР»СЋС‡Р°РµРјСЃСЏ
+		// РµСЃР»Рё РїРѕСЂС‚ РјРµРЅРµРґР¶РµСЂР° РЅРµ Р·Р°РґР°РЅ - СЃС‚Р°РІРёРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ 1541
+		// РїРµСЂРµРґРµР»Р°С‚СЊ
 		for (String serverName : servers) {
 			if (!this.servers.containsKey(serverName)) {
 				Server serverConfig = new Server(serverName);
