@@ -269,7 +269,6 @@ public class ViewerArea extends Composite {
 			return;
 		}
 		Menu mainMenuServersParent = new Menu(mainMenu);
-		
 		MenuItem mainMenuServers = new MenuItem(mainMenu, SWT.CASCADE);
 		mainMenuServers.setText(Messages.getString("ViewerArea.Servers")); //$NON-NLS-1$
 		mainMenuServers.setMenu(mainMenuServersParent);
@@ -305,7 +304,12 @@ public class ViewerArea extends Composite {
 			}
 		});
 		
-		MenuItem toolBarItemOpenSettings = new MenuItem(mainMenu, SWT.NONE);
+		Menu mainMenuServiceParent = new Menu(mainMenu);
+		MenuItem mainMenuService = new MenuItem(mainMenu, SWT.CASCADE);
+		mainMenuService.setText(Messages.getString("ViewerArea.Service")); //$NON-NLS-1$
+		mainMenuService.setMenu(mainMenuServiceParent);
+
+		MenuItem toolBarItemOpenSettings = new MenuItem(mainMenuServiceParent, SWT.NONE);
 		toolBarItemOpenSettings.setText(Messages.getString("ViewerArea.OpenSettings"));		 //$NON-NLS-1$
 		toolBarItemOpenSettings.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -324,6 +328,25 @@ public class ViewerArea extends Composite {
 					for (TreeItem item : serversTree.getItems()) {
 						updateClustersInTree(item);
 					}
+				}
+			}
+		});
+		
+		MenuItem toolBarItemOpenAbout = new MenuItem(mainMenuServiceParent, SWT.NONE);
+		toolBarItemOpenAbout.setText(Messages.getString("ViewerArea.About")); //$NON-NLS-1$
+		toolBarItemOpenAbout.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				
+				AboutDialog aboutDialog;
+				try {
+					aboutDialog = new AboutDialog(getParent().getDisplay().getActiveShell());
+				} catch (Exception excp) {
+					LOGGER.error("Error init AboutDialog", excp); //$NON-NLS-1$
+					return;
+				}
+				int dialogResult = aboutDialog.open();
+				if (dialogResult == 0) {
 				}
 			}
 		});
