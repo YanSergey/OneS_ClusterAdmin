@@ -9,9 +9,10 @@ import java.util.UUID;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -35,6 +36,7 @@ import ru.yanygin.clusterAdminLibrary.Server;
 public class CreateEditServerDialog extends Dialog {
 	
 	private Server serverParams;
+	private boolean rasOnSameHost;
 	
 	private Text txtRASHost;
 	private Text txtRasPort;
@@ -118,8 +120,7 @@ public class CreateEditServerDialog extends Dialog {
 		radioUseRemoteRAS.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				SelectionEvent a = e;
-//				tabRASVariant.setSelection(1);
+				setEnabledRasGroupParameters();
 			}
 		});
 		radioUseRemoteRAS.setBounds(0, 0, 90, 16);
@@ -144,6 +145,14 @@ public class CreateEditServerDialog extends Dialog {
 		lblRasPort.setText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		
 		txtRASHost = new Text(grpRemoteRasParameters, SWT.BORDER);
+		txtRASHost.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				if (rasOnSameHost)
+					txtAgentHost.setText(((Text)e.widget).getText());
+				
+				checkRasOnSameHost();
+			}
+		});
 		GridData gdtxtRASHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
 		gdtxtRASHost.widthHint = 200;
 		txtRASHost.setLayoutData(gdtxtRASHost);
@@ -192,6 +201,11 @@ public class CreateEditServerDialog extends Dialog {
 		lblAgentPort.setText(Messages.getString("ServerDialog.Port")); //$NON-NLS-1$
 		
 		txtAgentHost = new Text(grpRagentParameters, SWT.BORDER);
+		txtAgentHost.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				checkRasOnSameHost();
+			}
+		});
 		GridData gdtxtAgentHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
 		gdtxtAgentHost.widthHint = 200;
 		txtAgentHost.setLayoutData(gdtxtAgentHost);
@@ -275,6 +289,8 @@ public class CreateEditServerDialog extends Dialog {
 		new Label(container, SWT.NONE);
 		
 		initServerProperties();
+		checkRasOnSameHost();
+		setEnabledRasGroupParameters();
 		
 		return container;
 	}
@@ -375,5 +391,16 @@ public class CreateEditServerDialog extends Dialog {
 			}
 		});
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
+	}
+
+	private void checkRasOnSameHost() {
+		rasOnSameHost = txtAgentHost.getText().equals(txtRASHost.getText());
+	}
+
+	private void setEnabledRasGroupParameters() {
+		txtRASHost.setEnabled(radioUseRemoteRAS.getSelection());
+		txtRasPort.setEnabled(radioUseRemoteRAS.getSelection());
+		comboV8Version.setEnabled(!radioUseRemoteRAS.getSelection());
+		txtLocalRasPort.setEnabled(!radioUseRemoteRAS.getSelection());
 	}
 }
