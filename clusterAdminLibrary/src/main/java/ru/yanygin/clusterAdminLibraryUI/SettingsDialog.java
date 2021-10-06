@@ -16,6 +16,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Text;
 
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
 import ru.yanygin.clusterAdminLibrary.Config;
@@ -37,6 +38,9 @@ public class SettingsDialog extends Dialog {
 	private Button btnLocaleSystem;
 	private Button btnLocaleEnglish;
 	private Button btnLocaleRussian;
+	private Text txtHighlightDuration;
+	private Button btnHighlightNewItems;
+	private Button btnShadowSleepSessions;
 	
 	/**
 	 * Create the dialog.
@@ -126,7 +130,28 @@ public class SettingsDialog extends Dialog {
 		
 		btnLocaleRussian = new Button(grpLocale, SWT.RADIO);
 		btnLocaleRussian.setText(Messages.getString("SettingsDialog.Russian")); //$NON-NLS-1$
-		new Label(container, SWT.NONE);
+		
+		Group grpHighlight = new Group(container, SWT.NONE);
+		grpHighlight.setText(Messages.getString("SettingsDialog.Highlight")); //$NON-NLS-1$
+		grpHighlight.setLayout(new GridLayout(2, false));
+		
+		btnHighlightNewItems = new Button(grpHighlight, SWT.CHECK);
+		btnHighlightNewItems.setText(Messages.getString("SettingsDialog.HighlightNewItems")); //$NON-NLS-1$
+		new Label(grpHighlight, SWT.NONE);
+		
+		Label lblHighlightDuration = new Label(grpHighlight, SWT.NONE);
+		lblHighlightDuration.setBounds(0, 0, 55, 15);
+		lblHighlightDuration.setText(Messages.getString("SettingsDialog.HighlightDuration"));
+		
+		txtHighlightDuration = new Text(grpHighlight, SWT.BORDER);
+		GridData gdtxtHighlightDuration = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		gdtxtHighlightDuration.widthHint = 20;
+		txtHighlightDuration.setLayoutData(gdtxtHighlightDuration);
+		txtHighlightDuration.setBounds(0, 0, 76, 21);
+		
+		btnShadowSleepSessions = new Button(grpHighlight, SWT.CHECK);
+		btnShadowSleepSessions.setText(Messages.getString("SettingsDialog.ShadowSleepSessions")); //$NON-NLS-1$
+		new Label(grpHighlight, SWT.NONE);
 		new Label(container, SWT.NONE);
 
 		initProperties();
@@ -149,6 +174,10 @@ public class SettingsDialog extends Dialog {
 		btnShowServerDescription.setSelection(config.showServerDescription);
 		btnShowInfobaseDescription.setSelection(config.showInfobaseDescription);
 		btnShowLocalRasConnectInfo.setSelection(config.showLocalRasConnectInfo);
+		
+		btnHighlightNewItems.setSelection(config.highlightNewItems);
+		txtHighlightDuration.setText(Integer.toString(config.highlightNewItemsDuration));
+		btnShadowSleepSessions.setSelection(config.shadowSleepSessions);
 		
 		if (config.locale == null) {
 			btnLocaleSystem.setSelection(true);
@@ -173,6 +202,10 @@ public class SettingsDialog extends Dialog {
 		config.showServerDescription = btnShowServerDescription.getSelection();
 		config.showInfobaseDescription = btnShowInfobaseDescription.getSelection();
 		config.showLocalRasConnectInfo = btnShowLocalRasConnectInfo.getSelection();
+
+		config.highlightNewItems = btnHighlightNewItems.getSelection();
+		config.highlightNewItemsDuration = Integer.parseInt(txtHighlightDuration.getText());
+		config.shadowSleepSessions = btnShadowSleepSessions.getSelection();
 		
 		if (btnLocaleSystem.getSelection())
 			config.locale = null;

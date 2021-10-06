@@ -208,7 +208,9 @@ public class ClusterProvider {
 	}
 	
 	public void close() {
-
+		
+		saveConfig();
+		
 		getServers().forEach((server, config) -> {
 			if (config.isConnected())
 				config.disconnectFromAgent();

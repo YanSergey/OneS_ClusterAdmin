@@ -4,16 +4,25 @@ import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.dnd.Transfer;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.PaintListener;
@@ -25,7 +34,10 @@ import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -57,7 +69,15 @@ import com._1c.v8.ibis.admin.IWorkingProcessInfo;
 import com._1c.v8.ibis.admin.IWorkingServerInfo;
 
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
+import ru.yanygin.clusterAdminLibrary.ColumnProperties;
+import ru.yanygin.clusterAdminLibrary.Config;
+import ru.yanygin.clusterAdminLibrary.ConnectionInfoExtended;
+import ru.yanygin.clusterAdminLibrary.IInfoExtended;
+import ru.yanygin.clusterAdminLibrary.LockInfoExtended;
 import ru.yanygin.clusterAdminLibrary.Server;
+import ru.yanygin.clusterAdminLibrary.SessionInfoExtended;
+import ru.yanygin.clusterAdminLibrary.WorkingProcessInfoExtended;
+import ru.yanygin.clusterAdminLibrary.WorkingServerInfoExtended;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,11 +131,29 @@ public class ViewerArea extends Composite {
 	Table tableWorkingServers;
 //	Menu tableSessionsMenu;
 	
+	Map<String, String> sessionColumnsMap = new LinkedHashMap<>();
+	Map<String, String> connectionColumnsMap = new LinkedHashMap<>();
+	Map<String, String> lockColumnsMap = new LinkedHashMap<>();
+	Map<String, String> wpColumnsMap = new LinkedHashMap<>();
+	Map<String, String> wsColumnsMap = new LinkedHashMap<>();
+	
 	TreeColumn columnServer;
 
-	UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
-	Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
+//	UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
+	static final Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
+	
+	static final Color standardColor = new Color(0, 0, 0);
+	static final Color newItemColor = new Color(0, 200, 0);
+	static final Color deletedItemColor = new Color(150,0,0);
+	static final Color shadowItemColor = new Color(160, 160, 160);
+	static final Color watchedSessionColor = new Color(0, 128, 255);
+	
 	FontData systemFontData = getDisplay().getSystemFont().getFontData()[0];
+	Font fontNormal = new Font(getDisplay(), systemFontData.getName(), systemFontData.getHeight(), SWT.NORMAL);
+	Font fontBold = new Font(getDisplay(), systemFontData.getName(), systemFontData.getHeight(), SWT.BOLD);
+	TableItem lastSelectItem = null;
+	int lastSelectColumn;
+	List<String> watchedSessions = new ArrayList<>();
 	
 	enum TreeItemType {
 		SERVER, CLUSTER, INFOBASE_NODE, INFOBASE, WORKINGPROCESS_NODE, WORKINGPROCESS, WORKINGSERVER_NODE, WORKINGSERVER
@@ -130,7 +168,7 @@ public class ViewerArea extends Composite {
 	static final String CONNECTION_ID = "ConnectionId"; //$NON-NLS-1$
 
 	ClusterProvider clusterProvider;
-
+	
 	//@Slf4j
 	public ViewerArea(Composite parent, int style, Menu menu, ToolBar toolBar, ClusterProvider clusterProvider) {
 		super(parent, style);
@@ -172,11 +210,11 @@ public class ViewerArea extends Composite {
 		
 		// Заполнение списка серверов
 		clusterProvider.getServers().forEach((serverKey, server) -> {
-			TreeItem serverItem = addServerItemInServersTree(server);
+			addServerItemInServersTree(server);
 		});
 		
 		// Пропорции областей
-		sashForm.setWeights(new int[] {3, 10});
+		sashForm.setWeights(3, 10);
 		
 		connectToAllServers(false);
 
@@ -288,7 +326,7 @@ public class ViewerArea extends Composite {
 		});
 
 		MenuItem toolBarItemConnectAllServers = new MenuItem(mainMenuServersParent, SWT.NONE);
-		toolBarItemConnectAllServers.setText(Messages.getString("ViewerArea.ConnectToAllServers"));		 //$NON-NLS-1$
+		toolBarItemConnectAllServers.setText(Messages.getString("ViewerArea.ConnectToAllServers")); //$NON-NLS-1$
 		toolBarItemConnectAllServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -297,7 +335,7 @@ public class ViewerArea extends Composite {
 		});
 
 		MenuItem toolBarItemDisonnectAllServers = new MenuItem(mainMenuServersParent, SWT.NONE);
-		toolBarItemDisonnectAllServers.setText(Messages.getString("ViewerArea.DisonnectFromAllServers"));		 //$NON-NLS-1$
+		toolBarItemDisonnectAllServers.setText(Messages.getString("ViewerArea.DisonnectFromAllServers")); //$NON-NLS-1$
 		toolBarItemDisonnectAllServers.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -306,7 +344,7 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem toolBarItemOpenSettings = new MenuItem(mainMenu, SWT.NONE);
-		toolBarItemOpenSettings.setText(Messages.getString("ViewerArea.OpenSettings"));		 //$NON-NLS-1$
+		toolBarItemOpenSettings.setText(Messages.getString("ViewerArea.OpenSettings")); //$NON-NLS-1$
 		toolBarItemOpenSettings.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -338,66 +376,19 @@ public class ViewerArea extends Composite {
 		serversTree.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseDown(MouseEvent e) {
-
 				clickItemInServerTree(e.button);
 			}
 		});
 		
-		serversTree.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent event) {
-
-				// нужно сделать, что бы была реакция только на левый клик мышью
-				// по правому клику только устанавливать нужное меню
-				// перенесено в addMouseListener
-
-//				TreeItem[] item = serversTree.getSelection();
-//				if (item.length == 0)
-//					return;
-//				
-////				TreeItem serverItem = item[0];
-//				TreeItem treeItem = (TreeItem) event.item;
-//				
-//				selectItemInTreeHandler(treeItem);
-			}
-
-		});
-		
 		initServersTreeContextMenu();
-		
-		
-		/////////////////////////
-		// сортировка не работает
-		Listener sortListener = new Listener() {
-			public void handleEvent(Event e) {
-				TreeItem[] items = serversTree.getItems();
-				Collator collator = Collator.getInstance(Locale.getDefault());
-				TreeColumn column = (TreeColumn) e.widget;
-				int index = column == columnServer ? 0 : 1;
-				for (int i = 1; i < items.length; i++) {
-					String value1 = items[i].getText(index);
-					for (int j = 0; j < i; j++) {
-						String value2 = items[j].getText(index);
-						if (collator.compare(value1, value2) < 0) {
-							String[] values = { items[i].getText(0), items[i].getText(1) };
-							items[i].dispose();
-							TreeItem item = new TreeItem(serversTree, SWT.NONE, j);
-							item.setText(values);
-							items = serversTree.getItems();
-							break;
-						}
-					}
-				}
-				serversTree.setSortColumn(column);
-			}
-		};
-		/////////////////////////
-		
 		
 		columnServer = new TreeColumn(serversTree, SWT.LEFT);
 		columnServer.setText(Messages.getString("ViewerArea.Server")); //$NON-NLS-1$
 		columnServer.setWidth(350);
-		columnServer.addListener(SWT.Selection, sortListener);
+		
+		/////////////////////////
+		// сортировка не работает
+//		columnServer.addListener(SWT.Selection, sortListener);
 //		columnServer.addSelectionListener(new SelectionAdapter() {
 //			@Override
 //			public void widgetSelected(SelectionEvent e) {
@@ -406,9 +397,31 @@ public class ViewerArea extends Composite {
 //			}
 //		});
 		
-//		TreeColumn columnDescription = new TreeColumn(serversTree, SWT.LEFT);
-//		columnDescription.setText("");
-//		columnDescription.setWidth(30);
+//		Listener sortListener = new Listener() {
+//			public void handleEvent(Event e) {
+//				TreeItem[] items = serversTree.getItems();
+//				Collator collator = Collator.getInstance(Locale.getDefault());
+//				TreeColumn column = (TreeColumn) e.widget;
+//				int index = column == columnServer ? 0 : 1;
+//				for (int i = 1; i < items.length; i++) {
+//					String value1 = items[i].getText(index);
+//					for (int j = 0; j < i; j++) {
+//						String value2 = items[j].getText(index);
+//						if (collator.compare(value1, value2) < 0) {
+//							String[] values = { items[i].getText(0), items[i].getText(1) };
+//							items[i].dispose();
+//							TreeItem item = new TreeItem(serversTree, SWT.NONE, j);
+//							item.setText(values);
+//							items = serversTree.getItems();
+//							break;
+//						}
+//					}
+//				}
+//				serversTree.setSortColumn(column);
+//			}
+//		};
+		/////////////////////////
+		
 	}
 	
 	private void initServersTreeContextMenu() {
@@ -442,20 +455,6 @@ public class ViewerArea extends Composite {
 			}
 		});
 		
-		serverMenu.addListener(SWT.Selection, new Listener() {
-			@Override
-			public void handleEvent(Event e) {
-				System.out.println("click"); //$NON-NLS-1$
-			}
-		});
-		
-		serverMenu.addListener(SWT.MenuDetect, new Listener() {
-			@Override
-			public void handleEvent(Event e) {
-				System.out.println("menu"); //$NON-NLS-1$
-			}
-		});
-		
 		initServerMenu();
 		initClusterMenu();
 		initWorkingServerMenu();
@@ -479,10 +478,8 @@ public class ViewerArea extends Composite {
 				TreeItem[] item = serversTree.getSelection();
 				if (item.length == 0)
 					return;
-				TreeItem serverItem = item[0];
 				
-				connectServerItem(serverItem);
-
+				connectServerItem(item[0]);
 			}
 		});
 		
@@ -497,14 +494,12 @@ public class ViewerArea extends Composite {
 				TreeItem[] item = serversTree.getSelection();
 				if (item.length == 0)
 					return;
-				TreeItem serverItem = item[0];
-				disconnectServerItem(serverItem);
-
+				
+				disconnectServerItem(item[0]);
 			}
-			
 		});
 
-		new MenuItem(serverMenu, SWT.SEPARATOR);
+		addMenuSeparator(serverMenu);
 
 		MenuItem menuItemAddNewServer = new MenuItem(serverMenu, SWT.NONE);
 		menuItemAddNewServer.setText(Messages.getString("ViewerArea.AddServer")); //$NON-NLS-1$
@@ -524,15 +519,11 @@ public class ViewerArea extends Composite {
 				}
 				
 				int dialogResult = connectionDialog.open();
-				if (dialogResult != 0) {
-					newServer = null;
+				if (dialogResult != 0)
 					return;
-				}
 
 				clusterProvider.addNewServer(newServer);
 				TreeItem newServerItem = addServerItemInServersTree(newServer);
-
-//				fillClustersInTree(newServerItem);
 				updateClustersInTree(newServerItem);
 
 			}
@@ -548,6 +539,7 @@ public class ViewerArea extends Composite {
 				TreeItem[] item = serversTree.getSelection();
 				if (item.length == 0)
 					return;
+				
 				TreeItem serverItem = item[0];
 				Server server = getCurrentServerConfig(serverItem);
 				CreateEditServerDialog connectionDialog;
@@ -564,7 +556,6 @@ public class ViewerArea extends Composite {
 					// перерисовать в дереве
 					serverItem.setText(new String[] { server.getDescription() });
 					clusterProvider.saveConfig();
-//					fillClustersInTree(serverItem);
 					updateClustersInTree(serverItem);
 				}
 
@@ -586,7 +577,7 @@ public class ViewerArea extends Composite {
 			}
 		});
 
-		new MenuItem(serverMenu, SWT.SEPARATOR);
+		addMenuSeparator(serverMenu);
 		
 		MenuItem menuItemDeleteServer = new MenuItem(serverMenu, SWT.NONE);
 		menuItemDeleteServer.setText(Messages.getString("ViewerArea.RemoveServer")); //$NON-NLS-1$
@@ -600,9 +591,7 @@ public class ViewerArea extends Composite {
 				
 				TreeItem serverItem = item[0];
 				Server server = getCurrentServerConfig(serverItem);
-				
 				clusterProvider.removeServer(server);
-
 				disposeTreeItemWithChildren(serverItem);
 			}
 		});
@@ -683,7 +672,7 @@ public class ViewerArea extends Composite {
 			}
 		});
 		
-		new MenuItem(clusterMenu, SWT.SEPARATOR);
+		addMenuSeparator(clusterMenu);
 		
 		MenuItem menuItemDeleteCluster = new MenuItem(clusterMenu, SWT.NONE);
 		menuItemDeleteCluster.setText(Messages.getString("ViewerArea.DeleteCluster")); //$NON-NLS-1$
@@ -700,7 +689,6 @@ public class ViewerArea extends Composite {
 				
 				var messageBox = new MessageBox(Display.getDefault().getActiveShell(), SWT.ICON_QUESTION |SWT.YES | SWT.NO);
 				messageBox.setMessage(Messages.getString("ViewerArea.DeleteClusterQuestion")); //$NON-NLS-1$
-//				messageBox.setMessage("Deleting a cluster will delete its settings and the list of registered information databases. Do you really want to delete the cluster?");
 				int rc = messageBox.open();
 
 				if (rc == SWT.YES && server.unregCluster(clusterId))
@@ -825,25 +813,6 @@ public class ViewerArea extends Composite {
 				
 				Server server = getCurrentServerConfig(item[0]);
 				fillInfobasesOfCluster(item[0].getParentItem(), server);
-				
-//				UUID clusterId = getCurrentClusterId(item[0]);
-//				
-//				CreateInfobaseDialog infobaseDialog;
-//				try {
-//					infobaseDialog = new CreateInfobaseDialog(getParent().getDisplay().getActiveShell(), config, clusterId, null);
-//				} catch (Exception excp) {
-//					LOGGER.error("Error in CreateInfobaseDialog", excp);
-//					return;
-//				}
-//				
-//				int dialogResult = infobaseDialog.open();
-//				if (dialogResult == 0) {
-//					var newInfobaseUuid = infobaseDialog.getNewInfobaseUUID();
-//					if (newInfobaseUuid != null) {
-//						IInfoBaseInfoShort infoBaseInfo = config.getInfoBaseShortInfo(clusterId, newInfobaseUuid);
-//						addInfobaseItemInInfobaseNode(item[0], infoBaseInfo);
-//					}
-//				}
 			}
 		});
 	}
@@ -992,9 +961,6 @@ public class ViewerArea extends Composite {
 					return;
 				
 				Server server = getCurrentServerConfig(item[0]);
-//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
-				
 				UUID clusterId = getCurrentClusterId(item[0]);
 				UUID infobaseId = getCurrentInfobaseId(item[0]);
 				
@@ -1012,9 +978,6 @@ public class ViewerArea extends Composite {
 					return;
 				
 				Server server = getCurrentServerConfig(item[0]);
-//				IClusterInfo clusterInfo = getClusterInfoFromItem(item[0]);
-//				IInfoBaseInfoShort infoBaseInfoShort = getInfoBaseInfoFromItem(item[0]);
-				
 				UUID clusterId = getCurrentClusterId(item[0]);
 				UUID infobaseId = getCurrentInfobaseId(item[0]);
 				
@@ -1028,61 +991,180 @@ public class ViewerArea extends Composite {
 		tabSessions = new TabItem(tabFolder, SWT.NONE);
 		tabSessions.setText(Messages.getString("ViewerArea.Sessions")); //$NON-NLS-1$
 
-		tableSessions = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI); // | SWT.CHECK
+		tableSessions = new Table(tabFolder, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.CHECK);
 		tabSessions.setControl(tableSessions);
 		tableSessions.setHeaderVisible(true);
 		tableSessions.setLinesVisible(true);
 		
 		initSessionsTableContextMenu();
 		
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.Username"), 		140); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.Infobase"), 		100); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.SessionN"), 		70); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.ConnectionN"), 	80); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.StartedAt"), 	140); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.LastActiveAt"), 140); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.Application"), 	100); //$NON-NLS-1$
+		SessionInfoExtended.initColumnsName(sessionColumnsMap);
 		
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.Host"), 			100); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.Port"), 			60); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.PID"), 			60); //$NON-NLS-1$
-				
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.License"), 		60); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.IsSleep"), 		40); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.SleepAfter"),	60); //$NON-NLS-1$
-		addTableColumn(tableSessions, Messages.getString("ViewerArea.KillAfter"), 	60); //$NON-NLS-1$
+		ColumnProperties columnProperties = ClusterProvider.getCommonConfig().sessionColumnProperties;
+		
+		String[] columnNameList = sessionColumnsMap.keySet().toArray(new String[0]);
+		for (String columnName : columnNameList)
+			addTableColumn(tableSessions, columnName, columnProperties.width, columnProperties.visible);
+		
+		int[] columnOrder = columnProperties.order;
+		if (columnOrder != null && tableSessions.getColumnCount() == columnOrder.length)
+			tableSessions.setColumnOrder(columnOrder);
+		
 	}
 	
 	private void initSessionsTableContextMenu() {
 		
 		Menu tableSessionsMenu = new Menu(tableSessions);
 		tableSessions.setMenu(tableSessionsMenu);
+		tableSessions.addKeyListener(keyListener);
 		
-		MenuItem menuItemKillSession = new MenuItem(tableSessionsMenu, SWT.NONE);
-		menuItemKillSession.setText(Messages.getString("ViewerArea.KillSession")); //$NON-NLS-1$
-		menuItemKillSession.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				TableItem[] selectedItems = tableSessions.getSelection();
-				if (selectedItems.length == 0)
-					return;
-				
-				for (TableItem item : selectedItems) {
-					item.setForeground(new Color(150,0,0));
-					
-					UUID clusterId = (UUID) item.getData(CLUSTER_ID);
-					UUID sessionId = (UUID) item.getData(SESSION_ID);
-					Server server = (Server) item.getData(SERVER_INFO);
-					
-					server.terminateSession(clusterId, sessionId);
-					
-					// update tableSessions
-					item.dispose();
+		tableSessions.addListener(SWT.Selection, new Listener() {
+			public void handleEvent(Event event) {
+				if (event.detail == SWT.CHECK) {
+					TableItem item = (TableItem) event.item;
+					String id = item.getText(1).concat("*").concat(item.getText(2));
+					if (item.getChecked()) {
+						watchedSessions.add(id);
+						item.setForeground(watchedSessionColor);
+					} else {
+						watchedSessions.remove(id);
+						item.setForeground(standardColor);
+					}
 				}
-				
 			}
 		});
+		
+		// Выделение одной ячейки, для копирования значения из нее через CTRL+C
+		// Из-за добавления этого Listener пропадает прямоугольник выделения строк (передвигая мышь с зажатой ЛКМ)
+//		tableSessions.addListener(SWT.MouseDown, new Listener() {
+//			@Override
+//			public void handleEvent(Event event) {
+//				Table currentTable = (Table) event.widget;
+//
+//				Point pt = new Point(event.x, event.y);
+//	            TableItem item = currentTable.getItem(pt);
+//	            if(item != null) {
+//	                for (int col = 0; col < currentTable.getColumnCount(); col++) {
+//	                    Rectangle rect = item.getBounds(col);
+//	                    if (rect.contains(pt)) {
+//	                    	
+//	            			if (Objects.nonNull(lastSelectItem) && !lastSelectItem.isDisposed()) {
+//	            				lastSelectItem.setForeground(lastSelectColumn, new Color(0, 0, 0));
+//	            			}
+//	                    	
+////	                        System.out.println("item clicked.");
+////	                        System.out.println("column is " + col);
+//	                        System.out.println(item.getText(col));
+//	                        
+////	                        Color blue = display.getSystemColor(SWT.COLOR_BLUE);
+//	                        item.setForeground(col, new Color(0, 100, 128));
+////	                        item.setFont(col, fontBold);
+//	                        
+//	                        lastSelectItem = item;
+//	                        lastSelectColumn = col;
+//	                        break;
+//	                    }
+//	                }
+//	            }
+//			}
+//		});
+		
+		MenuItem menuItemUpdateList = new MenuItem(tableSessionsMenu, SWT.NONE);
+		menuItemUpdateList.setText(Messages.getString("ViewerArea.Update").concat("\tF5")); //$NON-NLS-1$
+		menuItemUpdateList.setAccelerator(SWT.F5);//TODO ???
+		menuItemUpdateList.setImage(updateIcon);
+		menuItemUpdateList.addSelectionListener(updateItemListener);
+		
+		MenuItem menuItemViewSession = new MenuItem(tableSessionsMenu, SWT.NONE);
+		menuItemViewSession.setText(Messages.getString("ViewerArea.ViewSession").concat("\tF2")); //$NON-NLS-1$
+		menuItemViewSession.setAccelerator(SWT.F2);
+		menuItemViewSession.setImage(editIcon);
+		menuItemViewSession.addSelectionListener(editItemListener);
+//		menuItemViewSession.addSelectionListener(new SelectionAdapter() {
+//			@Override
+//			public void widgetSelected(SelectionEvent event) {
+//				TableItem[] item = tableSessions.getSelection();
+//				if (item.length == 0)
+//					return;
+//				
+//				Server server = (Server) item[0].getData(SERVER_INFO);
+//				UUID clusterId = (UUID) item[0].getData(CLUSTER_ID);
+//				UUID sessionId = (UUID) item[0].getData(SESSION_ID);
+//				ISessionInfo sessionInfo = (ISessionInfo) item[0].getData("sessionInfo");
+//				
+//				SessionInfoDialog editClusterDialog;
+//				try {
+//					editClusterDialog = new SessionInfoDialog(getParent().getDisplay().getActiveShell(), server, clusterId, sessionId, sessionInfo);
+//				} catch (Exception excp) {
+//					excp.printStackTrace();
+//					LOGGER.error("Error init SessionInfoDialog for session id {}", sessionId, excp); //$NON-NLS-1$
+//					return;
+//				}
+//				
+//				int dialogResult = editClusterDialog.open();
+//				if (dialogResult == 0) {
+//				}
+//			}
+//		});
+		
+		MenuItem menuItemKillSession = new MenuItem(tableSessionsMenu, SWT.NONE);
+		menuItemKillSession.setText(Messages.getString("ViewerArea.KillSession").concat("\tDEL")); //$NON-NLS-1$
+		menuItemKillSession.setAccelerator(SWT.DEL);
+		menuItemKillSession.setImage(deleteIcon);
+		menuItemKillSession.addSelectionListener(deleteItemListener);
+		
+	}
+
+	private void deleteSelectSession() {
+		
+		Table currentTable = null;
+		
+		if (currentTabitem.equals(tabSessions))
+			currentTable = tableSessions;
+		else if (currentTabitem.equals(tabConnections))
+			currentTable = tableConnections;
+		else if (currentTabitem.equals(tabWorkingServers))
+			currentTable = tableWorkingServers;
+
+		if (currentTable == null)
+			return;
+		
+		TableItem[] selectedItems = currentTable.getSelection();
+		if (selectedItems.length == 0)
+			return;
+		
+		for (TableItem item : selectedItems) {
+			item.setForeground(deletedItemColor);
+			
+			if (currentTable.equals(tableSessions)) {
+				Server server = (Server) item.getData(SERVER_INFO);
+				UUID clusterId = (UUID) item.getData(CLUSTER_ID);
+				UUID sessionId = (UUID) item.getData(SESSION_ID);
+				
+				if (server.terminateSession(clusterId, sessionId))
+					item.dispose(); // update tableSessions
+				
+			} else if (currentTable.equals(tableConnections)) {
+				Server server = (Server) item.getData(SERVER_INFO);
+				UUID clusterId = (UUID) item.getData(CLUSTER_ID);
+				UUID pricessId = (UUID) item.getData(WORKINGPROCESS_ID);
+				UUID connectionId = (UUID) item.getData(CONNECTION_ID);
+				UUID infobaseId = (UUID) item.getData(INFOBASE_ID);
+				
+				if (server.disconnectConnection(clusterId, pricessId, connectionId, infobaseId))
+					item.dispose(); // update tableConnections
+				
+			} else if (currentTable.equals(tableWorkingServers)) {
+				Server server = (Server) item.getData(SERVER_INFO);
+				UUID clusterId = (UUID) item.getData(CLUSTER_ID);
+				UUID workingServerId = (UUID) item.getData(WORKINGSERVER_ID);
+				
+				if (server.unregWorkingServer(clusterId, workingServerId))
+					item.dispose(); // update tableWorkingServers
+			} else {
+				break;
+			}
+		}
 	}
 	
 	private void initConnectionsTable(TabFolder tabFolder) {
@@ -1097,14 +1179,17 @@ public class ViewerArea extends Composite {
 		
 		initConnectionsTableContextMenu();
 		
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.Infobase"), 		100); //$NON-NLS-1$
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.Connection"), 		100); //$NON-NLS-1$
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.Session"), 		100); //$NON-NLS-1$
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.Hostname"), 		100); //$NON-NLS-1$
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.Application"), 	100); //$NON-NLS-1$
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.ConnectedAt"), 	100); //$NON-NLS-1$
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.InfobaseConnectionID"), 100); //$NON-NLS-1$
-		addTableColumn(tableConnections, Messages.getString("ViewerArea.rphostID"), 		100); //$NON-NLS-1$
+		ConnectionInfoExtended.initColumnsName(connectionColumnsMap);
+		
+		ColumnProperties columnProperties = ClusterProvider.getCommonConfig().connectionColumnProperties;
+		
+		String[] columnNameList = connectionColumnsMap.keySet().toArray(new String[0]);
+		for (String columnName : columnNameList)
+			addTableColumn(tableConnections, columnName, columnProperties.width, columnProperties.visible);
+		
+		int[] columnOrder = columnProperties.order;
+		if (columnOrder != null && tableConnections.getColumnCount() == columnOrder.length)
+			tableConnections.setColumnOrder(columnOrder);
 		
 	}
 	
@@ -1112,31 +1197,20 @@ public class ViewerArea extends Composite {
 		
 		Menu tableConnectionsMenu = new Menu(tableConnections);
 		tableConnections.setMenu(tableConnectionsMenu);
+		tableConnections.addKeyListener(keyListener);
+		
+		MenuItem menuItemUpdateList = new MenuItem(tableConnectionsMenu, SWT.NONE);
+		menuItemUpdateList.setText(Messages.getString("ViewerArea.Update").concat("\tF5")); //$NON-NLS-1$
+		menuItemUpdateList.setAccelerator(SWT.F5);//TODO ???
+		menuItemUpdateList.setImage(updateIcon);
+		menuItemUpdateList.addSelectionListener(updateItemListener);
 		
 		MenuItem menuItemKillSession = new MenuItem(tableConnectionsMenu, SWT.NONE);
-		menuItemKillSession.setText(Messages.getString("ViewerArea.KillConnection")); //$NON-NLS-1$
-		menuItemKillSession.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				TableItem[] selectedItems = tableConnections.getSelection();
-				if (selectedItems.length == 0)
-					return;
-				
-				for (TableItem item : selectedItems) {
-					item.setForeground(new Color(150,0,0));
-					
-					Server server = (Server) item.getData(SERVER_INFO);
-					UUID clusterId = (UUID) item.getData(CLUSTER_ID);
-					UUID pricessId = (UUID) item.getData(WORKINGPROCESS_ID);
-					UUID connectionId = (UUID) item.getData(CONNECTION_ID);
-					UUID infobaseId = (UUID) item.getData(INFOBASE_ID);
-					
-					if (server.disconnectConnection(clusterId, pricessId, connectionId, infobaseId))
-						item.dispose(); // update tableConnections
-				}
-				
-			}
-		});
+		menuItemKillSession.setText(Messages.getString("ViewerArea.KillConnection").concat("\tDEL")); //$NON-NLS-1$
+		menuItemKillSession.setAccelerator(SWT.DEL);
+		menuItemKillSession.setImage(deleteIcon);
+		menuItemKillSession.addSelectionListener(deleteItemListener);
+
 	}
 	
 	private void initLocksTable(TabFolder tabFolder) {
@@ -1151,21 +1225,32 @@ public class ViewerArea extends Composite {
 		
 		initLocksTableContextMenu();
 		
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Description"), 	250); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Infobase"), 		100); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Connection"), 	80); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Session"), 		80); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Application"), 	140); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Hostname"), 		100); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.Port"), 			100); //$NON-NLS-1$
-		addTableColumn(tableLocks, Messages.getString("ViewerArea.LockedAt"), 	120); //$NON-NLS-1$
-//		addTableColumn(tableLocks, "Locked Object", 100);
+		LockInfoExtended.initColumnsName(lockColumnsMap);
+		
+		ColumnProperties columnProperties = ClusterProvider.getCommonConfig().lockColumnProperties;
+		
+		String[] columnNameList = lockColumnsMap.keySet().toArray(new String[0]);
+		for (String columnName : columnNameList)
+			addTableColumn(tableLocks, columnName, columnProperties.width, columnProperties.visible);
+		
+		int[] columnOrder = columnProperties.order;
+		if (columnOrder != null && tableLocks.getColumnCount() == columnOrder.length)
+			tableLocks.setColumnOrder(columnOrder);
 		
 	}
 	
 	private void initLocksTableContextMenu() {
-		// Пока не понятен состав меню
+		
+		Menu tableLocksMenu = new Menu(tableLocks);
+		tableLocks.setMenu(tableLocksMenu);
+		tableLocks.addKeyListener(keyListener);
+		
+		MenuItem menuItemUpdateList = new MenuItem(tableLocksMenu, SWT.NONE);
+		menuItemUpdateList.setText(Messages.getString("ViewerArea.Update").concat("\tF5")); //$NON-NLS-1$
+		menuItemUpdateList.setAccelerator(SWT.F5);//TODO ???
+		menuItemUpdateList.setImage(updateIcon);
+		menuItemUpdateList.addSelectionListener(updateItemListener);
+
 	}
 	
 	private void initWorkingProcessesTable(TabFolder tabFolder) {
@@ -1180,20 +1265,32 @@ public class ViewerArea extends Composite {
 		
 		initWorkingProcessesTableContextMenu();
 		
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Port"), 			100); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Using"), 			250); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Enabled"), 		100); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Active"), 		80); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.PID"), 			80); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.Memory"), 		140); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.MemoryExceeded"), 100); //$NON-NLS-1$
-		addTableColumn(tableWorkingProcesses, Messages.getString("ViewerArea.AvailablePerformance"), 	120); //$NON-NLS-1$
+		WorkingProcessInfoExtended.initColumnsName(wpColumnsMap);
+		
+		ColumnProperties columnProperties = ClusterProvider.getCommonConfig().wpColumnProperties;
+		
+		String[] columnNameList = wpColumnsMap.keySet().toArray(new String[0]);
+		for (String columnName : columnNameList)
+			addTableColumn(tableWorkingProcesses, columnName, columnProperties.width, columnProperties.visible);
+		
+		int[] columnOrder = columnProperties.order;
+		if (columnOrder != null && tableWorkingProcesses.getColumnCount() == columnOrder.length)
+			tableWorkingProcesses.setColumnOrder(columnOrder);
 		
 	}
 	
 	private void initWorkingProcessesTableContextMenu() {
-		// Пока не понятен состав меню
+		
+		Menu tableWorkingProcessesMenu = new Menu(tableWorkingProcesses);
+		tableWorkingProcesses.setMenu(tableWorkingProcessesMenu);
+		tableWorkingProcesses.addKeyListener(keyListener);
+		
+		MenuItem menuItemUpdateList = new MenuItem(tableWorkingProcessesMenu, SWT.NONE);
+		menuItemUpdateList.setText(Messages.getString("ViewerArea.Update").concat("\tF5")); //$NON-NLS-1$
+		menuItemUpdateList.setAccelerator(SWT.F5);//TODO ???
+		menuItemUpdateList.setImage(updateIcon);
+		menuItemUpdateList.addSelectionListener(updateItemListener);
+
 	}
 	
 	private void initWorkingServersTable(TabFolder tabFolder) {
@@ -1208,16 +1305,17 @@ public class ViewerArea extends Composite {
 		
 		initWorkingServersTableContextMenu();
 		
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.Description"), 		100); //$NON-NLS-1$
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.Computer"), 		100); //$NON-NLS-1$
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.IPPort"), 			250); //$NON-NLS-1$
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.RangeIPPort"), 	100); //$NON-NLS-1$
-//		addTableColumn(tableWorkingServers, "Max memory WP", 	80);
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.IBPerProcessLimit"), 	80); //$NON-NLS-1$
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.ConnPerProcessLimit"), 	140); //$NON-NLS-1$
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.IPPortMainManager"), 100); //$NON-NLS-1$
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.DedicatedManagers"), 	120); //$NON-NLS-1$
-		addTableColumn(tableWorkingServers, Messages.getString("ViewerArea.MainServer"), 		100); //$NON-NLS-1$
+		WorkingServerInfoExtended.initColumnsName(wsColumnsMap);
+		
+		ColumnProperties columnProperties = ClusterProvider.getCommonConfig().wsColumnProperties;
+		
+		String[] columnNameList = wsColumnsMap.keySet().toArray(new String[0]);
+		for (String columnName : columnNameList)
+			addTableColumn(tableWorkingServers, columnName, columnProperties.width, columnProperties.visible);
+		
+		int[] columnOrder = columnProperties.order;
+		if (columnOrder != null && tableWorkingServers.getColumnCount() == columnOrder.length)
+			tableWorkingServers.setColumnOrder(columnOrder);
 		
 	}
 	
@@ -1225,6 +1323,13 @@ public class ViewerArea extends Composite {
 		
 		Menu workingServersMenu = new Menu(tableWorkingServers);
 		tableWorkingServers.setMenu(workingServersMenu);
+		tableWorkingServers.addKeyListener(keyListener);
+		
+		MenuItem menuItemUpdateList = new MenuItem(workingServersMenu, SWT.NONE);
+		menuItemUpdateList.setText(Messages.getString("ViewerArea.Update").concat("\tF5")); //$NON-NLS-1$
+		menuItemUpdateList.setAccelerator(SWT.F5);//TODO ???
+		menuItemUpdateList.setImage(updateIcon);
+		menuItemUpdateList.addSelectionListener(updateItemListener);
 		
 		MenuItem menuItemCreateWorkingServer = new MenuItem(workingServersMenu, SWT.NONE);
 		menuItemCreateWorkingServer.setText(Messages.getString("ViewerArea.CreateWorkingServer")); //$NON-NLS-1$
@@ -1259,148 +1364,19 @@ public class ViewerArea extends Composite {
 		});
 		
 		MenuItem menuItemEditWorkingServer = new MenuItem(workingServersMenu, SWT.NONE);
-		menuItemEditWorkingServer.setText(Messages.getString("ViewerArea.EditWorkingServer")); //$NON-NLS-1$
+		menuItemEditWorkingServer.setText(Messages.getString("ViewerArea.EditWorkingServer").concat("\tF2")); //$NON-NLS-1$
 		menuItemEditWorkingServer.setImage(editIcon);
-		menuItemEditWorkingServer.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent event) {
-				TableItem[] item = tableWorkingServers.getSelection();
-				if (item.length == 0)
-					return;
-				
-				Server server = (Server) item[0].getData(SERVER_INFO);
-				UUID clusterId = (UUID) item[0].getData(CLUSTER_ID);
-				UUID workingServerId = (UUID) item[0].getData(WORKINGSERVER_ID);
-				
-				CreateEditWorkingServerDialog editClusterDialog;
-				try {
-					editClusterDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), server, clusterId, workingServerId);
-				} catch (Exception excp) {
-					excp.printStackTrace();
-					LOGGER.error("Error init WorkingServerDialog for cluster id {}", workingServerId, excp); //$NON-NLS-1$
-					return;
-				}
-				
-				int dialogResult = editClusterDialog.open();
-				if (dialogResult == 0) {
-				}
-			}
-		});
+		menuItemEditWorkingServer.addSelectionListener(editItemListener);
 		
 		MenuItem menuItemDeleteWorkingServer = new MenuItem(workingServersMenu, SWT.NONE);
-		menuItemDeleteWorkingServer.setText(Messages.getString("ViewerArea.DeleteWorkingServer")); //$NON-NLS-1$
+		menuItemDeleteWorkingServer.setText(Messages.getString("ViewerArea.DeleteWorkingServer").concat("\tDEL")); //$NON-NLS-1$
 		menuItemDeleteWorkingServer.setImage(deleteIcon);
-		menuItemDeleteWorkingServer.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent event) {
-				TableItem[] item = tableWorkingServers.getSelection();
-				if (item.length == 0)
-					return;
-				
-				Server server = (Server) item[0].getData(SERVER_INFO);
-				UUID clusterId = (UUID) item[0].getData(CLUSTER_ID);
-				UUID workingServerId = (UUID) item[0].getData(WORKINGSERVER_ID);
-				
-				server.unregWorkingServer(clusterId, workingServerId);
-				
-			}
-		});
+		menuItemDeleteWorkingServer.addSelectionListener(deleteItemListener);
 		
 	}
 
 	private void fillServersList() {
 		// TODO Auto-generated method stub
-		
-	}
-	
-	private void fillClustersInTree(TreeItem serverItem) {
-		
-		// Пока что удалить все кластера из списка, может лучше добавить недостающие?
-		TreeItem[] clustersItems = serverItem.getItems();
-		for (TreeItem clusterItem : clustersItems) {
-//			clusterItem.dispose();
-			disposeTreeItemWithChildren(clusterItem);
-		}
-
-		Server server = getCurrentServerConfig(serverItem);
-		
-//		// смена иконки сервера на вкл/выкл
-//		serverItem.setImage(server.isConnected() ? serverIconUp : serverIconDown);
-		
-		if (!server.isConnected()) {
-			return;
-		}
-		
-		List<IClusterInfo> clusters = server.getClusters();
-		clusters.forEach(clusterInfo -> {
-			TreeItem clusterItem = addClusterItemInServersTree(serverItem, clusterInfo);
-			
-			// Пока что удалить все из списка, может лучше добавить недостающие?
-			// Тут же у нас пусто?
-//			TreeItem[] ibItems = clusterItem.getItems();
-//			for (TreeItem treeItem : ibItems) {
-//				treeItem.dispose();
-//			}
-			
-			// Заполнение дерева кластера
-			fillChildrenItemsOfCluster(clusterItem, server);
-
-		});
-		
-		// Разворачиваем дерево, если список кластеров не пустой
-		serverItem.setExpanded(clusterProvider.getCommonConfig().expandServersTree);
-	}
-	
-	private void updateClustersInTreeOld(TreeItem serverItem) {
-
-		Server server = getCurrentServerConfig(serverItem);
-		TreeItem[] clustersItems = serverItem.getItems();
-		
-		// у отключенного сервера удаляем все дочерние элементы
-		if (!server.isConnected()) {
-			for (TreeItem clusterItem : clustersItems) {
-				disposeTreeItemWithChildren(clusterItem);
-			}
-			return;
-		}
-		
-		List<IClusterInfo> clusters = server.getClusters();
-		
-		// удаление несуществующих элементов
-		for (TreeItem clusterItem : clustersItems) {
-			UUID currentClusterId = getCurrentClusterId(clusterItem);
-			List<IClusterInfo> foundCluster = clusters.stream()
-													.filter(c -> c.getClusterId().equals(currentClusterId))
-													.collect(Collectors.toList());
-
-			if (foundCluster.isEmpty()) {
-				disposeTreeItemWithChildren(clusterItem);
-			}
-		}
-		
-		// добавление новых элементов
-//		clustersItems = serverItem.getItems();
-		clusters.forEach(clusterInfo -> {
-			var itemFound = false;
-			for (TreeItem clusterItem : serverItem.getItems()) {
-				if (getCurrentClusterId(clusterItem).equals(clusterInfo.getClusterId())) {
-					itemFound = true;
-					break;
-				}
-			}
-			
-			if (!itemFound) {
-				TreeItem clusterItem = addClusterItemInServersTree(serverItem, clusterInfo);
-				
-				// Заполнение дерева кластера
-				fillChildrenItemsOfCluster(clusterItem, server);
-			}
-			
-		});
-		
-		
-		// Разворачиваем дерево, если список кластеров не пустой
-		serverItem.setExpanded(!clusters.isEmpty());
 	}
 	
 	private void updateClustersInTree(TreeItem serverItem) {
@@ -1452,12 +1428,11 @@ public class ViewerArea extends Composite {
 		});
 		
 		
-		// Разворачиваем дерево, если список кластеров не пустой
+		// Разворачиваем дерево, если включена настройка
 		serverItem.setExpanded(ClusterProvider.getCommonConfig().expandServersTree);
 	}
 	
 	private void fillChildrenItemsOfCluster(TreeItem clusterItem, Server server) {
-//		TreeItem[] clusterItems = clusterItem.getItems();
 		
 		fillInfobasesOfCluster(clusterItem, server);
 		fillWorkingProcessesInCluster(clusterItem, server);
@@ -1488,7 +1463,6 @@ public class ViewerArea extends Composite {
 		
 		var infobasesNodeTitle = String.format(Messages.getString("ViewerArea.InfobasesCount"), infoBases.size()); //$NON-NLS-1$
 		infobasesNode.setText(new String[] { infobasesNodeTitle });
-//		infobasesNode.setText(new String[] { String.format("Infobases (%s)", infoBases.size()) });
 		
 		if (infoBases.isEmpty()) {
 			for (TreeItem infobase : infobasesNode.getItems()) {
@@ -1504,9 +1478,9 @@ public class ViewerArea extends Composite {
 															.filter(c -> c.getInfoBaseId().equals(currentInfobaseId))
 															.collect(Collectors.toList());
 
-			if (foundItems.isEmpty()) {
+			if (foundItems.isEmpty())
 				infobaseItem.dispose();
-			}
+			
 		}
 		
 		// добавление новых элементов
@@ -1520,13 +1494,13 @@ public class ViewerArea extends Composite {
 					break;
 				}
 			}
-	
+			
 			if (!itemFound)
 				addInfobaseItemInInfobaseNode(infobasesNode, infoBaseInfo);
-		};
+		}
 		
 		infobasesNode.setExpanded(ClusterProvider.getCommonConfig().expandInfobasesTree);
-
+		
 	}
 	
 	private void fillWorkingProcessesInCluster(TreeItem clusterItem, Server server) {
@@ -1557,7 +1531,6 @@ public class ViewerArea extends Composite {
 
 		var workingProcessesNodeTitle 	= String.format(Messages.getString("ViewerArea.WorkingProcessesCount"), wProcesses.size()); //$NON-NLS-1$
 		workingProcessesNode.setText(new String[] { workingProcessesNodeTitle });
-//		workingProcessesNode.setText(new String[] { String.format("Working processes (%s)", wProcesses.size()) });
 		
 		if (wProcesses.isEmpty()) {
 			for (TreeItem workingProcess : workingProcessesNode.getItems()) {
@@ -1573,9 +1546,9 @@ public class ViewerArea extends Composite {
 															.filter(c -> c.getWorkingProcessId().equals(currentWorkingProcessId))
 															.collect(Collectors.toList());
 
-			if (foundItems.isEmpty()) {
+			if (foundItems.isEmpty())
 				workingProcessItem.dispose();
-			}
+			
 		}
 		
 		// добавление новых элементов
@@ -1589,7 +1562,7 @@ public class ViewerArea extends Composite {
 					break;
 				}
 			}
-	
+			
 			if (!itemFound)
 				addWorkingProcessItemInNode(workingProcessesNode, workingProcessInfo);
 		};
@@ -1624,7 +1597,6 @@ public class ViewerArea extends Composite {
 		
 		var workingServerNodeTitle = String.format(Messages.getString("ViewerArea.WorkingServersCount"), wServers.size()); //$NON-NLS-1$
 		workingServersNode.setText(new String[] { workingServerNodeTitle });
-//		workingServersNode.setText(new String[] { String.format("Working servers (%s)", wServers.size()) });
 		
 		if (wServers.isEmpty()) {
 			for (TreeItem workingServerItem : workingServersNode.getItems()) {
@@ -1640,9 +1612,9 @@ public class ViewerArea extends Composite {
 															.filter(c -> c.getWorkingServerId().equals(currentWorkingServerId))
 															.collect(Collectors.toList());
 
-			if (foundItems.isEmpty()) {
+			if (foundItems.isEmpty())
 				workingServerItem.dispose();
-			}
+			
 		}
 		
 		// добавление новых элементов
@@ -1659,23 +1631,18 @@ public class ViewerArea extends Composite {
 	
 			if (!itemFound)
 				addWorkingServerItemInNode(workingServersNode, workingServerInfo);
-		};
+		}
 		
 	}	
 
 	private TreeItem addServerItemInServersTree(Server server) {
 		
 		var item = new TreeItem(serversTree, SWT.NONE);
-		
 		item.setText(new String[] { server.getDescription() });
 		item.setData("Type", TreeItemType.SERVER); //$NON-NLS-1$
 		item.setData(SERVER_INFO, server);
 		
-		if (server.isConnected()) {
-			item.setImage(serverIconUp);
-		} else {
-			item.setImage(serverIcon);
-		}
+		item.setImage(server.isConnected() ? serverIconUp : serverIcon);
 		
 		return item;
 	}
@@ -1713,10 +1680,10 @@ public class ViewerArea extends Composite {
 	}
 	
 	private void addWorkingProcessItemInNode(TreeItem wpNodeItem, IWorkingProcessInfo wpInfo) {
-		var item = new TreeItem(wpNodeItem, SWT.NONE);
 		
 		var itemTitle = String.format("%s (%s)", wpInfo.getHostName(), wpInfo.getMainPort()); //$NON-NLS-1$
 		
+		var item = new TreeItem(wpNodeItem, SWT.NONE);
 		item.setText(new String[] { itemTitle});
 		item.setData("Type", TreeItemType.WORKINGPROCESS); //$NON-NLS-1$
 		item.setData(WORKINGPROCESS_ID, wpInfo.getWorkingProcessId());
@@ -1725,10 +1692,10 @@ public class ViewerArea extends Composite {
 	}
 	
 	private void addWorkingServerItemInNode(TreeItem wsNodeItem, IWorkingServerInfo wpInfo) {
-		var item = new TreeItem(wsNodeItem, SWT.NONE);
 		
 		var itemTitle = String.format("%s (%s)", wpInfo.getHostName(), wpInfo.getMainPort()); //$NON-NLS-1$
 		
+		var item = new TreeItem(wsNodeItem, SWT.NONE);
 		item.setText(new String[] { itemTitle});
 		item.setData("Type", TreeItemType.WORKINGSERVER); //$NON-NLS-1$
 		item.setData(WORKINGSERVER_ID, wpInfo.getWorkingServerId());
@@ -1736,102 +1703,32 @@ public class ViewerArea extends Composite {
 		item.setChecked(false);
 	}
 	
-
 	private void addSessionInTable(Server server, UUID clusterId, UUID infobaseId, ISessionInfo sessionInfo, List<IInfoBaseConnectionShort> connections) {
-		TableItem sessionItem = new TableItem(tableSessions, SWT.NONE);
 		
-		if (infobaseId == null)
-			infobaseId = sessionInfo.getInfoBaseId();
+		SessionInfoExtended sessionInfoExtended = new SessionInfoExtended(server, clusterId, infobaseId, sessionInfo, connections, sessionColumnsMap);
 		
-		String infobaseName = server.getInfoBaseName(clusterId, infobaseId);
-		
-		var connectionNumber = ""; //$NON-NLS-1$
-		if (!sessionInfo.getConnectionId().equals(emptyUuid)) {
-			List<IInfoBaseConnectionShort> thisConnection = connections.stream()
-																	.filter(c -> c.getInfoBaseConnectionId().equals(sessionInfo.getConnectionId()))
-																	.collect(Collectors.toList());
-			if (!thisConnection.isEmpty())
-				connectionNumber = String.valueOf(thisConnection.get(0).getConnId());
-		}
-
-		var wpHostName = ""; //$NON-NLS-1$
-		var wpMainPort = ""; //$NON-NLS-1$
-		var wpPid = ""; //$NON-NLS-1$
-		if (!sessionInfo.getWorkingProcessId().equals(emptyUuid)) {
-			IWorkingProcessInfo wpInfo = server.getWorkingProcessInfo(clusterId, sessionInfo.getWorkingProcessId());
-			
-			wpHostName = wpInfo.getHostName();
-			wpMainPort = Integer.toString(wpInfo.getMainPort());
-			wpPid = wpInfo.getPid();
-		}
-		var license = ""; //$NON-NLS-1$
-		if (!sessionInfo.getLicenses().isEmpty())
-			license = sessionInfo.getLicenses().get(0).getFullPresentation();
-		
-		String[] itemText = {
-							sessionInfo.getUserName(),
-							infobaseName,
-							Integer.toString(sessionInfo.getSessionId()),
-							connectionNumber,
-							sessionInfo.getStartedAt().toString(),
-							sessionInfo.getLastActiveAt().toString(),
-							sessionInfo.getHost(),
-							server.getApplicationName(sessionInfo.getAppId()),
-							wpHostName,
-							wpMainPort,
-							wpPid,
-							license,
-							Boolean.toString(sessionInfo.getHibernate()), // сеанс уснул
-							Integer.toString(sessionInfo.getPassiveSessionHibernateTime()),
-							Integer.toString(sessionInfo.getHibernateSessionTerminationTime())
-							
-//							sessionInfo.getClientIPAddress(),
-//							sessionInfo.getCurrentServiceName(),
-//							sessionInfo.getDataSeparation(),
-//							sessionInfo.getDbProcInfo(),
-//							sessionInfo.getBlockedByDbms(),
-//							sessionInfo.getBlockedByLs(),
-//							sessionInfo.getBytesAll(),
-//							sessionInfo.getBytesLast5Min(),
-//							sessionInfo.getCallsAll(),
-//							sessionInfo.getCallsLast5Min(),
-//							sessionInfo.getCpuTimeAll(),
-//							sessionInfo.getCpuTimeCurrent(),
-//							sessionInfo.getCpuTimeLast5Min(),
-//							sessionInfo.getDbmsBytesAll(),
-//							sessionInfo.getDbmsBytesLast5Min(),
-//							sessionInfo.getDbProcTook(),
-//							sessionInfo.getDbProcTookAt(),
-//							sessionInfo.getDurationAll(),
-//							sessionInfo.getDurationAllDbms(),
-//							sessionInfo.getDurationAllService(),
-//							sessionInfo.getDurationCurrent(),
-//							sessionInfo.getDurationCurrentDbms(),
-//							sessionInfo.getDurationCurrentService(),
-//							sessionInfo.getDurationLast5Min(),
-//							sessionInfo.getDurationLast5MinDbms(),
-//							sessionInfo.getDurationLast5MinService(),
-//							sessionInfo.getHibernate(), // уснул
-//							sessionInfo.getPassiveSessionHibernateTime(),
-//							sessionInfo.getHibernateSessionTerminationTime(),
-//							sessionInfo.getLicenses(),
-//							sessionInfo.getMemoryCurrent(),
-//							sessionInfo.getMemoryLast5Min(),
-//							sessionInfo.getMemoryTotal(),
-//							sessionInfo.getReadBytesCurrent(),
-//							sessionInfo.getReadBytesLast5Min(),
-//							sessionInfo.getReadBytesTotal(),
-//							sessionInfo.getWriteBytesCurrent(),
-//							sessionInfo.getWriteBytesLast5Min(),
-//							sessionInfo.getWriteBytesTotal()
-							};
-
-		sessionItem.setText(itemText);
-		sessionItem.setData(SERVER_INFO, 	server);
-		sessionItem.setData(CLUSTER_ID, 	clusterId);
-		sessionItem.setData(SESSION_ID, 	sessionInfo.getSid()); //sessionInfo.getSessionId() ???
+		var sessionItem = new TableItem(tableSessions, SWT.NONE);
+		sessionItem.setText(sessionInfoExtended.getExtendedInfo());
+		sessionItem.setData(SERVER_INFO, server);
+		sessionItem.setData(CLUSTER_ID, clusterId);
+		sessionItem.setData(SESSION_ID, sessionInfo.getSid()); // sessionInfo.getSessionId() ???
+		sessionItem.setData("sessionInfo", sessionInfo); // agentConnection.getSessionInfo(clusterId, sid); ошибка...
 		sessionItem.setImage(userIcon);
 		sessionItem.setChecked(false);
+		
+		
+		if (IInfoExtended.highlightItem(sessionInfo.getStartedAt()))
+			sessionItem.setForeground(newItemColor);
+
+		Config commonConfig = ClusterProvider.getCommonConfig();
+		if (commonConfig.shadowSleepSessions && sessionInfo.getHibernate())
+			sessionItem.setForeground(shadowItemColor);
+		
+		String id = sessionItem.getText(1).concat("*").concat(sessionItem.getText(2));
+		if (watchedSessions.contains(id)) {
+			sessionItem.setChecked(true);
+			sessionItem.setForeground(watchedSessionColor);
+		}
 		
 		switch (sessionInfo.getAppId()) {
 			case Server.THIN_CLIENT:
@@ -1849,227 +1746,103 @@ public class ViewerArea extends Composite {
 		}
 	}
 	
-	
-	private void addConnectionInTable(Server server, UUID clusterId, UUID infobaseId, IInfoBaseConnectionShort connectionInfo) {
-		TableItem connectionItem = new TableItem(tableConnections, SWT.NONE);
-
-		String infobaseName = ""; //$NON-NLS-1$
-		if (infobaseId == null && !connectionInfo.getInfoBaseId().equals(emptyUuid)) {
-			infobaseId = connectionInfo.getInfoBaseId();
-			infobaseName = server.getInfoBaseName(clusterId, infobaseId);
-		}
+	private void addConnectionInTable(Server server, UUID clusterId, UUID infobaseId, IInfoBaseConnectionShort connectionInfo, List<IWorkingProcessInfo> workingProcesses) {
 		
-		String[] itemText = {
-							infobaseName,
-							Integer.toString(connectionInfo.getConnId()),
-							Integer.toString(connectionInfo.getSessionNumber()),
-							connectionInfo.getHost(),
-							server.getApplicationName(connectionInfo.getApplication()),
-							connectionInfo.getConnectedAt().toString(),
-							convertUuidToString(connectionInfo.getInfoBaseConnectionId()),
-							convertUuidToString(connectionInfo.getWorkingProcessId())
-							};
-
-		connectionItem.setText(itemText);
-		connectionItem.setData(SERVER_INFO, 	server);
-		connectionItem.setData(CLUSTER_ID, 		clusterId);
+		ConnectionInfoExtended sessionInfoExtended = new ConnectionInfoExtended(server, clusterId, infobaseId, connectionInfo, workingProcesses, connectionColumnsMap);
+		
+		var connectionItem = new TableItem(tableConnections, SWT.NONE);
+		connectionItem.setText(sessionInfoExtended.getExtendedInfo());
+		connectionItem.setData(SERVER_INFO, server);
+		connectionItem.setData(CLUSTER_ID, clusterId);
 		connectionItem.setData(WORKINGPROCESS_ID, connectionInfo.getWorkingProcessId());
-		connectionItem.setData(INFOBASE_ID,		infobaseId);
-		connectionItem.setData(CONNECTION_ID, 	connectionInfo.getInfoBaseConnectionId());
+		connectionItem.setData(INFOBASE_ID, connectionInfo.getInfoBaseId());
+		connectionItem.setData(CONNECTION_ID, connectionInfo.getInfoBaseConnectionId());
 		connectionItem.setImage(connectionIcon);
 		connectionItem.setChecked(false);
+		
+		if (IInfoExtended.highlightItem(connectionInfo.getConnectedAt()))
+			connectionItem.setForeground(newItemColor);		
+		
 	}
 	
-	
 	private void addLocksInTable(Server server, UUID clusterId, UUID infobaseId, IObjectLockInfo lockInfo, List<ISessionInfo> sessionsInfo, List<IInfoBaseConnectionShort> connections) {
-		var lockItem = new TableItem(tableLocks, SWT.NONE);
-
-		var connectionNumber = ""; //$NON-NLS-1$
-		var sessionNumber = ""; //$NON-NLS-1$
-		var computerName = ""; //$NON-NLS-1$
-		var appName = ""; //$NON-NLS-1$
-		var hostName = ""; //$NON-NLS-1$
-		var hostPort = ""; //$NON-NLS-1$
-		var infobaseName = ""; //$NON-NLS-1$
-
-		if (!lockInfo.getSid().equals(emptyUuid)) {
-			ISessionInfo session = getSessionInfoFromLockConnectionId(lockInfo, sessionsInfo);
-			sessionNumber = Integer.toString(session.getSessionId());
-			
-			appName = session.getAppId();
-			computerName = session.getHost();
-//			wpId = session.getWorkingProcessId();
-		} else if (!lockInfo.getConnectionId().equals(emptyUuid)) {
-			IInfoBaseConnectionShort connection = getConnectionInfoFromLockConnectionId(lockInfo, connections);
-			
-			if (connection != null) {
-				connectionNumber = Integer.toString(connection.getConnId());
-				
-				appName = connection.getApplication();
-				computerName = connection.getHost();
-				
-				UUID wpId = connection.getWorkingProcessId();
-				IWorkingProcessInfo wpInfo = server.getWorkingProcessInfo(clusterId, wpId);
-				hostName = wpInfo.getHostName();
-				hostPort = Integer.toString(wpInfo.getMainPort());
-			
-				infobaseName = server.getInfoBaseName(clusterId, connection.getInfoBaseId());
-			}
-
-		} else {
-		}
-					
-		String lockDescr = lockInfo.getLockDescr();
-		Date lockedAt = lockInfo.getLockedAt();
-//		UUID lockedObject = lockInfo.getObject(); // Почему то всегда нули
 		
-		String[] itemText = {
-				lockDescr,
-				infobaseName,
-				connectionNumber,
-				sessionNumber,
-				computerName,
-				server.getApplicationName(appName),
-				hostName,
-				hostPort,
-				lockedAt.toString()
-				};
-
-		lockItem.setText(itemText);
-		lockItem.setData(CLUSTER_ID, 		clusterId);
-		lockItem.setData(INFOBASE_ID,		infobaseId);
+		LockInfoExtended lockInfoExtended = new LockInfoExtended(server, clusterId, infobaseId, lockInfo, sessionsInfo, connections, lockColumnsMap);
+		
+		var lockItem = new TableItem(tableLocks, SWT.NONE);
+		lockItem.setText(lockInfoExtended.getExtendedInfo());
+		lockItem.setData(CLUSTER_ID, clusterId);
+		lockItem.setData(INFOBASE_ID, infobaseId);
 		lockItem.setData("IObjectLockInfo", lockInfo); //$NON-NLS-1$
 		lockItem.setImage(locksIcon);
 		lockItem.setChecked(false);
+		
+		if (IInfoExtended.highlightItem(lockInfo.getLockedAt()))
+			lockItem.setForeground(newItemColor);		
+		
 	}
 	
-	private void addWorkingProcessInTable(Server server, UUID clusterId, IWorkingProcessInfo workingProcess) {
-		TableItem connectionItem = new TableItem(tableWorkingProcesses, SWT.NONE);
-		
-		String isUse;
-		switch (workingProcess.getUse()) {
-			case 0:
-				isUse = Messages.getString("ViewerArea.NotUsed"); //$NON-NLS-1$
-				break;
-			case 1:
-				isUse = Messages.getString("ViewerArea.Used"); //$NON-NLS-1$
-				break;
-			case 2:
-				isUse = Messages.getString("ViewerArea.UsedAsAReserve"); //$NON-NLS-1$
-				break;
-			default:
-				isUse = Messages.getString("ViewerArea.NotUsed"); //$NON-NLS-1$
-				break;
-		}
-		String isRunning;
-		switch (workingProcess.getRunning()) {
-			case 0:
-				isRunning = Messages.getString("ViewerArea.ProcessIsStopped"); //$NON-NLS-1$
-				break;
-			case 1:
-				isRunning = Messages.getString("ViewerArea.ProcessIsRunning"); //$NON-NLS-1$
-				break;
-			default:
-				isRunning = Messages.getString("ViewerArea.ProcessIsStopped"); //$NON-NLS-1$
-				break;
-		}
-		
-		String[] itemText = {
-				workingProcess.getHostName(),
-				Integer.toString(workingProcess.getMainPort()),
-				isUse,
-				Boolean.toString(workingProcess.isEnable()),
-				isRunning,
-				workingProcess.getPid(),
-				Integer.toString(workingProcess.getMemorySize()),
-				Long.toString(workingProcess.getMemoryExcessTime()),
-				Integer.toString(workingProcess.getAvailablePerfomance())
-				};
+	private void addWorkingProcessInTable(Server server, UUID clusterId, IWorkingProcessInfo workingProcessInfo) {
+				
+		WorkingProcessInfoExtended wpInfoExtended = new WorkingProcessInfoExtended(server, clusterId, workingProcessInfo, wpColumnsMap);
 
-		connectionItem.setText(itemText);
-		connectionItem.setData(SERVER_INFO, 	server);
-		connectionItem.setData(CLUSTER_ID, 		clusterId);
-		connectionItem.setData(WORKINGPROCESS_ID, workingProcess.getWorkingProcessId());
-		connectionItem.setImage(workingProcessIcon);
-		connectionItem.setChecked(false);
+		var wpItem = new TableItem(tableWorkingProcesses, SWT.NONE);
+		wpItem.setText(wpInfoExtended.getExtendedInfo());
+		wpItem.setData(SERVER_INFO, server);
+		wpItem.setData(CLUSTER_ID, clusterId);
+		wpItem.setData(WORKINGPROCESS_ID, workingProcessInfo.getWorkingProcessId());
+		wpItem.setImage(workingProcessIcon);
+		wpItem.setChecked(false);
+		
+		if (IInfoExtended.highlightItem(workingProcessInfo.getStartedAt()))
+			wpItem.setForeground(newItemColor);		
+		
 	}
 	
-	private void addWorkingServerInTable(Server server, UUID clusterId, IWorkingServerInfo workingServer) {
-		TableItem connectionItem = new TableItem(tableWorkingServers, SWT.NONE);
+	private void addWorkingServerInTable(Server server, UUID clusterId, IWorkingServerInfo workingServerInfo) {
 		
-		IPortRangeInfo portRangesInfo = workingServer.getPortRanges().get(0);
-		String portRanges = Integer.toString(portRangesInfo.getLowBound()).concat(":").concat(Integer.toString(portRangesInfo.getHighBound())); //$NON-NLS-1$
-	
-		String[] itemText = {
-				workingServer.getName(),
-				workingServer.getHostName(),
-				Integer.toString(workingServer.getMainPort()),
-				portRanges,
-				Integer.toString(workingServer.getInfoBasesPerWorkingProcessLimit()),
-				Integer.toString(workingServer.getConnectionsPerWorkingProcessLimit()),
-				Integer.toString(workingServer.getClusterMainPort()),
-				Boolean.toString(workingServer.isDedicatedManagers()),
-				Boolean.toString(workingServer.isMainServer())
-				};
-
-		connectionItem.setText(itemText);
-		connectionItem.setData(SERVER_INFO, 	server);
-		connectionItem.setData(CLUSTER_ID, 		clusterId);
-		connectionItem.setData(WORKINGSERVER_ID, workingServer.getWorkingServerId());
+		WorkingServerInfoExtended wsInfoExtended = new WorkingServerInfoExtended(server, clusterId, workingServerInfo, wsColumnsMap);
+		
+		var connectionItem = new TableItem(tableWorkingServers, SWT.NONE);
+		connectionItem.setText(wsInfoExtended.getExtendedInfo());
+		connectionItem.setData(SERVER_INFO, server);
+		connectionItem.setData(CLUSTER_ID, clusterId);
+		connectionItem.setData(WORKINGSERVER_ID, workingServerInfo.getWorkingServerId());
 		connectionItem.setImage(workingServerIcon);
 		connectionItem.setChecked(false);
 	}
 	
-	
-
-	private void addTableColumn(Table table, String text, int width) {
+	private void addTableColumn(Table table, String text, int[] columnWidth, boolean[] columnVisible) {
 		var newColumn = new TableColumn(table, SWT.NONE);
 		newColumn.setText(text);
-		newColumn.setWidth(width);
 		newColumn.setMoveable(true);
+		newColumn.setAlignment(SWT.RIGHT);
+		
+		int numOfColumn = table.getColumnCount() - 1;
+		
+		if (columnVisible != null && columnVisible[numOfColumn]) {
+			newColumn.setResizable(true);
+			newColumn.setWidth(
+//					columnWidth == null
+//					|| columnWidth.length <= table.getColumnCount()
+//					||
+					columnWidth[numOfColumn] == 0
+							? 100 : columnWidth[numOfColumn]);
+		} else {
+			newColumn.setResizable(false);
+			newColumn.setWidth(0);
+		}
+		
+		newColumn.addListener(SWT.Move, columnMoveListener);
+		newColumn.addListener(SWT.Resize, columnResizeListener);
+//		newColumn.addControlListener(columnResizeListener);
+		
 	}
 	
 	private TreeItemType getTreeItemType(TreeItem item) {
 		return (TreeItemType) item.getData("Type"); //$NON-NLS-1$
 	}
-
-	private ISessionInfo getSessionInfoFromLockConnectionId(IObjectLockInfo lockInfo, List<ISessionInfo> sessionsInfo) {
-		
-		for (ISessionInfo session : sessionsInfo) {
-			if (session.getSid().equals(lockInfo.getSid()))
-				return session;
-		}
-		return null;
-	}
 	
-
-	private IInfoBaseConnectionShort getConnectionInfoFromLockConnectionId(IObjectLockInfo lockInfo, List<IInfoBaseConnectionShort> connections) {
-		
-		for (IInfoBaseConnectionShort connection : connections) {
-			if (connection.getInfoBaseConnectionId().equals(lockInfo.getConnectionId()))
-				return connection;
-		}
-		return null;
-	}
-
-	private TreeItem getParentItem(TreeItem currentItem, TreeItemType itemType) {
-		
-		if (getTreeItemType(currentItem) == itemType)
-			return currentItem;
-		
-		TreeItem parentItem = currentItem.getParentItem();
-		while (parentItem != null) {
-			
-			if (getTreeItemType(parentItem) == itemType)
-				return parentItem;
-			else 
-				parentItem = parentItem.getParentItem();
-		}
-		throw new IllegalStateException("Error get ParentItem from currentItem."); //$NON-NLS-1$
-//		return null;
-	}
-	
-
 	private Server getCurrentServerConfig(TreeItem item) {
 		
 		if (getTreeItemType(item) == TreeItemType.SERVER)
@@ -2144,12 +1917,6 @@ public class ViewerArea extends Composite {
 			return null;
 	}
 	
-	
-	private String convertUuidToString(UUID uuid) {
-		return uuid.equals(emptyUuid) ? "" : uuid.toString(); //$NON-NLS-1$
-	}
-	
-
 	private void disposeTreeItemWithChildren(TreeItem item) {
 		TreeItem[] childItems = item.getItems();
 		for (TreeItem childItem : childItems) {
@@ -2159,12 +1926,10 @@ public class ViewerArea extends Composite {
 		item.dispose();
 	}
 	
-	
 	private Image getImage(String name) {
 		return new Image(getParent().getDisplay(), this.getClass().getResourceAsStream("/icons/".concat(name))); //$NON-NLS-1$
 	}
 	
-
 	private void connectToAllServers(boolean connectAll) {
 		
 		TreeItem[] serversItem = serversTree.getItems();
@@ -2233,7 +1998,6 @@ public class ViewerArea extends Composite {
 		clearTabs();
 		switch (getTreeItemType(treeItem)) {
 			case SERVER:
-//				clearTabs();
 				return;
 				
 			case CLUSTER:
@@ -2277,12 +2041,11 @@ public class ViewerArea extends Composite {
 				connections = server.getInfoBaseConnectionsShort(clusterId, infobaseId);
 				locks = server.getInfoBaseLocks(clusterId, infobaseId);
 				
-				workingProcesses = server.getWorkingProcesses(clusterId);
+				workingProcesses = server.getWorkingProcesses(clusterId); // TODO отметить рп обслуживающий базу
 				workingServers = server.getWorkingServers(clusterId);
 				break;
 				
 			default:
-//				clearTabs();
 				return;
 		}
 
@@ -2295,7 +2058,7 @@ public class ViewerArea extends Composite {
 		if (currentTabitem.equals(tabSessions))
 			sessions.forEach(session -> addSessionInTable(server, clusterId, infobaseId, session, connections));
 		else if (currentTabitem.equals(tabConnections))
-			connections.forEach(connection -> addConnectionInTable(server, clusterId, infobaseId, connection));
+			connections.forEach(connection -> addConnectionInTable(server, clusterId, infobaseId, connection, workingProcesses));
 		else if (currentTabitem.equals(tabLocks))
 			locks.forEach(lock -> addLocksInTable(server, clusterId, infobaseId, lock, sessions, connections));
 		else if (currentTabitem.equals(tabWorkingProcesses))
@@ -2305,17 +2068,17 @@ public class ViewerArea extends Composite {
 		
 	}
 
+	private void addMenuSeparator(Menu menu) {
+		new MenuItem(menu, SWT.SEPARATOR);
+	}
+	
 	private void highlightTreeItem(TreeItem treeItem) {
 		if (Objects.isNull(currentTreeItem) || !currentTreeItem.equals(treeItem)) {
 			
 			if (Objects.nonNull(currentTreeItem) && !currentTreeItem.isDisposed()) {
-				var font = new Font(getDisplay(), systemFontData.getName(), systemFontData.getHeight(), SWT.NORMAL);
-				currentTreeItem.setFont(font);
+				currentTreeItem.setFont(fontNormal);
 			}
-			
-			var font = new Font(getDisplay(), systemFontData.getName(), systemFontData.getHeight(), SWT.BOLD);
-			treeItem.setFont(font);
-			
+			treeItem.setFont(fontBold);
 			currentTreeItem = treeItem;
 		}
 	}
@@ -2383,6 +2146,185 @@ public class ViewerArea extends Composite {
 		}
 	}
 
-	
+	Listener columnMoveListener = new Listener() {
+		public void handleEvent(Event e) {
+			
+			TableColumn column = (TableColumn) e.widget;
+			Table currentTable = column.getParent();
+			
+			if (currentTable.equals(tableSessions))
+				ClusterProvider.getCommonConfig().setSessionsColumnOrder(tableSessions.getColumnOrder());
+			else if (currentTable.equals(tableConnections))
+				ClusterProvider.getCommonConfig().setConnectionsColumnOrder(tableConnections.getColumnOrder());
+			else if (currentTable.equals(tableLocks))
+				ClusterProvider.getCommonConfig().setLocksColumnOrder(tableLocks.getColumnOrder());
+			else if (currentTable.equals(tableWorkingProcesses))
+				ClusterProvider.getCommonConfig().setWorkingProcessesColumnOrder(tableWorkingProcesses.getColumnOrder());
+			else if (currentTable.equals(tableWorkingServers))
+				ClusterProvider.getCommonConfig().setWorkingServersColumnOrder(tableWorkingServers.getColumnOrder());
 
+//			clusterProvider.saveConfig();
+		}
+	};
+	
+	Listener columnResizeListener = new Listener() {
+		public void handleEvent(Event e) {
+			
+			TableColumn column = (TableColumn) e.widget;
+			int newWidth = column.getWidth();
+			Table currentTable = column.getParent();
+			TableColumn[] columns = currentTable.getColumns();
+			
+			for (int i = 0; i < columns.length; i++) {
+				if (columns[i].getText().equals(column.getText())) {
+					if (currentTable.equals(tableSessions))
+						ClusterProvider.getCommonConfig().setSessionsColumnWidth(i, newWidth);
+					else if (currentTable.equals(tableConnections))
+						ClusterProvider.getCommonConfig().setConnectionsColumnWidth(i, newWidth);
+					else if (currentTable.equals(tableLocks))
+						ClusterProvider.getCommonConfig().setLocksColumnWidth(i, newWidth);
+					else if (currentTable.equals(tableWorkingProcesses))
+						ClusterProvider.getCommonConfig().setWorkingProcessesColumnWidth(i, newWidth);
+					else if (currentTable.equals(tableWorkingServers))
+						ClusterProvider.getCommonConfig().setWorkingServersColumnWidth(i, newWidth);
+					break;
+				}
+			}
+//			clusterProvider.saveConfig();
+		}
+	};
+	
+//	ControlAdapter columnResizeListener = new ControlAdapter() {
+//		@Override
+//		public void controlResized(ControlEvent e) {
+//			TableColumn w = (TableColumn) e.widget;
+//			int width = w.getWidth();
+//			TableColumn[] columns = w.getParent().getColumns();
+//			
+//			for (int i = 0; i < columns.length; i++) {
+//				if (columns[i].getText().equals(w.getText())) {
+//					ClusterProvider.getCommonConfig().setSessionsColumnWidth(i, width);
+//					break;
+//				}
+//			}
+////			clusterProvider.saveConfig();
+//		}
+//	};
+	
+	SelectionAdapter deleteItemListener = new SelectionAdapter() {
+		@Override
+		public void widgetSelected(SelectionEvent e) {
+			deleteSelectSession();
+		}
+	};
+	
+	SelectionAdapter updateItemListener = new SelectionAdapter() {
+		@Override
+		public void widgetSelected(SelectionEvent e) {
+			clickItemInServerTree(1);
+		}
+	};
+	
+	SelectionAdapter editItemListener = new SelectionAdapter() {
+		@Override
+		public void widgetSelected(SelectionEvent e) {
+			
+			Table currentTable = null;
+			
+			if (currentTabitem.equals(tabSessions))
+				currentTable = tableSessions;
+			else if (currentTabitem.equals(tabConnections))
+				currentTable = tableConnections;
+			else if (currentTabitem.equals(tabWorkingServers))
+				currentTable = tableWorkingServers;
+
+			if (currentTable == null)
+				return;
+
+			TableItem[] item = currentTable.getSelection();
+			if (item.length == 0)
+				return;
+			
+			if (currentTable.equals(tableSessions)) {
+			
+				Server server = (Server) item[0].getData(SERVER_INFO);
+				UUID clusterId = (UUID) item[0].getData(CLUSTER_ID);
+				UUID sessionId = (UUID) item[0].getData(SESSION_ID);
+				ISessionInfo sessionInfo = (ISessionInfo) item[0].getData("sessionInfo");
+				
+				SessionInfoDialog editClusterDialog;
+				try {
+					editClusterDialog = new SessionInfoDialog(getParent().getDisplay().getActiveShell(), server, clusterId, sessionId, sessionInfo);
+				} catch (Exception excp) {
+					excp.printStackTrace();
+					LOGGER.error("Error init SessionInfoDialog for session id {}", sessionId, excp); //$NON-NLS-1$
+					return;
+				}
+				
+				int dialogResult = editClusterDialog.open();
+				if (dialogResult == 0) {
+				}
+			} else if (currentTable.equals(tableWorkingServers)) {
+				Server server = (Server) item[0].getData(SERVER_INFO);
+				UUID clusterId = (UUID) item[0].getData(CLUSTER_ID);
+				UUID workingServerId = (UUID) item[0].getData(WORKINGSERVER_ID);
+				
+				CreateEditWorkingServerDialog editClusterDialog;
+				try {
+					editClusterDialog = new CreateEditWorkingServerDialog(getParent().getDisplay().getActiveShell(), server, clusterId, workingServerId);
+				} catch (Exception excp) {
+					excp.printStackTrace();
+					LOGGER.error("Error init WorkingServerDialog for cluster id {}", workingServerId, excp); //$NON-NLS-1$
+					return;
+				}
+				
+				int dialogResult = editClusterDialog.open();
+				if (dialogResult == 0) {
+				}
+			
+			}
+
+		}
+	};
+	
+	KeyAdapter keyListener = new KeyAdapter() {
+		@Override
+		public void keyPressed(KeyEvent e) {
+			
+			final int keyC = 99;
+			
+			switch (e.keyCode) {
+				case SWT.F2:
+					editItemListener.widgetSelected(null);
+					break;
+				
+				case SWT.F5:
+					clickItemInServerTree(1);
+					break;
+				
+				case SWT.DEL:
+//					deleteSelectSession();
+					deleteItemListener.widgetSelected(null);
+					break;
+				
+				case keyC:
+//					if (e.stateMask == SWT.CTRL) {
+//						TableItem[] selection = tableSessions.getSelection();
+//						
+//						if (selection.length > 0) {
+//				            Clipboard clipboard = new Clipboard(Display.getDefault());
+//				            clipboard.setContents(new Object[] { selection[0].getText() }, new Transfer[] { TextTransfer.getInstance() });
+//				            clipboard.dispose();
+//						}
+//					}
+					break;
+				
+				default:
+					break;
+			}
+		}
+	};
+	
+	
+	
 }
