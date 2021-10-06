@@ -37,6 +37,7 @@ public class SettingsDialog extends Dialog {
 	private Button btnLocaleSystem;
 	private Button btnLocaleEnglish;
 	private Button btnLocaleRussian;
+	private Button btnReadClipboard;
 	
 	/**
 	 * Create the dialog.
@@ -126,9 +127,10 @@ public class SettingsDialog extends Dialog {
 		
 		btnLocaleRussian = new Button(grpLocale, SWT.RADIO);
 		btnLocaleRussian.setText(Messages.getString("SettingsDialog.Russian")); //$NON-NLS-1$
-		new Label(container, SWT.NONE);
-		new Label(container, SWT.NONE);
-
+		
+		btnReadClipboard = new Button(container, SWT.CHECK);
+		btnReadClipboard.setText(Messages.getString("SettingsDialog.ReadClipboard"));
+		
 		initProperties();
 		
 		return container;
@@ -149,6 +151,7 @@ public class SettingsDialog extends Dialog {
 		btnShowServerDescription.setSelection(config.showServerDescription);
 		btnShowInfobaseDescription.setSelection(config.showInfobaseDescription);
 		btnShowLocalRasConnectInfo.setSelection(config.showLocalRasConnectInfo);
+		btnReadClipboard.setSelection(config.readClipboard);
 		
 		if (config.locale == null) {
 			btnLocaleSystem.setSelection(true);
@@ -173,6 +176,7 @@ public class SettingsDialog extends Dialog {
 		config.showServerDescription = btnShowServerDescription.getSelection();
 		config.showInfobaseDescription = btnShowInfobaseDescription.getSelection();
 		config.showLocalRasConnectInfo = btnShowLocalRasConnectInfo.getSelection();
+		config.readClipboard = btnReadClipboard.getSelection();
 		
 		if (btnLocaleSystem.getSelection())
 			config.locale = null;
