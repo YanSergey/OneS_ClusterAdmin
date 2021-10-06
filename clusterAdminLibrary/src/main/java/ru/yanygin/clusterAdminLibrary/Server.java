@@ -663,20 +663,17 @@ public class Server {
 					"The cluster administrator is not authenticated"
 			};
 			for (String rightString : rightStrings) {
-				if (excp.getLocalizedMessage().contains(rightString)) {
+				if (excp.getLocalizedMessage().toLowerCase().contains(rightString.toLowerCase())) {
 					needAuthenticate = true;
 					break;
 				}
 			}
-			
-//			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCluster")) || //$NON-NLS-1$
-//					excp.getLocalizedMessage().contains(Messages.getString("Server.ClusterAdminIsNotAuthenticate"))) //$NON-NLS-1$
-//				needAuthenticate = true;
 		}
 		
 		if (needAuthenticate)
 			return authenticateCluster(clusterId);
 		
+		// TODO вывести ошибку пользователю
 		return false;
 	}
 
@@ -1362,8 +1359,8 @@ public class Server {
 			return null;
 		
 		ISessionInfo sessionInfo;
-		try {
-			sessionInfo = agentConnection.getSessionInfo(clusterId, sid); // TODO debug
+		try { // TODO debug
+			sessionInfo = agentConnection.getSessionInfo(clusterId, sid);
 		} catch (Exception excp) {
 			LOGGER.error("Error get the list of cluster session descriptions", excp); //$NON-NLS-1$
 			return null;
@@ -1439,8 +1436,8 @@ public class Server {
 	 * @param sessionId infobase ID
 	 * @param message   error message for user
 	 */
-	public void terminateSession(UUID clusterId, UUID sessionId) {
-		terminateSession(clusterId, sessionId, Messages.getString("Server.TerminateSessionMessage")); //$NON-NLS-1$
+	public boolean terminateSession(UUID clusterId, UUID sessionId) {
+		return terminateSession(clusterId, sessionId, Messages.getString("Server.TerminateSessionMessage")); //$NON-NLS-1$
 	}
 	
 	/**
@@ -1451,20 +1448,25 @@ public class Server {
 	 * @param sessionId infobase ID
 	 * @param message   error message for user
 	 */
-	public void terminateSession(UUID clusterId, UUID sessionId, String message) {
+	public boolean terminateSession(UUID clusterId, UUID sessionId, String message) {
 		LOGGER.debug("Terminates a session <{}> in the cluster <{}>", sessionId, clusterId); //$NON-NLS-1$
 		if (!isConnected())
-			return;
+			return false;
 		
 		if (!checkAutenticateCluster(clusterId))
-			return;
+			return false;
 		
 		try {
 			agentConnection.terminateSession(clusterId, sessionId, message);
 		} catch (Exception excp) {
 			LOGGER.error("Error terminate a session", excp); //$NON-NLS-1$
+			MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
+			messageBox.setMessage(excp.getLocalizedMessage());
+			messageBox.open();
+			return false;
 		}
-		LOGGER.debug("Session <{}> in the cluster <{} is terminate>", sessionId, clusterId); //$NON-NLS-1$
+		LOGGER.debug("Terminates a session succesful"); //$NON-NLS-1$
+		return true;
 	}
 	
 	/**
@@ -1585,14 +1587,16 @@ public class Server {
 			return false;
 		
 
-		try { // TODO debug
+		try {
 			agentConnection.disconnect(clusterId, processId, connectionId);
 		} catch (Exception excp) {
 			LOGGER.error("Error close connection", excp); //$NON-NLS-1$
 			MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
 			messageBox.setMessage(excp.getLocalizedMessage());
 			messageBox.open();
+			return false;
 		}
+		LOGGER.debug("Close connection succesful"); //$NON-NLS-1$
 		return true;
 	}
 	
@@ -1917,10 +1921,13 @@ public class Server {
 			agentConnection.unregWorkingServer(clusterId, serverId);
 		} catch (Exception excp) {
 			LOGGER.error("Error registration working server", excp); //$NON-NLS-1$
-			throw excp;
+			MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
+			messageBox.setMessage(excp.getLocalizedMessage());
+			messageBox.open();
+			return false;
 		}
 		
-		LOGGER.debug("Registration working server succesful"); //$NON-NLS-1$
+		LOGGER.debug("Unregistration working server succesful"); //$NON-NLS-1$
 		return true;
 	}
 	
