@@ -92,6 +92,7 @@ public class ViewerArea extends Composite {
 	Menu serverMenu;
 	MenuItem menuItemConnectServer;
 	MenuItem menuItemDisconnectServer;
+	MenuItem menuItemShowConnectionError;
 	Menu clusterMenu;
 	Menu workingServerMenu;
 	Menu infobaseNodeMenu;
@@ -428,6 +429,7 @@ public class ViewerArea extends Composite {
 				TreeItem serverItem = item[0];
 				Server server = getCurrentServerConfig(serverItem);
 				boolean serverIsConnected = server.isConnected();
+				boolean serverIsErrorConnected = !server.getConnectionError().isBlank();
 
 				MenuItem[] menuItems = serverMenu.getItems();
 
@@ -437,6 +439,9 @@ public class ViewerArea extends Composite {
 
 					if (menuItem == menuItemDisconnectServer)
 						menuItem.setEnabled(serverIsConnected);
+
+					if (menuItem == menuItemShowConnectionError)
+						menuItem.setEnabled(serverIsErrorConnected);
 				}
 
 			}
@@ -481,7 +486,7 @@ public class ViewerArea extends Composite {
 					return;
 				TreeItem serverItem = item[0];
 				
-				connectServerItem(serverItem);
+				connectServerItem(serverItem, false);
 
 			}
 		});
@@ -499,6 +504,25 @@ public class ViewerArea extends Composite {
 					return;
 				TreeItem serverItem = item[0];
 				disconnectServerItem(serverItem);
+
+			}
+			
+		});
+		
+		menuItemShowConnectionError = new MenuItem(serverMenu, SWT.NONE);
+		menuItemShowConnectionError.setText(Messages.getString("ViewerArea.ShowConnectionError")); //$NON-NLS-1$
+		menuItemShowConnectionError.setEnabled(false);
+		menuItemShowConnectionError.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent event) {
+
+				TreeItem[] item = serversTree.getSelection();
+				if (item.length == 0)
+					return;
+				
+				var messageBox = new MessageBox(Display.getDefault().getActiveShell());
+				messageBox.setMessage(getCurrentServerConfig(item[0]).getConnectionError());
+				messageBox.open();
 
 			}
 			
@@ -2172,7 +2196,7 @@ public class ViewerArea extends Composite {
 		for (TreeItem serverItem : serversItem) {
 			Server server = getCurrentServerConfig(serverItem);
 			if ((connectAll || server.autoconnect) && !server.isConnected())
-				connectServerItem(serverItem);
+				connectServerItem(serverItem, true);
 		}
 	}
 
@@ -2185,7 +2209,7 @@ public class ViewerArea extends Composite {
 		}
 	}
 	
-	private void connectServerItem(TreeItem serverItem) {
+	private void connectServerItem(TreeItem serverItem, boolean silentMode) {
 		
 		// async не работает асинхронно
 		serverItem.setImage(serverIconConnecting);
@@ -2195,7 +2219,7 @@ public class ViewerArea extends Composite {
             public void run() {
 			
 				Server server = getCurrentServerConfig(serverItem);
-				server.connectAndAuthenticate(false);
+				server.connectToServer(false, silentMode);
 		
 				serverItem.setImage(server.isConnected() ? serverIconUp : serverIconDown);
 				serverItem.setText(new String[] { server.getDescription()});
