@@ -128,15 +128,11 @@ public class Config {
 	}
 	
 	public void connectAllServers() {
-		servers.forEach((server, config) -> {
-			config.connectAndAuthenticate(false);
-		});
+		servers.forEach((serverKey, server) -> server.connectToServer(false, true));
 	}
 	
 	public void checkConnectionAllServers() {
-		servers.forEach((server, config) -> {
-			config.connectAndAuthenticate(true);
-		});
+		servers.forEach((serverKey, server) -> server.connectToServer(true, true));
 	}
 	
 	public boolean isWindows() {

@@ -2,7 +2,6 @@ package ru.yanygin.clusterAdminLibrary;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -81,10 +80,6 @@ public class Server {
 	@Expose
 	public String localRasV8version;
 	
-	@SerializedName("LocalRasPath")
-	@Expose
-	public String localRasPath;
-	
 	@SerializedName("Autoconnect")
 	@Expose
 	public boolean autoconnect;
@@ -107,11 +102,15 @@ public class Server {
 	
 	public Map<UUID, String[]> credentialsInfobasesCashe;
 	
-	public boolean available;
+	private boolean available;
 	private Process localRASProcess;
 	
-	public String connectionError;
+	private String connectionError;
 	
+	public String getConnectionError() {
+		return connectionError;
+	}
+
 	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
 	private static UUID emptyUuid = UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
 	
@@ -166,11 +165,8 @@ public class Server {
 		this.useLocalRas		= false;
 		this.localRasPort		= 0;
 		this.localRasV8version	= ""; //$NON-NLS-1$
-		this.localRasPath		= ""; //$NON-NLS-1$
 		this.autoconnect		= false;
 		this.available			= false;
-//		this.agentUserName		= "";
-//		this.agentPassword		= "";
 		this.saveCredentials	= false;
 		this.agentVersion		= ""; //$NON-NLS-1$
 		
@@ -194,7 +190,9 @@ public class Server {
 		
 		if (this.credentialsClustersCashe == null)
 			this.credentialsClustersCashe = new HashMap<>();
-		
+
+		this.connectionError	= ""; //$NON-NLS-1$
+
 		LOGGER.info("Server <{}> init done", this.getServerKey()); //$NON-NLS-1$
 		
 	}
@@ -205,37 +203,7 @@ public class Server {
 		return agentHost.concat(":").concat(Integer.toString(agentPort)); //$NON-NLS-1$
 	}
 	
-	public String getServerDescriptionOld() {
-		var rasPortString = ""; //$NON-NLS-1$
-		if (useLocalRas) {
-			rasPortString = "(*".concat(Integer.toString(localRasPort)).concat(")"); //$NON-NLS-1$ //$NON-NLS-2$
-		} else {
-			rasPortString = Integer.toString(this.rasPort);
-		}
-		
-		var serverDescriptionPattern = isConnected() ? "%s:%s-%s (%s)" : "%s:%s-%s"; //$NON-NLS-1$ //$NON-NLS-2$
-		
-		return String.format(serverDescriptionPattern, agentHost, Integer.toString(agentPort), rasPortString, agentVersion);
-		
-	}
-	
-	public String getDescriptionOld() {
-
-		String serverDescriptionPattern;
-		String serverDescription;
-		
-		if (useLocalRas) {
-			serverDescriptionPattern = isConnected() ? "(local-RAS:%s)->%s:%s (%s)" : "(local-RAS:%s)->%s:%s"; //$NON-NLS-1$ //$NON-NLS-2$
-			serverDescription = String.format(serverDescriptionPattern, getLocalRasPortAsString(), agentHost, getAgentPortAsString(), agentVersion);
-		} else {
-			serverDescriptionPattern = isConnected() ? "%s:%s (%s)" : "%s:%s"; //$NON-NLS-1$ //$NON-NLS-2$
-			serverDescription = String.format(serverDescriptionPattern, agentHost, getAgentPortAsString(), agentVersion);
-		}
-		return serverDescription;
-		
-	}
-	
-	public String getDescription() { // TODO
+	public String getDescription() {
 		
 		var commonConfig 	= ClusterProvider.getCommonConfig();
 		
@@ -265,6 +233,18 @@ public class Server {
 		}
 	}
 	
+	private String getLocalisedMessage(Throwable excp) {
+		
+		Throwable cause = excp.getCause();
+		while (cause.getCause() != null) {
+			cause = cause.getCause();
+			if (cause instanceof java.nio.channels.UnresolvedAddressException)
+				return Messages.getString("Server.UnresolvedAddress"); //$NON-NLS-1$
+		}
+		return cause.getLocalizedMessage();
+	}
+	
+	
 	public boolean isFifteenOrOlderAgentVersion() {
 		return agentVersion.compareTo("8.3.15") >= 0; //$NON-NLS-1$
 	}
@@ -288,7 +268,6 @@ public class Server {
 										boolean useLocalRas,
 										int localRasPort,
 										String localRasV8version,
-//										String localRasPath,
 										boolean autoconnect,
 										boolean saveCredentials,
 										String agentUser,
@@ -302,15 +281,14 @@ public class Server {
 		this.useLocalRas				= useLocalRas;
 		this.localRasPort				= localRasPort;
 		this.localRasV8version			= localRasV8version;
-//		this.localRasPath				= localRasPath;
 		this.autoconnect				= autoconnect;
 		this.saveCredentials			= saveCredentials;
 		this.agentUserName				= agentUser;
 		this.agentPassword				= agentPassword;
 		this.credentialsClustersCashe	= credentialsClustersCashe;
 		
-		if (this.autoconnect)
-			connectAndAuthenticate(false);
+//		if (this.autoconnect)
+//			connectAndAuthenticate(false);
 		
 		LOGGER.info("Set new properties for server <{}>", this.getServerKey()); //$NON-NLS-1$
 	}
@@ -409,8 +387,8 @@ public class Server {
 		return isConnected;
 	}
 	
-	public boolean connectAndAuthenticate(boolean disconnectAfter) { // TODO здесь аутентификации не делается же?
-		LOGGER.debug("Server <{}> start connection", this.getServerKey()); //$NON-NLS-1$
+	public boolean connectToServer(boolean disconnectAfter, boolean silentMode) {
+		LOGGER.debug("<{}> start connection", this.getServerKey()); //$NON-NLS-1$
 		
 		if (isConnected())
 			return true;
@@ -418,18 +396,27 @@ public class Server {
 		if (!checkAndRunLocalRAS())
 			return false;
 		
-		String rasHost 	= useLocalRas ? "localhost" : this.rasHost; //$NON-NLS-1$
-		int rasPort 	= useLocalRas ? localRasPort : this.rasPort;
+		String currentRasHost 	= useLocalRas ? "localhost" : this.rasHost; //$NON-NLS-1$
+		int currentRasPort 	= useLocalRas ? localRasPort : this.rasPort;
 		
 		try {
-			connectToAgent(rasHost, rasPort, 20);
+			connectToAgent(currentRasHost, currentRasPort, 20);
 			
 			if (disconnectAfter) {
 				disconnectFromAgent();
 			}
 		} catch (Exception excp) {
 			available = false;
-			LOGGER.info("Server <{}> connection error: <{}>", this.getServerKey(), excp.getLocalizedMessage()); //$NON-NLS-1$
+			disconnectLocalRAS();
+			
+			connectionError = String.format("%s connection error:%n <%s>", this.getServerKey(), getLocalisedMessage(excp)); //$NON-NLS-1$
+			LOGGER.error(connectionError);
+			
+			if (!silentMode) {
+				var messageBox = new MessageBox(Display.getDefault().getActiveShell());
+				messageBox.setMessage(connectionError);
+				messageBox.open();
+			}
 			return false;
 		}
 		return true;
@@ -489,6 +476,10 @@ public class Server {
 		} catch (Exception excp) {
 			LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey()); //$NON-NLS-1$
 			LOGGER.error("Error: <{}>", processOutput, excp); //$NON-NLS-1$
+			
+			var messageBox = new MessageBox(Display.getDefault().getActiveShell());
+			messageBox.setMessage(excp.getLocalizedMessage());
+			messageBox.open();
 			return false;
 		}
 		
@@ -499,13 +490,25 @@ public class Server {
 		}
 		
 		LOGGER.debug("Local RAS runnung = {}", localRASProcess.isAlive()); //$NON-NLS-1$
-		LOGGER.debug("Local RAS parent CMD pid = {}", localRASProcess.pid()); //$NON-NLS-1$
-		Stream<ProcessHandle> ch = localRASProcess.children();
-		ch.forEach(ch1 -> {
-			LOGGER.debug("\tchildren exe = {}, pid = {}", ch1.info().command().get(), ch1.pid()); //$NON-NLS-1$
-		});
+		if (localRASProcess.isAlive()) {
+			LOGGER.debug("Local RAS parent CMD pid = {}", localRASProcess.pid()); //$NON-NLS-1$
+			Stream<ProcessHandle> ch = localRASProcess.children();
+			ch.forEach(ch1 -> {
+				LOGGER.debug("\tchildren -> {}, pid = {}", ch1.info().command().get(), ch1.pid()); //$NON-NLS-1$
+			});
+			
+			return true;
+		} else {
+			connectionError = String.format("Local RAS <%s> is shutdown", this.getServerKey()); //$NON-NLS-1$
+			LOGGER.error(connectionError);
+			
+			var messageBox = new MessageBox(Display.getDefault().getActiveShell());
+			messageBox.setMessage(connectionError);
+			messageBox.open();
+			
+			return false;
+		}
 		
-		return localRASProcess.isAlive();
 	}
 	
 	/**
@@ -537,10 +540,6 @@ public class Server {
 					break;
 				}
 			}
-
-//			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCentralServer")) || //$NON-NLS-1$
-//					excp.getLocalizedMessage().contains(Messages.getString("Server.CentralServerAdminIsNotAuthenticated"))) // TODO учесть английский вариант //$NON-NLS-1$
-//				needAuthenticate = true;
 		}
 		
 		if (needAuthenticate)
@@ -574,6 +573,7 @@ public class Server {
 		agentConnection = agentConnector.connect(address, port);
 		
 		available = true;
+		connectionError = ""; //$NON-NLS-1$
 		readAgentVersion();
 		
 		LOGGER.debug("Server <{}> is connected now", this.getServerKey()); //$NON-NLS-1$
@@ -588,12 +588,7 @@ public class Server {
 		if (!isConnected())
 			return;
 		
-		if (useLocalRas && localRASProcess.isAlive()) {
-			Stream<ProcessHandle> ch = localRASProcess.children();
-			ch.forEach(ch1 -> ch1.destroy());
-			localRASProcess.destroy();
-			LOGGER.info("Local RAS of Server <{}> is shutdown now", this.getServerKey()); //$NON-NLS-1$
-		}
+		disconnectLocalRAS();
 		
 		try {
 			agentConnector.shutdown();
@@ -605,6 +600,15 @@ public class Server {
 			agentConnector = null;
 		}
 	}
+
+	private void disconnectLocalRAS() {
+		if (useLocalRas && localRASProcess.isAlive()) {
+			Stream<ProcessHandle> ch = localRASProcess.children();
+			ch.forEach(ch1 -> ch1.destroy());
+			localRASProcess.destroy();
+			LOGGER.info("Local RAS of Server <{}> is shutdown now", this.getServerKey()); //$NON-NLS-1$
+		}
+	}
 	
 	/**
 	 * Authethicates a central server administrator agent.
@@ -613,8 +617,6 @@ public class Server {
 	 * @return {@code true} if authenticated, {@code false} overwise
 	 */
 	public boolean authenticateAgent() {
-//		if (agentConnection == null)
-//			throw new IllegalStateException("The connection is not established.");
 		
 		if (!isConnected())
 			return false;
@@ -668,10 +670,6 @@ public class Server {
 					break;
 				}
 			}
-			
-//			if (excp.getLocalizedMessage().contains(Messages.getString("Server.NoRightToManageCluster")) || //$NON-NLS-1$
-//					excp.getLocalizedMessage().contains(Messages.getString("Server.ClusterAdminIsNotAuthenticate"))) //$NON-NLS-1$
-//				needAuthenticate = true;
 		}
 		
 		if (needAuthenticate)
@@ -691,7 +689,7 @@ public class Server {
 	private boolean checkAutenticateInfobase(UUID clusterId, UUID infobaseId) {
 		
 		return (getInfoBaseInfo(clusterId, infobaseId) != null);
-				
+		
 	}
 	
 	/**
@@ -702,12 +700,10 @@ public class Server {
 	 * @param password  cluster administrator password
 	 */
 	public boolean authenticateCluster(UUID clusterId) {
-//		if (agentConnection == null)
-//			throw new IllegalStateException("The connection is not established.");
 		
 		if (!isConnected())
 			return false;
-
+		
 		IRunAuthenticate authMethod = (String userName, String password, boolean saveNewUserpass) -> {
 			
 			String clusterName = getClusterInfo(clusterId).getName();
