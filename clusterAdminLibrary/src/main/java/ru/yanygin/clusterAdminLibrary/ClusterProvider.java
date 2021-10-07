@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +16,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.widgets.Display;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,8 +29,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-
-import ru.yanygin.clusterAdminLibrary.Server;
 
 public class ClusterProvider {
 	
@@ -142,11 +142,27 @@ public class ClusterProvider {
 	}
 	
 	public Server createNewServer() {
-		return getCommonConfig().createNewServer();
+		Server newServer = null;
+		
+		if (commonConfig.readClipboard) {
+			Clipboard clipboard = new Clipboard(Display.getDefault());
+            String clip = (String)clipboard.getContents(TextTransfer.getInstance());
+            clipboard.dispose();
+            
+            if (clip != null && clip.startsWith("Srvr=")) { //$NON-NLS-1$
+        		String[] srvrPart = clip.split(";"); //$NON-NLS-1$
+        		String srvr = srvrPart[0].substring(6, srvrPart[0].length() - 1);
+				newServer = new Server(srvr);
+            }
+		} else {
+			newServer = new Server("Server:1541"); //$NON-NLS-1$
+		}
+		
+		return newServer;
 	}
 	
 	public void addNewServer(Server server) {
-		getCommonConfig().servers.put(server.getServerKey(), server);
+		commonConfig.servers.put(server.getServerKey(), server);
 		saveConfig();
 	}
 	
@@ -208,7 +224,9 @@ public class ClusterProvider {
 	}
 	
 	public void close() {
-
+		
+		saveConfig();
+		
 		getServers().forEach((server, config) -> {
 			if (config.isConnected())
 				config.disconnectFromAgent();

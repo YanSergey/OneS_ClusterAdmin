@@ -64,7 +64,43 @@ public class Config {
 	@SerializedName("Locale")
 	@Expose
 	public String locale;
+	
+	@SerializedName("SessionColumnProperties")
+	@Expose
+	public ColumnProperties sessionColumnProperties;
+	
+	@SerializedName("ConnectionColumnProperties")
+	@Expose
+	public ColumnProperties connectionColumnProperties;
+	
+	@SerializedName("LockColumnProperties")
+	@Expose
+	public ColumnProperties lockColumnProperties;
+	
+	@SerializedName("WPColumnProperties")
+	@Expose
+	public ColumnProperties wpColumnProperties;
+	
+	@SerializedName("WSColumnProperties")
+	@Expose
+	public ColumnProperties wsColumnProperties;
+	
+	@SerializedName("ShadowSleepSessions")
+	@Expose
+	public boolean shadowSleepSessions;
+	
+	@SerializedName("HighlightNewItems")
+	@Expose
+	public boolean highlightNewItems;
+	
+	@SerializedName("HighlightNewItemsDuration")
+	@Expose
+	public int highlightNewItemsDuration;
+	@SerializedName("ReadClipboard")
+	@Expose
+	public boolean readClipboard;
 
+	
 	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
 	
 	private OSType currrentOS;
@@ -102,10 +138,6 @@ public class Config {
 		}
 	}
 	
-	public Server createNewServer() {
-		return new Server("newServerAddress:1541"); //$NON-NLS-1$
-	}
-	
 	public List<String> addNewServers(List<String> servers) {
 		// Пакетное добавление серверов в список, предполагается для механизма импорта из списка информационных баз
 
@@ -128,15 +160,11 @@ public class Config {
 	}
 	
 	public void connectAllServers() {
-		servers.forEach((server, config) -> {
-			config.connectAndAuthenticate(false);
-		});
+		servers.forEach((serverKey, server) -> server.connectToServer(false, true));
 	}
 	
 	public void checkConnectionAllServers() {
-		servers.forEach((server, config) -> {
-			config.connectAndAuthenticate(true);
-		});
+		servers.forEach((serverKey, server) -> server.connectToServer(true, true));
 	}
 	
 	public boolean isWindows() {
@@ -151,6 +179,85 @@ public class Config {
 		return currrentOS == OSType.MACOS;
 	}
 	
+	public void setSessionsColumnOrder(int[] columnOrder) {
+		sessionColumnProperties.order = columnOrder;
+	}
+
+	public void setConnectionsColumnOrder(int[] columnOrder) {
+		connectionColumnProperties.order = columnOrder;
+	}
+
+	public void setLocksColumnOrder(int[] columnOrder) {
+		lockColumnProperties.order = columnOrder;
+	}
+
+	public void setWorkingProcessesColumnOrder(int[] columnOrder) {
+		wpColumnProperties.order = columnOrder;
+	}
+
+	public void setWorkingServersColumnOrder(int[] columnOrder) {
+		wsColumnProperties.order = columnOrder;
+	}
+	
+	public void initSessionsColumnCount(int columnCount) {
+		
+		if (sessionColumnProperties == null) 
+			sessionColumnProperties = new ColumnProperties(columnCount);
+		else
+			sessionColumnProperties.updateColumnProperties(columnCount);
+	}
+	
+	public void initConnectionsColumnCount(int columnCount) {
+		
+		if (connectionColumnProperties == null) 
+			connectionColumnProperties = new ColumnProperties(columnCount);
+		else
+			connectionColumnProperties.updateColumnProperties(columnCount);
+	}
+	
+	public void initLocksColumnCount(int columnCount) {
+		
+		if (lockColumnProperties == null) 
+			lockColumnProperties = new ColumnProperties(columnCount);
+		else
+			lockColumnProperties.updateColumnProperties(columnCount);
+	}
+	
+	public void initWorkingProcessesColumnCount(int columnCount) {
+		
+		if (wpColumnProperties == null) 
+			wpColumnProperties = new ColumnProperties(columnCount);
+		else
+			wpColumnProperties.updateColumnProperties(columnCount);
+	}
+	
+	public void initWorkingServersColumnCount(int columnCount) {
+		
+		if (wsColumnProperties == null) 
+			wsColumnProperties = new ColumnProperties(columnCount);
+		else
+			wsColumnProperties.updateColumnProperties(columnCount);
+	}
+	
+	public void setSessionsColumnWidth(int index, int width) {
+		sessionColumnProperties.width[index] = width;
+	}
+
+	public void setConnectionsColumnWidth(int index, int width) {
+		connectionColumnProperties.width[index] = width;
+	}
+
+	public void setLocksColumnWidth(int index, int width) {
+		lockColumnProperties.width[index] = width;
+	}
+
+	public void setWorkingProcessesColumnWidth(int index, int width) {
+		wpColumnProperties.width[index] = width;
+	}
+
+	public void setWorkingServersColumnWidth(int index, int width) {
+		wsColumnProperties.width[index] = width;
+	}
 	
 }
 
