@@ -94,7 +94,7 @@ public class ViewerArea extends Composite {
 	Image clusterIcon;
 	Image userIcon;
 	Image sleepUserIcon;
-	Image robotIcon;
+	Image serviceIcon;
 	Image connectionIcon;
 	Image locksIcon;
 	Image workingProcessesIcon;
@@ -246,7 +246,7 @@ public class ViewerArea extends Composite {
 		
 		userIcon				= getImage("user.png"); //$NON-NLS-1$
 		sleepUserIcon			= getImage("sleepUser.png"); //$NON-NLS-1$
-		robotIcon				= getImage("robot.png"); //$NON-NLS-1$
+		serviceIcon				= getImage("service.png"); //$NON-NLS-1$
 		
 		connectionIcon			= getImage("connection.png"); //$NON-NLS-1$
 		locksIcon				= getImage("lock_16.png"); //$NON-NLS-1$
@@ -1787,7 +1787,7 @@ public class ViewerArea extends Composite {
 			case Server.SERVER_CONSOLE:
 			case Server.RAS_CONSOLE:
 			case Server.JOBSCHEDULER:
-				sessionItem.setImage(robotIcon);
+				sessionItem.setImage(serviceIcon);
 				break;
 			default:
 				sessionItem.setImage(sessionInfo.getHibernate() ? sleepUserIcon : userIcon);
