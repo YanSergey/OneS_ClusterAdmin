@@ -337,35 +337,30 @@ public class Server {
 	
 	private void calculateServerParams(String serverAddress) {
 		
-		String agentHost;
-		String rasHost;
-		int managerPort; // не нужен
-		int agentPort;
-		int rasPort;
+		String host;
+		int newAgentPort;
+		int newRasPort;
 		
 		serverAddress = serverAddress.strip();
 		if (serverAddress.isBlank())
 			serverAddress = "localhost"; //$NON-NLS-1$
 		
 		String[] ar = serverAddress.split(":"); //$NON-NLS-1$
-		agentHost	= ar[0];
-		rasHost		= ar[0];
+		host	= ar[0];
 		
 		if (ar.length == 1) {
-			managerPort = 1541;
-			agentPort 	= 1540;
-			rasPort 	= 1545;
+			newAgentPort 	= 1540;
+			newRasPort 	= 1545;
 		} else {
-			managerPort = Integer.parseInt(ar[1]);
-			agentPort = managerPort - 1;
-			rasPort = managerPort + 4;
+			int managerPort = Integer.parseInt(ar[1]);
+			newAgentPort = managerPort - 1;
+			newRasPort = managerPort + 4;
 		}
 		
-		this.agentHost 	= agentHost;
-		this.rasHost 	= rasHost;
-//		this.managerPort 	= managerPort;
-		this.agentPort 	= agentPort;
-		this.rasPort 	= rasPort;
+		this.agentHost 	= host;
+		this.rasHost 	= host;
+		this.agentPort 	= newAgentPort;
+		this.rasPort 	= newRasPort;
 		
 		LOGGER.info("Calculate params for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
 		

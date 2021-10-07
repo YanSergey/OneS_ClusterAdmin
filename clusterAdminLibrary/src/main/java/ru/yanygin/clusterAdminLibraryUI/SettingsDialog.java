@@ -41,6 +41,7 @@ public class SettingsDialog extends Dialog {
 	private Text txtHighlightDuration;
 	private Button btnHighlightNewItems;
 	private Button btnShadowSleepSessions;
+	private Button btnReadClipboard;
 	
 	/**
 	 * Create the dialog.
@@ -154,6 +155,9 @@ public class SettingsDialog extends Dialog {
 		new Label(grpHighlight, SWT.NONE);
 		new Label(container, SWT.NONE);
 
+		btnReadClipboard = new Button(container, SWT.CHECK);
+		btnReadClipboard.setText(Messages.getString("SettingsDialog.ReadClipboard"));
+		
 		initProperties();
 		
 		return container;
@@ -178,6 +182,7 @@ public class SettingsDialog extends Dialog {
 		btnHighlightNewItems.setSelection(config.highlightNewItems);
 		txtHighlightDuration.setText(Integer.toString(config.highlightNewItemsDuration));
 		btnShadowSleepSessions.setSelection(config.shadowSleepSessions);
+		btnReadClipboard.setSelection(config.readClipboard);
 		
 		if (config.locale == null) {
 			btnLocaleSystem.setSelection(true);
@@ -206,6 +211,7 @@ public class SettingsDialog extends Dialog {
 		config.highlightNewItems = btnHighlightNewItems.getSelection();
 		config.highlightNewItemsDuration = Integer.parseInt(txtHighlightDuration.getText());
 		config.shadowSleepSessions = btnShadowSleepSessions.getSelection();
+		config.readClipboard = btnReadClipboard.getSelection();
 		
 		if (btnLocaleSystem.getSelection())
 			config.locale = null;

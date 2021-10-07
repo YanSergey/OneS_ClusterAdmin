@@ -96,6 +96,9 @@ public class Config {
 	@SerializedName("HighlightNewItemsDuration")
 	@Expose
 	public int highlightNewItemsDuration;
+	@SerializedName("ReadClipboard")
+	@Expose
+	public boolean readClipboard;
 
 	
 	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
@@ -133,10 +136,6 @@ public class Config {
 				currrentOS = OSType.OTHER;
 			}
 		}
-	}
-	
-	public Server createNewServer() {
-		return new Server("newServerAddress:1541"); //$NON-NLS-1$
 	}
 	
 	public List<String> addNewServers(List<String> servers) {
