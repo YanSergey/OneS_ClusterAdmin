@@ -67,7 +67,7 @@ public class SettingsDialog extends Dialog {
 
 		Composite container = (Composite) super.createDialogArea(parent);
 		GridLayout gridLayout = (GridLayout) container.getLayout();
-		gridLayout.numColumns = 4;
+		gridLayout.numColumns = 3;
 		
 		Group grpShowNodesIn = new Group(container, SWT.NONE);
 		grpShowNodesIn.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
@@ -115,8 +115,7 @@ public class SettingsDialog extends Dialog {
 		btnShowInfobaseDescription.setText(Messages.getString("SettingsDialog.ShowInfobaseDescription")); //$NON-NLS-1$
 		
 		btnShowLocalRasConnectInfo = new Button(grpShowInfo, SWT.CHECK);
-		btnShowLocalRasConnectInfo.setText(Messages.getString("SettingsDialog.ShowLocalRASConnectInfo")); //$NON-NLS-1$
-		new Label(container, SWT.NONE);
+		btnShowLocalRasConnectInfo.setText(Messages.getString("SettingsDialog.ShowLocalRASConnectInfo"));
 		
 		Group grpLocale = new Group(container, SWT.NONE);
 		grpLocale.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
@@ -153,9 +152,9 @@ public class SettingsDialog extends Dialog {
 		btnShadowSleepSessions = new Button(grpHighlight, SWT.CHECK);
 		btnShadowSleepSessions.setText(Messages.getString("SettingsDialog.ShadowSleepSessions")); //$NON-NLS-1$
 		new Label(grpHighlight, SWT.NONE);
-		new Label(container, SWT.NONE);
-
+		
 		btnReadClipboard = new Button(container, SWT.CHECK);
+		btnReadClipboard.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1));
 		btnReadClipboard.setText(Messages.getString("SettingsDialog.ReadClipboard"));
 		
 		initProperties();
