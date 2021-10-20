@@ -367,7 +367,34 @@
 <!-- 			    </execution> -->
 <!-- 			  </executions> -->
 <!-- 			</plugin> -->
-
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>3.1.2</version>
+				<dependencies>
+					<!-- https://mvnrepository.com/artifact/com.puppycrawl.tools/checkstyle -->
+					<dependency>
+					    <groupId>com.puppycrawl.tools</groupId>
+					    <artifactId>checkstyle</artifactId>
+					    <version>8.44</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+		          <configLocation>google_checks.xml</configLocation>
+		        </configuration>
+				<executions>
+					<execution>
+						<?m2e execute onConfiguration?>
+						<id>validate</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			
 		</plugins>
 	</build>
 
