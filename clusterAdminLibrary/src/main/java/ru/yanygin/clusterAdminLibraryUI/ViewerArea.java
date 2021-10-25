@@ -2192,7 +2192,7 @@ public class ViewerArea extends Composite {
   private void disconnectServerItem(TreeItem serverItem) {
     Server server = getCurrentServerConfig(serverItem);
     server.disconnectFromAgent();
-    serverItem.setImage(serverIconDown);
+    serverItem.setImage(serverIcon);
 
     TreeItem[] clusterItems = serverItem.getItems();
     for (TreeItem clusterItem : clusterItems) {
