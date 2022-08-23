@@ -272,7 +272,6 @@ public class Config {
   /** Узнать последнюю версию из релизов GitHub. */
   public void readUpstreamVersion() {
 
-    // final URL url = new URL("https://api.github.com/repos/YanSergey/OneS_ClusterAdmin/tags");
     URL url;
     HttpURLConnection conn;
     try {
@@ -335,9 +334,7 @@ public class Config {
         break;
       }
     }
-    // currentVersion.compareTo(Version.parse(lastTagName)) = 1
-    //    return Version.parse(lastTagName);
-    latestVersion = Version.parse("0.4.0"); // TODO del
+    latestVersion = Version.parse(lastTagName);
   }
 
   /**
@@ -379,11 +376,9 @@ public class Config {
   }
 
   private boolean downloadReleaseToFile(String fname) {
-    // String link = downloadLatestVersionUrl;
-    String link = "https://speedtest.selectel.ru/10MB"; // TODO это для теста, удалить!
 
     try {
-      Request.Get(link).execute().saveContent(new File(fname));
+      Request.Get(latestVersionUrl).execute().saveContent(new File(fname));
     } catch (IOException e) {
       e.printStackTrace();
       return false;
