@@ -30,99 +30,133 @@ import com._1c.v8.ibis.admin.client.IAgentAdminConnector;
 import com._1c.v8.ibis.admin.client.IAgentAdminConnectorFactory;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibraryUI.AuthenticateDialog;
+import ru.yanygin.clusterAdminLibraryUI.ViewerArea.TreeItemType;
 
-/** Server 1C Enterprise parameters. */
-public class Server {
+/** Параметры подключения к серверу 1С Предприятие. */
+public class Server implements Comparable<Server> {
 
   @SerializedName("Description")
   @Expose
-  private String description;
+  private String description = ""; //$NON-NLS-1$
 
   @SerializedName("AgentHost")
   @Expose
-  private String agentHost;
+  private String agentHost = ""; //$NON-NLS-1$
 
   @SerializedName("AgentPort")
   @Expose
-  private int agentPort;
+  private int agentPort = 0;
 
   @SerializedName("RasHost")
   @Expose
-  private String rasHost;
+  private String rasHost = ""; //$NON-NLS-1$
 
   @SerializedName("RasPort")
   @Expose
-  private int rasPort;
+  private int rasPort = 0;
 
   @SerializedName("UseLocalRas")
   @Expose
-  private boolean useLocalRas;
+  private boolean useLocalRas = false;
 
   @SerializedName("LocalRasPort")
   @Expose
-  private int localRasPort;
+  private int localRasPort = 0;
 
   @SerializedName("LocalRasV8version")
   @Expose
-  private String localRasV8version;
+  private String localRasV8version = ""; //$NON-NLS-1$
 
   @SerializedName("Autoconnect")
   @Expose
-  private boolean autoconnect;
+  private boolean autoconnect = false;
 
+  @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("SaveCredentials")
-  @Expose
-  private boolean saveCredentials;
+  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  private boolean saveCredentials = false;
 
+  @SerializedName("SaveCredentialsVariant")
+  @Expose
+  private SaveCredentialsVariant saveCredentialsVariant = SaveCredentialsVariant.DISABLE;
+
+  @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("AgentUser")
-  @Expose
-  private String agentUserName;
+  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  private String agentUserName = ""; //$NON-NLS-1$
 
+  @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("AgentPassword")
-  @Expose
-  private String agentPassword;
+  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  private String agentPassword = ""; //$NON-NLS-1$
 
+  @SerializedName("AgentCredential")
+  @Expose
+  private UserPassPair agentCredential = new UserPassPair();
+
+  @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("ClustersCredentials")
-  @Expose
-  private Map<UUID, String[]>
-      credentialsClustersCashe; // TODO Креды инфобаз хранить тут же или в отдельном списке?
+  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  private Map<UUID, String[]> clustersCredentialsOld = new HashMap<>();
 
-  public Map<UUID, String[]> credentialsInfobasesCashe;
+  @SerializedName("ClustersCredentialsV3")
+  @Expose
+  private Map<UUID, UserPassPair> clustersCredentialsV03 = new HashMap<>();
+
+  @SerializedName("InfobasesCredentials")
+  @Expose
+  private List<UserPassPair> infobasesCredentials = new ArrayList<>();
+
+  @SerializedName("FavoriteInfobases")
+  @Expose
+  private List<String> favoriteInfobases = new ArrayList<>();
+
 
   private boolean available;
   private Process localRasProcess;
-  private String connectionError;
-  private String agentVersion = ""; //$NON-NLS-1$
+  private String connectionError = ""; //$NON-NLS-1$;
+  //  private String agentVersion = ""; //$NON-NLS-1$
+  private String agentVersion = Messages.getString("Server.NotConnect"); //$NON-NLS-1$
 
   private IAgentAdminConnector agentConnector;
   private IAgentAdminConnection agentConnection;
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
-  private static UUID emptyUuid =
-      UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
 
   public static final String THIN_CLIENT = "1CV8C"; //$NON-NLS-1$
   public static final String THICK_CLIENT = "1CV8"; //$NON-NLS-1$
+  public static final String WEB_CLIENT = "WebClient"; //$NON-NLS-1$
   public static final String DESIGNER = "Designer"; //$NON-NLS-1$
   public static final String SERVER_CONSOLE = "SrvrConsole"; //$NON-NLS-1$
   public static final String RAS_CONSOLE = "RAS"; //$NON-NLS-1$
   public static final String JOBSCHEDULER = "JobScheduler"; //$NON-NLS-1$
+  public static final String BACKGROUND_JOB = "BackgroundJob"; //$NON-NLS-1$
 
-  interface IRunAuthenticate {
-    void performAutenticate(String userName, String password, boolean saveNewUserpass);
+  private static final String TREE_TITLE_PATTERN = "%s (%s)"; //$NON-NLS-1$
+
+  public enum SaveCredentialsVariant {
+    DISABLE,
+    NAME,
+    NAMEPASS
+  }
+
+  interface AuthenticateAction {
+    void performAutenticate(UserPassPair userPass, boolean saveNewUserpass);
   }
 
   interface IGetInfobaseInfo {
@@ -130,35 +164,38 @@ public class Server {
   }
 
   /**
-   * Get the server description.
+   * Получение описания сервера.
    *
-   * @return server description
+   * @return описание сервера
    */
   public String getDescription() {
     return description;
   }
 
   /**
-   * Set new server description.
+   * Установка описания сервера.
    *
-   * @param description - new server description
+   * @param description - новое описания сервера
    */
   public void setDescription(String description) {
     this.description = description;
   }
 
   /**
-   * Get the application name.
+   * Получение имени приложения по Application ID.
    *
    * @param appId - application ID
-   * @return application name
+   * @return имя приложения
    */
   public String getApplicationName(String appId) {
+    // TODO переделать на map
     switch (appId) {
       case THIN_CLIENT:
         return Messages.getString("Server.ThinClient"); //$NON-NLS-1$
       case THICK_CLIENT:
         return Messages.getString("Server.ThickClient"); //$NON-NLS-1$
+      case WEB_CLIENT:
+        return Messages.getString("Server.WebClient"); //$NON-NLS-1$
       case DESIGNER:
         return Messages.getString("Server.Designer"); //$NON-NLS-1$
       case SERVER_CONSOLE:
@@ -167,6 +204,8 @@ public class Server {
         return Messages.getString("Server.AdministrationServer"); //$NON-NLS-1$
       case JOBSCHEDULER:
         return Messages.getString("Server.JobScheduler"); //$NON-NLS-1$
+      case BACKGROUND_JOB:
+        return Messages.getString("Server.BackgroundJob"); //$NON-NLS-1$
       case "": //$NON-NLS-1$
         return ""; //$NON-NLS-1$
       default:
@@ -175,166 +214,166 @@ public class Server {
   }
 
   /**
-   * Get the agent host name.
+   * Получение имени хоста агента сервера.
    *
-   * @return agent host name
+   * @return имя хоста агента сервера
    */
   public String getAgentHost() {
     return agentHost;
   }
 
   /**
-   * Set new agent host.
+   * Установка имени хоста агента сервера.
    *
-   * @param agentHost - agent new host
+   * @param agentHost - новое имя хоста агента сервера
    */
   public void setAgentHost(String agentHost) {
     this.agentHost = agentHost;
   }
 
   /**
-   * Get agent port as string.
+   * Получение порта агента сервера строкой.
    *
-   * @return agent port cast to string
+   * @return порт агента сервера строкой
    */
   public String getAgentPortAsString() {
     return Integer.toString(agentPort);
   }
 
   /**
-   * Set agent port.
+   * Установка порта агента сервера.
    *
-   * @param agentPort - agent port
+   * @param agentPort - порт агента сервера
    */
   public void setAgentPort(int agentPort) {
     this.agentPort = agentPort;
   }
 
   /**
-   * Get RAS host.
+   * Получение имени хоста RAS.
    *
-   * @return RAS host
+   * @return имя хоста RAS
    */
   public String getRasHost() {
     return rasHost;
   }
 
   /**
-   * Set RAS host.
+   * Установка имени хоста RAS.
    *
-   * @param rasHost - RAS host
+   * @param rasHost - имя хоста RAS
    */
   public void setRasHost(String rasHost) {
     this.rasHost = rasHost;
   }
 
   /**
-   * Get RAS port as string.
+   * Получение имени хоста RAS строкой.
    *
-   * @return RAS port cast to string
+   * @return имя хоста RAS строкой
    */
   public String getRasPortAsString() {
     return Integer.toString(rasPort);
   }
 
   /**
-   * Set RAS port.
+   * Установка порта RAS.
    *
-   * @param rasPort - RAS port
+   * @param rasPort - порт RAS
    */
   public void setRasPort(int rasPort) {
     this.rasPort = rasPort;
   }
 
   /**
-   * Get using local RAS.
+   * Получение использования локального RAS.
    *
-   * @return use local RAS
+   * @return использование локального RAS
    */
   public boolean getUseLocalRas() {
     return useLocalRas;
   }
 
   /**
-   * Set using local RAS.
+   * Установка использования локального RAS.
    *
-   * @param useLocalRas - use local RAS
+   * @param useLocalRas - использовать локальный RAS
    */
   public void setUseLocalRas(boolean useLocalRas) {
     this.useLocalRas = useLocalRas;
   }
 
   /**
-   * Get local RAS port as string.
+   * Получение порта локального RAS строкой.
    *
-   * @return local RAS port cast to string
+   * @return порт локального RAS строкой
    */
   public String getLocalRasPortAsString() {
     return Integer.toString(localRasPort);
   }
 
   /**
-   * Set local RAS port.
+   * Установка порта локального RAS.
    *
-   * @param localRasPort - local RAS port
+   * @param localRasPort - порт локального RAS
    */
   public void setLocalRasPort(int localRasPort) {
     this.localRasPort = localRasPort;
   }
 
   /**
-   * Get local RAS v8 version.
+   * Получение версии v8 локального RAS.
    *
-   * @return local RAS v8 version
+   * @return версия v8 локального RAS
    */
   public String getLocalRasV8version() {
     return localRasV8version;
   }
 
   /**
-   * Set local RAS v8 version.
+   * Установка версии v8 локального RAS.
    *
-   * @param localRasV8version - local RAS v8 version
+   * @param localRasV8version - версия v8 локального RAS
    */
   public void setLocalRasV8version(String localRasV8version) {
     this.localRasV8version = localRasV8version;
   }
 
   /**
-   * Get version of agent.
+   * Получение версии агента сервера.
    *
-   * @return version
+   * @return версия агента сервера
    */
   public String getAgentVersion() {
     return agentVersion;
   }
 
   /**
-   * Get connection error string.
+   * Получение строки с ошибкой подключения к серверу.
    *
-   * @return connection error
+   * @return ошибка подключения
    */
   public String getConnectionError() {
     return connectionError;
   }
 
   /**
-   * Returns the server key of the form "Server:1541".
+   * Получение ключа сервера в виде "Server:1541".
    *
-   * @return server key
+   * @return ключ сервера
    */
   public String getServerKey() {
     return agentHost.concat(":").concat(Integer.toString(agentPort)); //$NON-NLS-1$
   }
 
   /**
-   * Get description of the server.
+   * Получение названия сервера для дерева.
    *
-   * @return description
+   * @return Название сервера
    */
-  public String getTreeDescription() {
+  public String getTreeTitle() {
 
-    var commonConfig = ClusterProvider.getCommonConfig();
+    var commonConfig = Config.currentConfig;
 
     var localRasPatternPart =
         useLocalRas && commonConfig.isShowLocalRasConnectInfo()
@@ -359,142 +398,287 @@ public class Server {
   }
 
   /**
-   * Get the autoconnect parameters.
+   * Получение названия кластера для дерева.
    *
-   * @return autoconnect
+   * @param clusterInfo - информация о кластере
+   * @return Название сервера
+   */
+  public String getClusterTreeTitle(IClusterInfo clusterInfo) {
+
+    return String.format(TREE_TITLE_PATTERN, clusterInfo.getName(), clusterInfo.getMainPort());
+  }
+
+  /**
+   * Получение названия рабочего процесса для дерева.
+   *
+   * @param wpInfo - информация о рабочем процессе
+   * @return Название сервера
+   */
+  public String getWorkingProcessTreeTitle(IWorkingProcessInfo wpInfo) {
+
+    return String.format(TREE_TITLE_PATTERN, wpInfo.getHostName(), wpInfo.getMainPort());
+  }
+
+  /**
+   * Получение названия рабочего сервера для дерева.
+   *
+   * @param wsInfo - информация о рабочем сервере
+   * @return Название сервера
+   */
+  public String getWorkingServerTreeTitle(IWorkingServerInfo wsInfo) {
+
+    return String.format(TREE_TITLE_PATTERN, wsInfo.getHostName(), wsInfo.getMainPort());
+  }
+
+  /**
+   * Получение значения настройки "Автоподключение при старте программы".
+   *
+   * @return значение настройки "Автоподключение при старте программы".
    */
   public boolean getAutoconnect() {
     return autoconnect;
   }
 
   /**
-   * Set the server to connect automatically when the program starts.
+   * Установка значения настройки "Автоподключение при старте программы".
    *
-   * @param autoconnect - connect automatically to server
+   * @param autoconnect - новое значение настройки "Автоподключение при старте программы".
    */
   public void setAutoconnect(boolean autoconnect) {
     this.autoconnect = autoconnect;
   }
 
   /**
-   * Get the flag to save the server credentials.
+   * Получение текущего варианта сохранения credentials.
    *
-   * @return save the server credentials
+   * @return текущий вариант сохранения credentials
    */
-  public boolean getSaveCredentials() {
-    return saveCredentials;
+  public SaveCredentialsVariant getSaveCredentialsVariant() {
+    return saveCredentialsVariant;
   }
 
   /**
-   * Set the flag to save the server credentials.
+   * Установка варианта сохранения credentials.
    *
-   * @param saveCredentials - save the server credentials
+   * @param saveCredentialsVariant - вариант сохранения credentials
    */
-  public void setSaveCredentials(boolean saveCredentials) {
-    this.saveCredentials = saveCredentials;
+  public void setSaveCredentialsVariant(SaveCredentialsVariant saveCredentialsVariant) {
+    this.saveCredentialsVariant = saveCredentialsVariant;
   }
 
   /**
-   * Get agent user name.
+   * Получение логина и пароля агента сервера.
    *
-   * @return agent user name
+   * @return логин и пароль агента сервера
    */
-  public String getAgentUserName() {
-    return agentUserName;
+  public UserPassPair getAgentCredential() {
+    return agentCredential;
   }
 
   /**
-   * Set the agent username.
+   * Установка логина и пароля агента сервера.
    *
-   * @param agentUser - agent username
+   * @param agentUserPass - логин и пароль агента сервера
    */
-  public void setAgentUserName(String agentUser) {
-    this.agentUserName = agentUser;
+  public void setAgentCredential(UserPassPair agentUserPass) {
+    this.agentCredential = agentUserPass;
+    this.agentCredential.clear(saveCredentialsVariant);
   }
 
   /**
-   * Get agent user password.
+   * Добавление новых данных доступа к кластерам.
    *
-   * @return agent user password
+   * @param clusterId - ID кластера
+   * @param userPassPair - логин/пароль для добавления
    */
-  public String getAgentPassword() {
-    return agentPassword;
+  public void addClusterCredentials(UUID clusterId, UserPassPair userPassPair) {
+    clustersCredentialsV03.put(clusterId, userPassPair);
   }
 
   /**
-   * Set the agent password.
+   * Получение данных доступа к кластерам.
    *
-   * @param agentPassword - agent password
+   * @param clusterId - ID кластера
+   * @return массив с логин/паролями
    */
-  public void setAgentPassword(String agentPassword) {
-    this.agentPassword = agentPassword;
+  public UserPassPair getClusterCredentials(UUID clusterId) {
+    return clustersCredentialsV03.getOrDefault(clusterId, new UserPassPair());
   }
 
   /**
-   * Get credentials.
+   * Получение данных доступа к кластерам.
    *
-   * @return credentials
+   * @return данные доступа
    */
-  public Map<UUID, String[]> getCredentials() {
-    return credentialsClustersCashe;
+  public Map<UUID, UserPassPair> getAllClustersCredentials() {
+    return clustersCredentialsV03;
   }
 
   /**
-   * Set new server credentials.
+   * Установка данных доступа к кластерам.
    *
-   * @param credentials - new credentials for the server
+   * @param credentials - новые данные доступа
    */
-  public void setCredentials(Map<UUID, String[]> credentials) {
-    this.credentialsClustersCashe = credentials;
+  public void setAllClustersCredentials(Map<UUID, UserPassPair> credentials) {
+    this.clustersCredentialsV03 = credentials;
   }
 
   /**
-   * Initialize new server instance.
+   * Сохранение в конфиге новых данных доступа к инфобазам кластера.
    *
-   * @param serverName - server name of the form "Server:1541".
+   * @param userPassPair - логин/пароль для добавления
+   */
+  public void saveInfobaseCredentials(UserPassPair userPassPair) {
+    infobasesCredentials.add(userPassPair);
+  }
+
+  /**
+   * Получение данных доступа к инфобазам.
+   *
+   * @return данные доступа
+   */
+  public List<UserPassPair> getInfobasesCredentials() {
+    return infobasesCredentials;
+  }
+
+  /**
+   * Установка данных доступа к инфобазам.
+   *
+   * @param credentials - новые данные доступа
+   */
+  public void setAllInfobasesCredentials(List<UserPassPair> credentials) {
+    this.infobasesCredentials = credentials;
+  }
+
+  /**
+   * Проверяет нахождение инфобазы в списке Избранного.
+   *
+   * @param ib - инфобаза
+   * @return Истина - если инфобаза в Избранном, иначе ложь
+   */
+  public boolean infobaseIsFavorite(InfoBaseInfoShortExt ib) {
+    return favoriteInfobases.contains(ib.getName());
+  }
+
+  /**
+   * Проверяет нахождение инфобазы в списке Избранного.
+   *
+   * @param infobaseName - имя инфобазы
+   * @return Истина - если инфобаза в Избранном, иначе ложь
+   */
+  public boolean infobaseIsFavorite(String infobaseName) {
+    return favoriteInfobases.contains(infobaseName);
+  }
+
+  /**
+   * Добавление/удаление информационной базы в избранное.
+   *
+   * @param ib - Экземпляр расширенной информации о инфобазе
+   */
+  public void changeInfobaseFavoriteState(InfoBaseInfoShortExt ib) {
+    String infobaseName = ib.getName();
+    if (favoriteInfobases.contains(infobaseName)) {
+      favoriteInfobases.remove(infobaseName);
+    } else {
+      favoriteInfobases.add(infobaseName);
+    }
+
+    ib.setFavoriteState(favoriteInfobases.contains(infobaseName));
+  }
+
+  /** Конструктор, вызываемый при десериализации. */
+  public Server() {
+  }
+
+  /**
+   * Создание нового экземпляра.
+   *
+   * @param serverName - имя сервера в виде "Server" или с указанием порта менеджера "Server:2541".
    */
   public Server(String serverName) {
 
-    calculateServerParams(serverName);
+    computeServerParams(serverName);
 
-    this.useLocalRas = false;
-    this.localRasPort = 0;
-    this.localRasV8version = ""; //$NON-NLS-1$
-    this.autoconnect = false;
-    this.available = false;
-    this.saveCredentials = false;
-    this.agentVersion = ""; //$NON-NLS-1$
+    //    this.useLocalRas = false;
+    //    this.localRasPort = 0;
+    //    this.localRasV8version = ""; //$NON-NLS-1$
+    //    this.autoconnect = false;
+    //    this.available = false;
+    //    this.saveCredentials = false;
+    //    this.agentVersion = ""; //$NON-NLS-1$
 
-    init();
+    //    init();
   }
 
   /** Initializes some server parameters. */
-  public void init() {
+  //  public void init() {
+  //
+  //    // При чтении конфиг-файла отсутствующие поля, инициализируются значением null
+  //    if (agentUserName == null) {
+  //      agentUserName = ""; //$NON-NLS-1$
+  //    }
+  //    if (agentPassword == null) {
+  //      agentPassword = ""; //$NON-NLS-1$
+  //    }
+  //    if (description == null) {
+  //      description = ""; //$NON-NLS-1$
+  //    }
+  //    if (localRasV8version == null) {
+  //      localRasV8version = ""; //$NON-NLS-1$
+  //    }
+  //    if (agentVersion == null) {
+  //      agentVersion = Messages.getString("Server.NotConnect"); //$NON-NLS-1$
+  //    }
+  //
+  //    if (credentialsClustersCashe == null) {
+  //      credentialsClustersCashe = new HashMap<>();
+  //    }
+  //
+  //    this.connectionError = ""; //$NON-NLS-1$
+  //
+  //    LOGGER.info("Server <{}> init done", getServerKey()); //$NON-NLS-1$
+  //  }
 
-    // При чтении конфиг-файла отсутствующие поля, инициализируются значением null
-    if (agentUserName == null) {
-      agentUserName = ""; //$NON-NLS-1$
-    }
-    if (agentPassword == null) {
-      agentPassword = ""; //$NON-NLS-1$
-    }
-    if (description == null) {
-      description = ""; //$NON-NLS-1$
-    }
-    if (localRasV8version == null) {
-      localRasV8version = ""; //$NON-NLS-1$
-    }
-    if (agentVersion == null) {
-      agentVersion = Messages.getString("Server.NotConnect"); //$NON-NLS-1$
+  /**
+   * Перенос настроек при чтении конфиг-файла старой версии.
+   *
+   * @param configVersion - версия конфига, с которого осуществляется переход
+   */
+  public void migrateProps(String configVersion) {
+
+    if (configVersion.equals("0.2.0")) {
+
+      if (saveCredentials) {
+        saveCredentialsVariant = SaveCredentialsVariant.NAMEPASS;
+        saveCredentials = false;
+      }
+
+      if (!agentUserName.isBlank() && saveCredentialsVariant == SaveCredentialsVariant.NAMEPASS) {
+        agentCredential = new UserPassPair(agentUserName, agentPassword);
+        agentUserName = "";
+        agentPassword = "";
+      }
+
+      clustersCredentialsOld.forEach(
+          (uuid, array) ->
+              clustersCredentialsV03.put(uuid, new UserPassPair(array[0], array[1], array[2])));
+      clustersCredentialsOld.clear();
+
+      LOGGER.info("Server <{}> migrate props from version 0.2.0", getServerKey()); //$NON-NLS-1$
     }
 
-    if (credentialsClustersCashe == null) {
-      credentialsClustersCashe = new HashMap<>();
-    }
+  }
 
-    this.connectionError = ""; //$NON-NLS-1$
+  @Override
+  public int compareTo(Server o) {
 
-    LOGGER.info("Server <{}> init done", getServerKey()); //$NON-NLS-1$
+    Collator collator = Collator.getInstance(Locale.getDefault());
+
+    // Сортировка по алфавиту (по возрастанию)
+    String firstString = o.getServerKey();
+    String secondString = getServerKey();
+
+    return collator.compare(secondString, firstString);
   }
 
   private void readAgentVersion() {
@@ -526,9 +710,9 @@ public class Server {
   }
 
   /**
-   * Return true if v8 version 8.3.15 or more.
+   * Возвращает истину, если версия платформы v8 8.3.15 или выше.
    *
-   * @return {@code true} if v8 version 8.3.15 or more
+   * @return {@code true} если v8 версия 8.3.15 или выше
    */
   public boolean isFifteenOrMoreAgentVersion() {
     return agentVersion.compareTo("8.3.15") >= 0; //$NON-NLS-1$
@@ -540,7 +724,7 @@ public class Server {
    * @param serverAddress - Имя сервера из списка баз. Может содержать номер порта менеджера
    *     кластера (Если не указан, то по-умолчанию 1541). Примеры: Server1c, Server1c:2541
    */
-  private void calculateServerParams(String serverAddress) {
+  private void computeServerParams(String serverAddress) {
 
     String host;
     int newAgentPort;
@@ -568,13 +752,13 @@ public class Server {
     this.agentPort = newAgentPort;
     this.rasPort = newRasPort;
 
-    LOGGER.info("Calculate params for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
+    LOGGER.info("Compute params for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
   }
 
   /**
-   * Checks whether connection to the administration server is established.
+   * Проверяет, установлено ли соединение с сервером администрирования.
    *
-   * @return {@code true} if connected, {@code false} overwise
+   * @return {@code true} установлено, {@code false} не установлено
    */
   public boolean isConnected() {
     boolean isConnected = (agentConnection != null);
@@ -589,11 +773,11 @@ public class Server {
   }
 
   /**
-   * Connects to the server.
+   * Выполняет подключение к серверу.
    *
-   * @param disconnectAfter - disconnect after successful connection
-   * @param silentMode - do not output an error to the user interactively
-   * @return {@code true} if connect is succesful
+   * @param disconnectAfter - отключиться сразу после успешного подключения
+   * @param silentMode - не выводить сообщение об ошибке пользователю в интерактивном режиме
+   * @return {@code true} если соединение прошло успешно
    */
   public boolean connectToServer(boolean disconnectAfter, boolean silentMode) {
     LOGGER.debug("<{}> start connection", this.getServerKey()); //$NON-NLS-1$
@@ -627,9 +811,7 @@ public class Server {
       LOGGER.error(connectionError);
 
       if (!silentMode) {
-        var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-        messageBox.setMessage(connectionError);
-        messageBox.open();
+        Helper.showMessageBox(connectionError);
       }
       return false;
     }
@@ -644,7 +826,7 @@ public class Server {
    */
   private boolean checkAndRunLocalRas() {
 
-    if (!ClusterProvider.getCommonConfig().isWindows()) {
+    if (!Config.currentConfig.isWindows()) {
       return true;
     }
 
@@ -658,10 +840,7 @@ public class Server {
               Messages.getString("Server.LocalRasParamsIsEmpty"), //$NON-NLS-1$
               this.getServerKey());
       LOGGER.error(message);
-
-      var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(message);
-      messageBox.open();
+      Helper.showMessageBox(message);
 
       return false;
     }
@@ -669,16 +848,13 @@ public class Server {
     ///////////////////////////// пока только Windows
     var processBuilder = new ProcessBuilder();
     var processOutput = ""; //$NON-NLS-1$
-    var localRasPath = ClusterProvider.getInstalledV8Versions().get(localRasV8version);
+    var localRasPath = Helper.getInstalledV8Versions().get(localRasV8version);
     if (localRasPath == null) {
       var message =
           String.format(
               Messages.getString("Server.LocalRasNotFound"), this.getServerKey()); //$NON-NLS-1$
       LOGGER.error(message);
-
-      var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(message);
-      messageBox.open();
+      Helper.showMessageBox(message);
 
       return false;
     }
@@ -705,10 +881,8 @@ public class Server {
     } catch (Exception excp) {
       LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey()); //$NON-NLS-1$
       LOGGER.error("Error: <{}>", processOutput, excp); //$NON-NLS-1$
-
-      var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      
       return false;
     }
 
@@ -722,32 +896,30 @@ public class Server {
     LOGGER.debug("Local RAS runnung = {}", localRasProcess.isAlive()); //$NON-NLS-1$
     if (localRasProcess.isAlive()) {
       LOGGER.debug("Local RAS parent CMD pid = {}", localRasProcess.pid()); //$NON-NLS-1$
-      Stream<ProcessHandle> ch = localRasProcess.children();
-      ch.forEach(
-          ch1 -> {
-            LOGGER.debug(
-                "\tchildren -> {}, pid = {}", ch1.info().command().get(), ch1.pid()); //$NON-NLS-1$
-          });
+      Stream<ProcessHandle> subprocesses = localRasProcess.children();
+      subprocesses.forEach(
+          subprocess ->
+              LOGGER.debug(
+                  "\tsubprocess -> {}, pid = {}", //$NON-NLS-1$
+                  subprocess.info().command().get(),
+                  subprocess.pid()));
 
       return true;
     } else {
       connectionError =
           String.format("Local RAS <%s> is shutdown", this.getServerKey()); //$NON-NLS-1$
       LOGGER.error(connectionError);
-
-      var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(connectionError);
-      messageBox.open();
+      Helper.showMessageBox(connectionError);
 
       return false;
     }
   }
 
   /**
-   * Проверяет действительна ли еще авторизация на центральном сервере и если нет - запускает
-   * процесс авторизации.
+   * Проверяет действительна ли еще аутентификация на центральном сервере и если нет - запускает
+   * процесс аутентификации.
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return boolean истекла/не истекла
    */
   private boolean checkAutenticateAgent() {
@@ -785,14 +957,14 @@ public class Server {
   }
 
   /**
-   * Establishes connection with the administration server of 1C:Enterprise server cluster.
+   * Устанавливает соединение с сервером администрирования.
    *
-   * @param address - server address
-   * @param port - IP port
-   * @param timeout - connection timeout (in milliseconds)
-   * @throws AgentAdminException in the case of errors.
+   * @param address - адрес сервера RAS
+   * @param port - IP порт сервера RAS
+   * @param timeout - таймаут соединения (в миллисекундах)
+   * @throws AgentAdminException в случае ошибок.
    */
-  public void connectToAgent(String address, int port, long timeout) {
+  private void connectToAgent(String address, int port, long timeout) {
     if (isConnected()) {
       LOGGER.debug(
           "The connection to server <{}> is already established", //$NON-NLS-1$
@@ -819,9 +991,9 @@ public class Server {
   }
 
   /**
-   * Terminates connection to the administration server.
+   * Отключение от сервера администрирования.
    *
-   * @throws AgentAdminException in the case of errors.
+   * @throws AgentAdminException в случае ошибок.
    */
   public void disconnectFromAgent() {
     if (!isConnected()) {
@@ -849,7 +1021,7 @@ public class Server {
   private void disconnectLocalRas() {
     if (useLocalRas && localRasProcess.isAlive()) {
       Stream<ProcessHandle> ch = localRasProcess.children();
-      ch.forEach(ch1 -> ch1.destroy());
+      ch.forEach(ProcessHandle::destroy);
       localRasProcess.destroy();
       LOGGER.info(
           "Local RAS of Server <{}> is shutdown now", //$NON-NLS-1$
@@ -858,11 +1030,11 @@ public class Server {
   }
 
   /**
-   * Authethicates a central server administrator agent.
+   * Выполняет аутентификацию администратора центрального сервера.
    *
-   * <p>Need call before of regCluster, getAgentAdmins, regAgentAdmin, unregAgentAdmin
+   * <p>Необходимо вызывать перед regCluster, getAgentAdmins, regAgentAdmin, unregAgentAdmin
    *
-   * @return {@code true} if authenticated, {@code false} overwise
+   * @return {@code true} успешно, {@code false} не успешно
    */
   public boolean authenticateAgent() {
 
@@ -870,41 +1042,47 @@ public class Server {
       return false;
     }
 
-    IRunAuthenticate authMethod =
-        (String userName, String password, boolean saveNewUserpass) -> {
+    AuthenticateAction authAction =
+        (UserPassPair userPass, boolean saveNewUserpass) -> {
           LOGGER.debug(
               "Try to autenticate the agent server <{}>", //$NON-NLS-1$
-              this.getServerKey());
-          this.agentConnection.authenticateAgent(userName, password);
+              getServerKey());
+          agentConnection.authenticateAgent(userPass.getUsername(), userPass.getPassword());
           LOGGER.debug(
               "Authentication to the agent server <{}> was successful", //$NON-NLS-1$
-              this.getServerKey());
+              getServerKey());
 
           // сохраняем новые user/pass после успешной авторизации
-          if (saveNewUserpass) {
-            this.agentUserName = userName;
-            this.agentPassword = password;
+          // (если сохранение включено в настройках)
+          if (saveNewUserpass && saveCredentialsVariant != SaveCredentialsVariant.DISABLE) {
+            agentCredential = userPass;
+            agentCredential.clear(saveCredentialsVariant);
+            // agentUserName = userPass.getUsername();
+            // agentPassword =
+            // saveCredentialsVariant == SaveCredentialsVariant.NAMEPASS
+            // ? userPass.getPassword()
+            // : "";
             LOGGER.debug(
                 "New credentials for the agent server <{}> are saved", //$NON-NLS-1$
-                this.getServerKey());
+                getServerKey());
           }
         };
-    String authDescription =
+    String authTitle =
         String.format(
             Messages.getString("Server.AuthenticationOfCentralServerAdministrator"), //$NON-NLS-1$
             agentHost,
             agentPort);
 
     return runAuthProcessWithRequestToUser(
-        authDescription, agentUserName, agentPassword, authMethod);
+        agentCredential, new ArrayList<>(), authTitle, authAction);
   }
 
   /**
-   * Checks whether authentication is still valid on the cluster and if not, starts the
-   * authentication process.
+   * Проверяет, действительна ли аутентификация в кластере, и, если нет, запускает процесс
+   * аутентификации.
    *
-   * @param clusterId - cluster ID
-   * @return boolean valid/not valid
+   * @param clusterId - ID кластера
+   * @return {@code true} аутентифицирован, {@code false} не аутентифицирован
    */
   private boolean checkAutenticateCluster(UUID clusterId) {
 
@@ -940,12 +1118,12 @@ public class Server {
   }
 
   /**
-   * Checks whether the authentication in the infobase is still valid and if not, starts the
-   * authentication process.
+   * Проверяет, действительна ли аутентификация в инфобазе, и, если нет, запускает процесс
+   * аутентификации.
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
-   * @return boolean valid/not valid
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
+   * @return {@code true} аутентифицирован, {@code false} не аутентифицирован
    */
   private boolean checkAutenticateInfobase(UUID clusterId, UUID infobaseId) {
 
@@ -953,10 +1131,10 @@ public class Server {
   }
 
   /**
-   * Authethicates a server cluster administrator.
+   * Аутентификация на кластере.
    *
-   * @param clusterId - cluster ID
-   * @return boolean is authentication successful
+   * @param clusterId - ID кластера
+   * @return {@code true} при успешной аутентификации
    */
   public boolean authenticateCluster(UUID clusterId) {
 
@@ -964,58 +1142,76 @@ public class Server {
       return false;
     }
 
-    IRunAuthenticate authMethod =
-        (String userName, String password, boolean saveNewUserpass) -> {
-          String clusterName = getClusterInfo(clusterId).getName();
+    AuthenticateAction authAction =
+        (UserPassPair userPass, boolean saveNewUserpass) -> {
+          IClusterInfo clusterInfo = getClusterInfo(clusterId);
+          var clusterName =
+              String.format(
+                  "%s (%s)", clusterInfo.getName(), clusterInfo.getMainPort()); //$NON-NLS-1$
 
           LOGGER.debug(
               "Try to autenticate to the cluster <{}> of server <{}>", //$NON-NLS-1$
               clusterName,
-              this.getServerKey());
-          agentConnection.authenticate(clusterId, userName, password);
+              getServerKey());
+          agentConnection.authenticate(clusterId, userPass.getUsername(), userPass.getPassword());
           LOGGER.debug(
               "Authentication to the cluster <{}> of server <{}> was successful", //$NON-NLS-1$
               clusterName,
-              this.getServerKey());
+              getServerKey());
+
+          userPass.setDescription(clusterName);
 
           // сохраняем новые user/pass после успешной авторизации
-          if (this.saveCredentials && saveNewUserpass) {
-            this.credentialsClustersCashe.put(
-                clusterId, new String[] {userName, password, clusterName});
+          // (если сохранение включено в настройках)
+          if (saveNewUserpass && saveCredentialsVariant != SaveCredentialsVariant.DISABLE) {
+
+            // TODO по идее достаточно очистить пароль, если в настройках указано, что не хранить
+            // но этого креда могло еще не быть в хранилище, а значит его туда надо все же вставить
+
+            if (saveCredentialsVariant == SaveCredentialsVariant.NAME) {
+              userPass.setPassword("");
+            }
+            clustersCredentialsV03.put(clusterId, userPass);
+            // TODO clusterProvider.saveConfig();
+
             LOGGER.debug(
                 "New credentials for the cluster <{}> of server <{}> are saved", //$NON-NLS-1$
                 clusterName,
-                this.getServerKey());
+                getServerKey());
           }
         };
 
-    String[] userAndPassword =
-        credentialsClustersCashe.getOrDefault(
-            clusterId, new String[] {"", ""}); //$NON-NLS-1$ //$NON-NLS-2$
-    String authDescription =
+    UserPassPair userPass = getClusterCredentials(clusterId);
+    List<UserPassPair> userPasses =
+        getAllClustersCredentials().values().stream().collect(Collectors.toList());
+    String authTitle =
         String.format(
             Messages.getString("Server.AuthenticationOfClusterAdminnistrator"), //$NON-NLS-1$
             getServerKey(),
             getClusterInfo(clusterId).getName());
 
-    return runAuthProcessWithRequestToUser(
-        authDescription, userAndPassword[0], userAndPassword[1], authMethod);
+    return runAuthProcessWithRequestToUser(userPass, userPasses, authTitle, authAction);
   }
 
   private boolean runAuthProcessWithRequestToUser(
-      String authDescription, String userName, String password, IRunAuthenticate authMethod) {
+      UserPassPair userPass,
+      List<UserPassPair> userPassesList,
+      String authTitle,
+      AuthenticateAction authAction) {
+
+    // TODO требуется рефакторинг метода
     try {
       // Сперва пытаемся авторизоваться под сохраненной учеткой
       // (она может быть инициализирована пустыми строками)
-      authMethod.performAutenticate(userName, password, false);
+      authAction.performAutenticate(userPass, false);
     } catch (Exception excp) {
+      String authExcpMessage = excp.getLocalizedMessage();
       LOGGER.debug(
           "Autenticate to server <{}> error: <{}>", //$NON-NLS-1$
-          this.getServerKey(),
-          excp.getLocalizedMessage());
+          getServerKey(),
+          authExcpMessage);
 
       AuthenticateDialog authenticateDialog;
-      String authExcpMessage = excp.getLocalizedMessage();
       int dialogResult;
 
       // крутимся, пока не подойдет пароль, или пользователь не нажмет Отмена
@@ -1024,40 +1220,39 @@ public class Server {
         try {
           LOGGER.debug(
               "Requesting new user credentials for the server <{}>", //$NON-NLS-1$
-              this.getServerKey());
+              getServerKey());
           authenticateDialog =
               new AuthenticateDialog(
                   Display.getDefault().getActiveShell(),
-                  userName,
-                  authDescription,
-                  authExcpMessage);
+                  userPass,
+                  authTitle,
+                  authExcpMessage,
+                  userPassesList);
           dialogResult = authenticateDialog.open();
         } catch (Exception exc) {
+          String excpMessage = exc.getLocalizedMessage();
           LOGGER.debug(
-              "Request new user credentials for the server <{}> failed", //$NON-NLS-1$
-              this.getServerKey());
-          MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
-          messageBox.setMessage(exc.getLocalizedMessage());
-          messageBox.open();
+              "Request new user credentials for the server <{}> failed: <{}>", //$NON-NLS-1$
+              getServerKey(),
+              excpMessage);
+          Helper.showMessageBox(excpMessage);
           return false;
         }
 
         if (dialogResult == 0) {
           LOGGER.debug(
               "The user has provided new credentials for the server <{}>", //$NON-NLS-1$
-              this.getServerKey());
-          userName = authenticateDialog.getUsername();
-          password = authenticateDialog.getPassword();
+              getServerKey());
+          userPass = authenticateDialog.getUserPass();
           try {
-            authMethod.performAutenticate(userName, password, true);
+            authAction.performAutenticate(userPass, true);
             break;
           } catch (Exception exc) {
+            authExcpMessage = exc.getLocalizedMessage();
             LOGGER.debug(
                 "Autenticate to server <{}> error: <{}>", //$NON-NLS-1$
-                this.getServerKey(),
-                excp.getLocalizedMessage());
-            authExcpMessage = exc.getLocalizedMessage();
-            continue;
+                getServerKey(),
+                authExcpMessage);
           }
         } else {
           return false;
@@ -1068,19 +1263,39 @@ public class Server {
   }
 
   /**
-   * Adds infobase authentication parameters to the context of the current administration server
-   * connection.
+   * Добавление всех сохраненных кредов инфобаз в кластер.
    *
-   * @param clusterId - cluster ID
-   * @param userName - infobase administrator name
-   * @param password - infobase administrator password
+   * @param clusterId - ID кластера
    */
-  public void addInfobaseCredentials(UUID clusterId, String userName, String password) {
+  public void provideSavedInfobasesCredentialsToCluster(UUID clusterId) {
     if (!isConnected()) {
       return;
     }
 
-    agentConnection.addAuthentication(clusterId, userName, password);
+    infobasesCredentials.forEach(
+        userpass ->
+            agentConnection.addAuthentication(
+                clusterId, userpass.getUsername(), userpass.getPassword()));
+
+    LOGGER.debug(
+        "Provide infobase credentials for the cluster <{}> of server <{}>", //$NON-NLS-1$
+        clusterId,
+        this.getServerKey());
+  }
+
+  /**
+   * Добавляет параметры аутентификации информационной базы в контекст текущего подключения к
+   * серверу администрирования.
+   *
+   * @param clusterId - ID кластера
+   * @param userPass - имя и пароль администратора инфобазы
+   */
+  public void addInfobaseCredentials(UUID clusterId, UserPassPair userPass) {
+    if (!isConnected()) {
+      return;
+    }
+
+    agentConnection.addAuthentication(clusterId, userPass.getUsername(), userPass.getPassword());
     LOGGER.debug(
         "Add new infobase credentials for the cluster <{}> of server <{}>", //$NON-NLS-1$
         clusterId,
@@ -1088,9 +1303,9 @@ public class Server {
   }
 
   /**
-   * Gets the list of cluster descriptions registered on the central server.
+   * Получение списка кластеров зарегистрированных на центральном сервере.
    *
-   * @return list of cluster descriptions
+   * @return список кластеров
    */
   public List<IClusterInfo> getClusters() {
     if (!isConnected()) {
@@ -1120,15 +1335,15 @@ public class Server {
           cluster.getHostName(),
           cluster.getMainPort());
 
-      // обновление имени кластера в кеше credentials
-      if (saveCredentials) {
-        String[] credentialClustersCashe = credentialsClustersCashe.get(cluster.getClusterId());
-        if (credentialClustersCashe != null
-            && !credentialClustersCashe[2].equals(cluster.getName())) {
-          credentialClustersCashe[2] = cluster.getName();
-          needSaveConfig = true;
-        }
-      }
+      //      // обновление имени кластера в кеше credentials
+      //      if (saveCredentials) {
+      //        String[] credentialClustersCashe = clustersCredentials.get(cluster.getClusterId());
+      //        if (credentialClustersCashe != null
+      //            && !credentialClustersCashe[2].equals(cluster.getName())) {
+      //          credentialClustersCashe[2] = cluster.getName();
+      //          needSaveConfig = true;
+      //        }
+      //      }
     }
     if (needSaveConfig) {
       // TODO надо сохранить
@@ -1138,10 +1353,10 @@ public class Server {
   }
 
   /**
-   * Gets the cluster descriptions.
+   * Получение информации о кластере.
    *
-   * @param clusterId - cluster ID
-   * @return cluster - descriptions
+   * @param clusterId - ID кластера
+   * @return cluster - информация о кластере
    */
   public IClusterInfo getClusterInfo(UUID clusterId) {
     if (!isConnected()) {
@@ -1151,7 +1366,6 @@ public class Server {
     LOGGER.debug("Get the cluster <{}> descriptions", clusterId); //$NON-NLS-1$
 
     IClusterInfo clusterInfo;
-    // TODO debug
     try {
       clusterInfo = agentConnection.getClusterInfo(clusterId);
     } catch (Exception excp) {
@@ -1166,12 +1380,12 @@ public class Server {
   /**
    * Gets the list of cluster manager descriptions.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return cluster - list of cluster manager descriptions
    */
-  public List<IClusterManagerInfo> getClusterManagers(UUID clusterId) {
+  private List<IClusterManagerInfo> getClusterManagers(UUID clusterId) {
     LOGGER.debug(
         "Gets the list of cluster manager descriptions in the cluster <{}>", //$NON-NLS-1$
         clusterId);
@@ -1185,7 +1399,7 @@ public class Server {
     }
 
     List<IClusterManagerInfo> clusterManagers;
-    // TODO debug
+    // TODO
     try {
       clusterManagers = agentConnection.getClusterManagers(clusterId);
     } catch (Exception excp) {
@@ -1200,14 +1414,14 @@ public class Server {
   /**
    * Gets a cluster manager description.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId cluster ID
+   * @param clusterId ID кластера
    * @param managerId - manager ID
    * @return cluster manager description, or null if the manager with the specified ID does not
    *     exist
    */
-  public IClusterManagerInfo getClusterManagerInfo(UUID clusterId, UUID managerId) {
+  private IClusterManagerInfo getClusterManagerInfo(UUID clusterId, UUID managerId) {
     LOGGER.debug(
         "Get the cluster manager <{}> description of cluster  <{}>", //$NON-NLS-1$
         managerId,
@@ -1222,7 +1436,7 @@ public class Server {
     }
 
     IClusterManagerInfo clusterManagerInfo;
-    // TODO debug
+    // TODO
     try {
       clusterManagerInfo = agentConnection.getClusterManagerInfo(clusterId, managerId);
     } catch (Exception excp) {
@@ -1243,7 +1457,7 @@ public class Server {
    * @return {@code true} if cluster registration successful
    */
   public boolean regCluster(IClusterInfo clusterInfo) {
-    if (clusterInfo.getClusterId().equals(emptyUuid)) {
+    if (clusterInfo.getClusterId().equals(Helper.EMPTY_UUID)) {
       LOGGER.debug(
           "Registration new cluster <{}>", //$NON-NLS-1$
           clusterInfo.getName());
@@ -1274,7 +1488,7 @@ public class Server {
       return false;
     }
 
-    if (clusterInfo.getClusterId().equals(emptyUuid)) {
+    if (clusterInfo.getClusterId().equals(Helper.EMPTY_UUID)) {
       LOGGER.debug(
           "Registration new cluster <{}> succesful", //$NON-NLS-1$
           newClusterId);
@@ -1287,12 +1501,12 @@ public class Server {
   }
 
   /**
-   * Deletes a cluster.
+   * Удаление кластера с сервера.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @return delete a cluster successful
+   * @param clusterId - ID кластера
+   * @return {@code true} при успешном удалении кластера
    */
   public boolean unregCluster(UUID clusterId) {
     LOGGER.debug("Delete a cluster <{}>", clusterId); //$NON-NLS-1$
@@ -1300,7 +1514,7 @@ public class Server {
     var unregSuccesful = false;
     String unregMessage = null;
 
-    if (!isConnected()) { // TODO
+    if (!isConnected()) {
       unregMessage =
           Messages.getString("Server.TheConnectionAClusterIsNotEstablished"); //$NON-NLS-1$
     }
@@ -1309,31 +1523,31 @@ public class Server {
       unregMessage = Messages.getString("Server.TheClusterAuthenticationError"); //$NON-NLS-1$
     }
 
-    try {
-      agentConnection.unregCluster(clusterId);
-      unregSuccesful = true;
-    } catch (Exception excp) {
-      LOGGER.error("Error delete a cluster", excp); //$NON-NLS-1$
-      unregMessage = excp.getLocalizedMessage();
+    if (unregMessage == null) {
+      try {
+        agentConnection.unregCluster(clusterId);
+        unregSuccesful = true;
+      } catch (Exception excp) {
+        LOGGER.error("Error delete a cluster", excp); //$NON-NLS-1$
+        unregMessage = excp.getLocalizedMessage();
+      }
     }
     if (!unregSuccesful) {
-      var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(unregMessage);
-      messageBox.open();
+      Helper.showMessageBox(unregMessage);
     }
 
     return unregSuccesful;
   }
 
   /**
-   * Gets the list of cluster administrators.
+   * Получение списка администраторов кластера.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @return list of cluster administrators
+   * @param clusterId - ID кластера
+   * @return список администраторов кластера
    */
-  public List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
+  private List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
     LOGGER.debug(
         "Gets the list of cluster administrators in the cluster <{}>", //$NON-NLS-1$
         clusterId);
@@ -1346,14 +1560,14 @@ public class Server {
   }
 
   /**
-   * Deletes a cluster administrator.
+   * Удаление администратора кластера.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param name - administrator name
+   * @param clusterId - ID кластера
+   * @param name - имя администратора
    */
-  public void unregClusterAdmin(UUID clusterId, String name) {
+  private void unregClusterAdmin(UUID clusterId, String name) {
     LOGGER.debug(
         "Deletes a cluster administrator in the cluster <{}>", //$NON-NLS-1$
         clusterId);
@@ -1366,14 +1580,14 @@ public class Server {
   }
 
   /**
-   * Gets the list of short descriptions of infobases registered in the cluster.
+   * Получение списка краткого описания инфобаз кластера.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId -cluster ID
-   * @return list of short descriptions of cluster infobases
+   * @param clusterId -ID кластера
+   * @return список краткого описания инфобаз кластера
    */
-  public List<IInfoBaseInfoShort> getInfoBasesShort(UUID clusterId) {
+  public List<InfoBaseInfoShortExt> getInfoBasesShort(UUID clusterId) {
     LOGGER.debug(
         "Get the list of short descriptions of infobases registered in the cluster <{}>", //$NON-NLS-1$
         clusterId);
@@ -1394,23 +1608,34 @@ public class Server {
       return new ArrayList<>();
     }
 
+    List<InfoBaseInfoShortExt> clusterInfoBasesExt = new ArrayList<>();
     clusterInfoBases.forEach(
-        ib ->
-            LOGGER.debug(
-                "\tInfobase: name=<{}>, desc=<{}>", ib.getName(), ib.getDescr())); //$NON-NLS-1$
+        ib -> {
+          clusterInfoBasesExt.add(
+              new InfoBaseInfoShortExt(
+                  ib, clusterInfoBasesExt.size(), favoriteInfobases.contains(ib.getName())));
+
+          LOGGER.debug(
+              "\tInfobase: name=<{}>, desc=<{}>", //$NON-NLS-1$
+              ib.getName(),
+              ib.getDescr());
+        });
 
     LOGGER.debug("Get the list of short descriptions of infobases succesful"); //$NON-NLS-1$
-    return clusterInfoBases;
+
+    Collections.sort(clusterInfoBasesExt);
+
+    return clusterInfoBasesExt;
   }
 
   /**
    * Gets the list of full descriptions of infobases registered in the cluster.
    *
-   * <p>Cluster authentication is required For each infobase in the cluster, infobase authentication
+   * <p>Требует аутентификации в кластере For each infobase in the cluster, infobase authentication
    * is required If infobase authentication is not performed, only fields that correspond to short
    * infobase description fields will be filled
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return list of full descriptions of cluster infobases
    */
   public List<IInfoBaseInfo> getInfoBases(UUID clusterId) {
@@ -1434,10 +1659,11 @@ public class Server {
     }
 
     clusterInfoBases.forEach(
-        ib -> {
-          LOGGER.debug(
-              "\tInfobase: name=<{}>, desc=<{}>", ib.getName(), ib.getDescr()); //$NON-NLS-1$
-        });
+        ib ->
+            LOGGER.debug(
+                "\tInfobase: name=<{}>, desc=<{}>", //$NON-NLS-1$
+                ib.getName(),
+                ib.getDescr()));
 
     LOGGER.debug("Get the list of descriptions of infobases succesful"); //$NON-NLS-1$
     return clusterInfoBases;
@@ -1446,10 +1672,10 @@ public class Server {
   /**
    * Gets a short infobase description.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @return short infobase description
    */
   public IInfoBaseInfoShort getInfoBaseShortInfo(UUID clusterId, UUID infobaseId) {
@@ -1482,10 +1708,10 @@ public class Server {
   /**
    * Gets the full infobase description.
    *
-   * <p>Cluster authentication is required. Infobase authentication is required.
+   * <p>Требует аутентификации в кластере Infobase authentication is required.
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @return infobase full infobase description
    */
   public IInfoBaseInfo getInfoBaseInfo(UUID clusterId, UUID infobaseId) {
@@ -1513,8 +1739,8 @@ public class Server {
       String authExcpMessage = excp.getLocalizedMessage();
       int dialogResult;
 
-      var userName = ""; //$NON-NLS-1$
-      var authDescription = Messages.getString("Server.AuthenticationOfInfobase"); //$NON-NLS-1$
+      UserPassPair userPass = new UserPassPair();
+      var authTitle = Messages.getString("Server.AuthenticationOfInfobase"); //$NON-NLS-1$
 
       // пока не подойдет пароль, или пользователь не нажмет Отмена
       while (true) {
@@ -1526,17 +1752,17 @@ public class Server {
           authenticateDialog =
               new AuthenticateDialog(
                   Display.getDefault().getActiveShell(),
-                  userName,
-                  authDescription,
-                  authExcpMessage);
+                  userPass,
+                  authTitle,
+                  authExcpMessage,
+                  infobasesCredentials);
           dialogResult = authenticateDialog.open();
         } catch (Exception exc) {
+          String excpMessage = exc.getLocalizedMessage();
           LOGGER.debug(
               "Request new user credentials for the infobase failed: <{}>", //$NON-NLS-1$
-              exc.getLocalizedMessage());
-          var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-          messageBox.setMessage(exc.getLocalizedMessage());
-          messageBox.open();
+              excpMessage);
+          Helper.showMessageBox(excpMessage);
           return null;
         }
 
@@ -1544,11 +1770,11 @@ public class Server {
           LOGGER.debug(
               "The user has provided new credentials for the infobase <{}>", //$NON-NLS-1$
               infobaseId);
-          userName = authenticateDialog.getUsername();
-          String password = authenticateDialog.getPassword();
+          userPass = authenticateDialog.getUserPass();
           try {
-            addInfobaseCredentials(clusterId, userName, password);
+            addInfobaseCredentials(clusterId, userPass);
             infobaseInfo = agentConnection.getInfoBaseInfo(clusterId, infobaseId);
+            saveInfobaseCredentials(userPass);
             break;
           } catch (Exception exc) {
             authExcpMessage = exc.getLocalizedMessage();
@@ -1556,7 +1782,6 @@ public class Server {
                 "Autenticate to infobase <{}> error: <{}>", //$NON-NLS-1$
                 this.getServerKey(),
                 authExcpMessage);
-            continue;
           }
         } else {
           LOGGER.debug(
@@ -1573,10 +1798,10 @@ public class Server {
   /**
    * Gets the infobase name.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @return infobase full infobase description
    */
   public String getInfoBaseName(UUID clusterId, UUID infobaseId) {
@@ -1585,8 +1810,8 @@ public class Server {
         infobaseId,
         clusterId);
 
-    if (infobaseId.equals(emptyUuid)) {
-      LOGGER.debug("Infobase ID is empty"); //$NON-NLS-1$
+    if (infobaseId.equals(Helper.EMPTY_UUID)) {
+      LOGGER.debug("ID инфобазы is empty"); //$NON-NLS-1$
       return ""; //$NON-NLS-1$
     }
 
@@ -1597,13 +1822,13 @@ public class Server {
   /**
    * Creates an infobase in a cluster.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param info - infobase parameters
+   * @param clusterId - ID кластера
+   * @param info - параметры инфобазы
    * @param infobaseCreationMode - infobase creation mode: •0 - do not create a database •1 - create
    *     a database
-   * @return ID of the created infobase
+   * @return ID созданной инфобазы или пустой UUID
    */
   public UUID createInfoBase(UUID clusterId, IInfoBaseInfo info, int infobaseCreationMode) {
     LOGGER.debug(
@@ -1612,10 +1837,10 @@ public class Server {
         clusterId);
     
     if (!isConnected()) {
-      return emptyUuid;
+      return Helper.EMPTY_UUID;
     }
     if (!checkAutenticateCluster(clusterId)) {
-      return emptyUuid;
+      return Helper.EMPTY_UUID;
     }
 
     UUID uuid;
@@ -1623,7 +1848,8 @@ public class Server {
       uuid = agentConnection.createInfoBase(clusterId, info, infobaseCreationMode);
     } catch (Exception excp) {
       LOGGER.error("Error creates an infobase", excp); //$NON-NLS-1$
-      throw excp;
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return Helper.EMPTY_UUID;
     }
 
     LOGGER.debug("Creates an infobase succesful"); //$NON-NLS-1$
@@ -1631,14 +1857,14 @@ public class Server {
   }
 
   /**
-   * Changes short infobase description.
+   * Изменение краткого описания информационной базы.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере.
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param info - infobase parameters
    */
-  public void updateInfoBaseShort(UUID clusterId, IInfoBaseInfoShort info) {
+  private void updateInfoBaseShort(UUID clusterId, IInfoBaseInfoShort info) {
     LOGGER.debug(
         "Changes short description infobase <{}> in the cluster <{}>", //$NON-NLS-1$
         info.getInfoBaseId(),
@@ -1651,7 +1877,7 @@ public class Server {
       return;
     }
 
-    try { // TODO debug
+    try { // TODO
       agentConnection.updateInfoBaseShort(clusterId, info);
     } catch (Exception excp) {
       LOGGER.error("Error changes short description infobase", excp); //$NON-NLS-1$
@@ -1660,38 +1886,36 @@ public class Server {
   }
 
   /**
-   * Changes infobase parameters.
+   * Изменение параметров информационной базы.
    *
-   * <p>Infobase authentication is required (Здесь не нужно авторизоваться в базе, метод необходимо
-   * вызывать сразу после getInfoBaseInfo)
+   * <p>Требует аутентификации в инфобазе (Здесь не нужно аутентифицироваться в базе, метод
+   * необходимо вызывать сразу после getInfoBaseInfo)
    *
-   * @param clusterId - cluster ID
-   * @param info - infobase parameters
-   * @return {@code true} if update succesful
+   * @param clusterId - ID кластера
+   * @param info - параметры инфобазы
+   * @return {@code true} при успешном изменении
    */
   public boolean updateInfoBase(UUID clusterId, IInfoBaseInfo info) {
 
-    try { // TODO debug
+    try {
       agentConnection.updateInfoBase(clusterId, info);
     } catch (Exception excp) {
       LOGGER.error("Error changes description infobase", excp); //$NON-NLS-1$
-      MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
+      Helper.showMessageBox(excp.getLocalizedMessage());
       return false;
     }
     return true;
   }
 
   /**
-   * Deletes an infobase.
+   * Удаление информационной базы.
    *
-   * <p>Infobase authentication is required
+   * <p>Требует аутентификации в инфобазе
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase parameters
-   * @param dropMode - infobase drop mode: 0 - do not delete the database 1 - delete the database 2
-   *     - clear the database
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
+   * @param dropMode - режим удаления инфобазы: 0 - не удалять базу данных в СУБД, 1 - удалять базу
+   *     данных в СУБД, 2 - очистить базу от данных
    * @return {@code true} if drop succesful
    */
   public boolean dropInfoBase(UUID clusterId, UUID infobaseId, int dropMode) {
@@ -1700,25 +1924,61 @@ public class Server {
       return false;
     }
 
-    try { // TODO debug
+    try {
       agentConnection.dropInfoBase(clusterId, infobaseId, dropMode);
     } catch (Exception excp) {
       LOGGER.error("Error deletes an infobase", excp); //$NON-NLS-1$
-      MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
+      Helper.showMessageBox(excp.getLocalizedMessage());
       return false;
     }
     return true;
   }
 
   /**
-   * Gets the list of cluster session descriptions.
+   * Gets a session description.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @return List of session descriptions
+   * @param clusterId - ID кластера
+   * @param sid - session ID
+   * @return session description
+   */
+  public ISessionInfo getSessionInfo(UUID clusterId, UUID sid) {
+    LOGGER.debug(
+        "Gets a session <{}> description in the cluster <{}>", sid, clusterId); //$NON-NLS-1$
+    if (!isConnected()) {
+      return null;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return null;
+    }
+
+    ISessionInfo sessionInfo;
+    try {
+      sessionInfo = agentConnection.getSessionInfo(clusterId, sid); // TODO  ошибка в библиотеке
+    } catch (Exception excp) {
+      LOGGER.error("Error get a session description", excp); //$NON-NLS-1$
+      return null;
+    }
+    LOGGER.debug(
+        "\tappId={}, sid={}, connectionId={}, sessionId={}, userName={}", //$NON-NLS-1$
+        sessionInfo.getAppId(),
+        sessionInfo.getSid(),
+        sessionInfo.getConnectionId(),
+        sessionInfo.getSessionId(),
+        sessionInfo.getUserName());
+
+    LOGGER.debug("Get the session description succesful"); //$NON-NLS-1$
+    return sessionInfo;
+  }
+
+  /**
+   * Получение списка сеансов кластера.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @return список сеансов кластера
    */
   public List<ISessionInfo> getSessions(UUID clusterId) {
     LOGGER.debug(
@@ -1739,63 +1999,42 @@ public class Server {
       LOGGER.error("Error get the list of cluster session descriptions", excp); //$NON-NLS-1$
       return new ArrayList<>();
     }
+    
+    LOGGER.debug("Sessions:");
     sessions.forEach(
-        s -> {
-          LOGGER.debug(
-              "\tSession: application name=<{}>, session ID=<{}>", //$NON-NLS-1$
-              getApplicationName(s.getAppId()),
-              s.getSessionId());
-        });
+        s ->
+            LOGGER.debug(
+                "\tappId={}, sid={}, connectionId={}, sessionId={}, userName={}", //$NON-NLS-1$
+                s.getAppId(),
+                s.getSid(),
+                s.getConnectionId(),
+                s.getSessionId(),
+                s.getUserName()));
 
     LOGGER.debug("Get the list of cluster session descriptions succesful"); //$NON-NLS-1$
     return sessions;
   }
 
-  /**
-   * Gets a session description.
-   *
-   * <p>Cluster authentication is required
-   *
-   * @param clusterId - cluster ID
-   * @param sid - session ID
-   * @return session description
-   */
-  public ISessionInfo getSessionInfo(UUID clusterId, UUID sid) {
-    LOGGER.debug(
-        "Gets a session <{}> description in the cluster <{}>", sid, clusterId); //$NON-NLS-1$
-    if (!isConnected()) {
-      return null;
-    }
-    if (!checkAutenticateCluster(clusterId)) {
-      return null;
-    }
-
-    ISessionInfo sessionInfo;
-    try { // TODO debug
-      sessionInfo = agentConnection.getSessionInfo(clusterId, sid);
-    } catch (Exception excp) {
-      LOGGER.error("Error get the list of cluster session descriptions", excp); //$NON-NLS-1$
-      return null;
-    }
-    LOGGER.debug(
-        "\tSession: application name=<{}>, session ID=<{}>", //$NON-NLS-1$
-        getApplicationName(sessionInfo.getAppId()),
-        sessionInfo.getSessionId());
-
-    LOGGER.debug("Get the list of cluster session descriptions succesful"); //$NON-NLS-1$
-    return sessionInfo;
-  }
+  //  /**
+  //   * Gets the extended list of cluster session descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<SessionInfoExtended> getSessionsExtended(UUID clusterId) {
+  //    return convertSessionsInfoToSessionsExtended(clusterId, getSessions(clusterId));
+  //  }
 
   /**
    * Gets the list of infobase session descriptions.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @return Infobase sessions
    */
-  public List<ISessionInfo> getInfoBaseSessions(UUID clusterId, UUID infobaseId) {
+  private List<ISessionInfo> getInfoBaseSessions(UUID clusterId, UUID infobaseId) {
     LOGGER.debug(
         "Gets the list of infobase <{}> session descriptions in the cluster <{}>", //$NON-NLS-1$
         infobaseId,
@@ -1815,41 +2054,121 @@ public class Server {
       LOGGER.error("Error get the list of infobase session descriptions", excp); //$NON-NLS-1$
       return new ArrayList<>();
     }
+
+    LOGGER.debug("Sessions:");
     sessions.forEach(
-        s -> {
-          LOGGER.debug(
-              "\tSession: application name=<{}>, session ID=<{}>", //$NON-NLS-1$
-              getApplicationName(s.getAppId()),
-              s.getSessionId());
-        });
+        s ->
+            LOGGER.debug(
+                "\tappId={}, sid={}, connectionId={}, sessionId={}, userName={}", //$NON-NLS-1$
+                s.getAppId(),
+                s.getSid(),
+                s.getConnectionId(),
+                s.getSessionId(),
+                s.getUserName()));
 
     LOGGER.debug("Get the list of cluster session descriptions succesful"); //$NON-NLS-1$
     return sessions;
   }
 
+  //  /**
+  //   * Gets the extended list of infobase session descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @param infobaseId - ID инфобазы
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<SessionInfoExtended> getInfoBaseSessionsExtended(UUID clusterId, UUID infobaseId)
+  // {
+  //    return convertSessionsInfoToSessionsExtended(
+  //        clusterId, getInfoBaseSessions(clusterId, infobaseId));
+  //  }
+
   /**
-   * Gets the list of infobase session descriptions.
+   * Gets the list of working process session descriptions.
    *
-   * <p>Cluster authentication is required
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param workingProcessId - Working process ID
    * @return Working process sessions
    */
-  public List<ISessionInfo> getWorkingProcessSessions(UUID clusterId, UUID workingProcessId) {
+  private List<ISessionInfo> getWorkingProcessSessions(UUID clusterId, UUID workingProcessId) {
 
     return getSessions(clusterId).stream()
         .filter(s -> s.getWorkingProcessId().equals(workingProcessId))
         .collect(Collectors.toList());
   }
 
+  //  /**
+  //   * Gets the extended list of infobase session descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @param workingProcessId - working process ID
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<SessionInfoExtended> getWorkingProcessSessionsExtended(
+  //      UUID clusterId, UUID workingProcessId) {
+  //    return convertSessionsInfoToSessionsExtended(
+  //        clusterId, getWorkingProcessSessions(clusterId, workingProcessId));
+  //  }
+
+  /**
+   * Gets the extended list of cluster session descriptions.
+   *
+   * @param treeItemType - tree item type
+   * @param clusterId - ID кластера
+   * @param workingProcessId - working process ID
+   * @param infobaseId - ID инфобазы
+   * @return Extended list of session descriptions
+   */
+  public List<BaseInfoExtended> getSessionsExtendedInfo(
+      TreeItemType treeItemType, UUID clusterId, UUID workingProcessId, UUID infobaseId) {
+
+    List<ISessionInfo> sessions;
+
+    switch (treeItemType) {
+      case SERVER:
+        return new ArrayList<>();
+
+      case CLUSTER:
+      case INFOBASE_NODE:
+      case WORKINGPROCESS_NODE:
+        sessions = getSessions(clusterId);
+        break;
+
+      case WORKINGPROCESS:
+        sessions = getWorkingProcessSessions(clusterId, workingProcessId);
+        break;
+
+      case INFOBASE:
+        sessions = getInfoBaseSessions(clusterId, infobaseId);
+        break;
+
+      default:
+        return new ArrayList<>();
+    }
+
+    return convertSessionsInfoToSessionsExtended(clusterId, sessions);
+  }
+
+  private List<BaseInfoExtended> convertSessionsInfoToSessionsExtended(
+      UUID clusterId, List<ISessionInfo> sessions) {
+
+    List<BaseInfoExtended> sessionsExtended = new ArrayList<>();
+    sessions.forEach(
+        session -> sessionsExtended.add(new SessionInfoExtended(this, clusterId, session)));
+    Collections.sort(sessionsExtended);
+
+    return sessionsExtended;
+  }
+
   /**
    * Terminates a session in the cluster with default message.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param sessionId - infobase ID
+   * @param clusterId - ID кластера
+   * @param sessionId - ID инфобазы
    * @return sucess terminate session
    */
   public boolean terminateSession(UUID clusterId, UUID sessionId) {
@@ -1860,10 +2179,10 @@ public class Server {
   /**
    * Terminates a session in the cluster.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param sessionId - infobase ID
+   * @param clusterId - ID кластера
+   * @param sessionId - ID инфобазы
    * @param message - error message for user
    * @return sucess terminate session
    */
@@ -1884,9 +2203,7 @@ public class Server {
       agentConnection.terminateSession(clusterId, sessionId, message);
     } catch (Exception excp) {
       LOGGER.error("Error terminate a session", excp); //$NON-NLS-1$
-      MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
+      Helper.showMessageBox(excp.getLocalizedMessage());
       return false;
     }
     LOGGER.debug("Terminates a session succesful"); //$NON-NLS-1$
@@ -1896,7 +2213,7 @@ public class Server {
   /**
    * Terminates all sessions for all infobases in the cluster.
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    */
   public void terminateAllSessions(UUID clusterId) {
 
@@ -1906,8 +2223,8 @@ public class Server {
   /**
    * Terminates all sessions for infobase in the cluster.
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @param onlyUsersSession - terminate only users sessions
    */
   public void terminateAllSessionsOfInfobase(
@@ -1929,89 +2246,185 @@ public class Server {
   }
 
   /**
-   * Gets the list of short descriptions of cluster connections.
-   *
-   * <p>Cluster authentication is required.
-   *
-   * @param clusterId - cluster ID
-   * @return list of short cluster connection descriptions
-   */
-  public List<IInfoBaseConnectionShort> getConnectionsShort(UUID clusterId) {
-    if (isConnected()) {
-      return agentConnection.getConnectionsShort(clusterId);
-    }
-    // TODO
-    return new ArrayList<>();
-  }
-
-  /**
    * Gets a short description of a connection.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param connectionId - connection ID
    * @return short connection description
    */
   public IInfoBaseConnectionShort getConnectionInfoShort(UUID clusterId, UUID connectionId) {
-    if (isConnected()) {
-      return agentConnection.getConnectionInfoShort(clusterId, connectionId);
+    LOGGER.debug(
+        "Gets a connection <{}> short description in the cluster <{}>", //$NON-NLS-1$
+        connectionId,
+        clusterId);
+    if (!isConnected()) {
+      return null;
     }
-    // TODO
-    return null;
+    if (!checkAutenticateCluster(clusterId)) {
+      return null;
+    }
+
+    IInfoBaseConnectionShort connectionInfo;
+    try {
+      connectionInfo = agentConnection.getConnectionInfoShort(clusterId, connectionId);
+    } catch (Exception excp) {
+      LOGGER.error("Error get a short description of a connection", excp); //$NON-NLS-1$
+      return null;
+    }
+    //    LOGGER.debug(
+    //        "\tConnection: application name=<{}>, session ID=<{}>", //$NON-NLS-1$
+    //        getApplicationName(sessionInfo.getAppId()),
+    //        sessionInfo.getSessionId());
+
+    LOGGER.debug("Get the short description of a connection succesful"); //$NON-NLS-1$
+    return connectionInfo;
   }
+
+  /**
+   * Gets the list of short descriptions of cluster connections.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @return list of short cluster connection descriptions
+   */
+  private List<IInfoBaseConnectionShort> getConnectionsShort(UUID clusterId) {
+    LOGGER.debug(
+        "Gets the list of short descriptions connections of cluster <{}>", //$NON-NLS-1$
+        clusterId);
+
+    if (!isConnected()) {
+      return new ArrayList<>();
+    }
+
+    if (!checkAutenticateCluster(clusterId)) {
+      return new ArrayList<>();
+    }
+
+    List<IInfoBaseConnectionShort> connections;
+    try {
+      connections = agentConnection.getConnectionsShort(clusterId);
+    } catch (Exception excp) {
+      LOGGER.error("Error get the list of short descriptions connections", excp); //$NON-NLS-1$
+      return new ArrayList<>();
+    }
+
+    return connections;
+  }
+
+  //  /**
+  //   * Gets the extended list of cluster connection descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<ConnectionInfoExtended> getConnectionsExtended(UUID clusterId) {
+  //    return convertConnectionsInfoToConnectionsExtended(clusterId,
+  // getConnectionsShort(clusterId));
+  //  }
 
   /**
    * Gets the list of short descriptions of infobase connections.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @return list of short infobase connection descriptions
    */
-  public List<IInfoBaseConnectionShort> getInfoBaseConnectionsShort(
+  private List<IInfoBaseConnectionShort> getInfoBaseConnectionsShort(
       UUID clusterId, UUID infobaseId) {
-    if (isConnected()) {
-      return agentConnection.getInfoBaseConnectionsShort(clusterId, infobaseId);
+
+    LOGGER.debug(
+        "Gets the list of short descriptions connections of cluster <{}>, infobase <{}>", //$NON-NLS-1$
+        clusterId,
+        infobaseId);
+
+    if (!isConnected()) {
+      return new ArrayList<>();
     }
-    // TODO
-    return new ArrayList<>();
+
+    if (!checkAutenticateCluster(clusterId)) {
+      return new ArrayList<>();
+    }
+
+    List<IInfoBaseConnectionShort> connections;
+    try {
+      connections = agentConnection.getInfoBaseConnectionsShort(clusterId, infobaseId);
+    } catch (Exception excp) {
+      LOGGER.error("Error get the list of short descriptions connections", excp); //$NON-NLS-1$
+      return new ArrayList<>();
+    }
+
+    return connections;
   }
 
+  //  /**
+  //   * Gets the extended list of infobase connection descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @param infobaseId - ID инфобазы
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<ConnectionInfoExtended> getInfoBaseConnectionsExtended(
+  //      UUID clusterId, UUID infobaseId) {
+  //    return convertConnectionsInfoToConnectionsExtended(
+  //        clusterId, getInfoBaseConnectionsShort(clusterId, infobaseId));
+  //  }
+
   /**
-   * Gets the list of infobase connection descriptions for a working process.
+   * Возвращает список соединений информационной базы для рабочего процесса.
    *
-   * <p>Cluster authentication is required. Infobase authentication is required.
+   * <p>Требует аутентификации в кластере, Требует аутентификации в инфобазе.
    *
-   * @param clusterId - cluster ID
-   * @param workingProcessId - working process ID
-   * @param infobaseId - infobase ID
-   * @return list of infobase connection descriptions
+   * @param clusterId - ID кластера
+   * @param workingProcessId - ID рабочего процесса
+   * @param infobaseId - ID инфобазы
+   * @return список соединений к инфобазе
    */
-  public List<IInfoBaseConnectionInfo> getInfoBaseConnections(
+  private List<IInfoBaseConnectionInfo> getInfoBaseConnections(
       UUID clusterId, UUID workingProcessId, UUID infobaseId) {
-    if (isConnected()) {
-      return agentConnection.getInfoBaseConnections(clusterId, workingProcessId, infobaseId);
+
+    LOGGER.debug(
+        "Gets the list of descriptions connections of cluster <{}>, infobase <{}>", //$NON-NLS-1$
+        clusterId,
+        infobaseId);
+
+    if (!isConnected()) {
+      return new ArrayList<>();
     }
-    // TODO
-    return new ArrayList<>();
+
+    if (!checkAutenticateCluster(clusterId)) {
+      return new ArrayList<>();
+    }
+
+    List<IInfoBaseConnectionInfo> connections;
+    try { // TODO
+      connections = agentConnection.getInfoBaseConnections(clusterId, workingProcessId, infobaseId);
+    } catch (Exception excp) {
+      LOGGER.error("Error get the list of descriptions connections", excp); //$NON-NLS-1$
+      return new ArrayList<>();
+    }
+
+    return connections;
   }
 
   /**
    * Gets the list of connection descriptions for a working process.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param workingProcessId - working process ID
    * @return list of connection descriptions for a working process
    */
-  public List<IInfoBaseConnectionShort> getWorkingProcessConnectionsShort(
+  private List<IInfoBaseConnectionShort> getWorkingProcessConnectionsShort(
       UUID clusterId, UUID workingProcessId) {
     if (isConnected()) {
 
-      return agentConnection.getConnectionsShort(clusterId).stream()
+      return getConnectionsShort(clusterId).stream()
           .filter(c -> c.getWorkingProcessId().equals(workingProcessId))
           .collect(Collectors.toList());
     }
@@ -2019,15 +2432,79 @@ public class Server {
     return new ArrayList<>();
   }
 
+  //  /**
+  //   * Gets the extended list of working processId connection descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @param workingProcessId - workingProcess ID
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<ConnectionInfoExtended> getWorkingProcessConnectionsExtended(
+  //      UUID clusterId, UUID workingProcessId) {
+  //    return convertConnectionsInfoToConnectionsExtended(
+  //        clusterId, getWorkingProcessConnectionsShort(clusterId, workingProcessId));
+  //  }
+
+  /**
+   * Gets the extended list of cluster connections descriptions.
+   *
+   * @param treeItemType - tree item type
+   * @param clusterId - ID кластера
+   * @param workingProcessId - working process ID
+   * @param infobaseId - ID инфобазы
+   * @return Extended list of connection descriptions
+   */
+  public List<BaseInfoExtended> getConnectionsExtendedInfo(
+      TreeItemType treeItemType, UUID clusterId, UUID workingProcessId, UUID infobaseId) {
+
+    List<IInfoBaseConnectionShort> sessions;
+
+    switch (treeItemType) {
+      case SERVER:
+        return new ArrayList<>();
+
+      case CLUSTER:
+      case INFOBASE_NODE:
+      case WORKINGPROCESS_NODE:
+        sessions = getConnectionsShort(clusterId);
+        break;
+
+      case WORKINGPROCESS:
+        sessions = getWorkingProcessConnectionsShort(clusterId, workingProcessId);
+        break;
+
+      case INFOBASE:
+        sessions = getInfoBaseConnectionsShort(clusterId, infobaseId);
+        break;
+
+      default:
+        return new ArrayList<>();
+    }
+
+    return convertConnectionsInfoToConnectionsExtended(clusterId, sessions);
+  }
+
+  private List<BaseInfoExtended> convertConnectionsInfoToConnectionsExtended(
+      UUID clusterId, List<IInfoBaseConnectionShort> connections) {
+
+    List<BaseInfoExtended> connectionsExtended = new ArrayList<>();
+    connections.forEach(
+        connection ->
+            connectionsExtended.add(new ConnectionInfoExtended(this, clusterId, connection)));
+    Collections.sort(connectionsExtended);
+
+    return connectionsExtended;
+  }
+
   /**
    * Closes an infobase connection.
    *
-   * <p>Cluster authentication is required. Infobase authentication is required.
+   * <p>Требует аутентификации в кластере Infobase authentication is required.
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param processId - working process ID
    * @param connectionId - connection ID
-   * @param infobaseId - infobase ID
+   * @param infobaseId - ID инфобазы
    * @return {@code true} if successful shutdown
    */
   public boolean disconnectConnection(
@@ -2052,9 +2529,7 @@ public class Server {
       agentConnection.disconnect(clusterId, processId, connectionId);
     } catch (Exception excp) {
       LOGGER.error("Error close connection", excp); //$NON-NLS-1$
-      MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
+      Helper.showMessageBox(excp.getLocalizedMessage());
       return false;
     }
     LOGGER.debug("Close connection succesful"); //$NON-NLS-1$
@@ -2064,9 +2539,9 @@ public class Server {
   /**
    * Interrupt current server call.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param sid - session ID
    * @param message - interrupt message
    */
@@ -2080,12 +2555,12 @@ public class Server {
   /**
    * Gets the list of object locks.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return list of object lock descriptions
    */
-  public List<IObjectLockInfo> getLocks(UUID clusterId) {
+  private List<IObjectLockInfo> getLocks(UUID clusterId) {
     LOGGER.debug("Gets the list of object locks in the cluster <{}>", clusterId); //$NON-NLS-1$
 
     if (!isConnected()) {
@@ -2097,7 +2572,7 @@ public class Server {
     }
 
     List<IObjectLockInfo> locks;
-    try { // TODO debug
+    try {
       locks = agentConnection.getLocks(clusterId);
     } catch (Exception excp) {
       LOGGER.error("Error get the list of object locks", excp); //$NON-NLS-1$
@@ -2107,16 +2582,26 @@ public class Server {
     return locks;
   }
 
+  //  /**
+  //   * Gets the extended list of locks descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<LockInfoExtended> getLocksExtended(UUID clusterId) {
+  //    return convertLocksInfoToLocksExtended(clusterId, getLocks(clusterId));
+  //  }
+
   /**
    * Gets the list of infobase object locks.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @return list of object lock descriptions
    */
-  public List<IObjectLockInfo> getInfoBaseLocks(UUID clusterId, UUID infobaseId) {
+  private List<IObjectLockInfo> getInfoBaseLocks(UUID clusterId, UUID infobaseId) {
     LOGGER.debug("Gets the list of object locks in the cluster <{}>", clusterId); //$NON-NLS-1$
 
     if (!isConnected()) {
@@ -2128,7 +2613,7 @@ public class Server {
     }
 
     List<IObjectLockInfo> locks;
-    try { // TODO debug
+    try {
       locks = agentConnection.getInfoBaseLocks(clusterId, infobaseId);
     } catch (Exception excp) {
       LOGGER.error("Error get the list of object locks", excp); //$NON-NLS-1$
@@ -2138,16 +2623,27 @@ public class Server {
     return locks;
   }
 
+  //  /**
+  //   * Gets the extended list of infobase locks descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @param infobaseId - ID инфобазы
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<LockInfoExtended> getInfoBaseLocksExtended(UUID clusterId, UUID infobaseId) {
+  //    return convertLocksInfoToLocksExtended(clusterId, getInfoBaseLocks(clusterId, infobaseId));
+  //  }
+
   /**
    * Gets the list of connection object locks.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param connectionId - connection ID
    * @return list of object lock descriptions
    */
-  public List<IObjectLockInfo> getConnectionLocks(UUID clusterId, UUID connectionId) {
+  private List<IObjectLockInfo> getConnectionLocks(UUID clusterId, UUID connectionId) {
     LOGGER.debug("Gets the list of object locks in the cluster <{}>", clusterId); //$NON-NLS-1$
 
     if (!isConnected()) {
@@ -2159,7 +2655,7 @@ public class Server {
     }
 
     List<IObjectLockInfo> locks;
-    try { // TODO debug
+    try { // TODO
       locks = agentConnection.getConnectionLocks(clusterId, connectionId);
     } catch (Exception excp) {
       LOGGER.error("Error get the list of object locks", excp); //$NON-NLS-1$
@@ -2172,14 +2668,14 @@ public class Server {
   /**
    * Gets the list of session object locks.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @param infobaseId - infobase ID
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
    * @param sid - session ID
    * @return list of object lock descriptions
    */
-  public List<IObjectLockInfo> getSessionLocks(UUID clusterId, UUID infobaseId, UUID sid) {
+  private List<IObjectLockInfo> getSessionLocks(UUID clusterId, UUID infobaseId, UUID sid) {
     LOGGER.debug("Gets the list of object locks in the cluster <{}>", clusterId); //$NON-NLS-1$
 
     if (!isConnected()) {
@@ -2191,7 +2687,7 @@ public class Server {
     }
 
     List<IObjectLockInfo> locks;
-    try { // TODO debug
+    try { // TODO
       locks = agentConnection.getSessionLocks(clusterId, infobaseId, sid);
     } catch (Exception excp) {
       LOGGER.error("Error get the list of object locks", excp); //$NON-NLS-1$
@@ -2202,12 +2698,61 @@ public class Server {
   }
 
   /**
-   * Gets the list of descriptions of working processes registered in the cluster.
+   * Gets the extended list of cluster session descriptions.
    *
-   * <p>Cluster authentication is required.
+   * @param treeItemType - tree item type
+   * @param clusterId - ID кластера
+   * @param infobaseId - ID инфобазы
+   * @return Extended list of session descriptions
+   */
+  public List<BaseInfoExtended> getLocksExtendedInfo(
+      TreeItemType treeItemType, UUID clusterId, UUID infobaseId) {
+
+    List<IObjectLockInfo> locks;
+
+    switch (treeItemType) {
+      case SERVER:
+        return new ArrayList<>();
+
+      case CLUSTER:
+      case INFOBASE_NODE:
+      case WORKINGPROCESS_NODE:
+        locks = getLocks(clusterId);
+        break;
+
+      case WORKINGPROCESS:
+        locks = new ArrayList<>();
+        break;
+
+      case INFOBASE:
+        locks = getInfoBaseLocks(clusterId, infobaseId);
+        break;
+
+      default:
+        return new ArrayList<>();
+    }
+
+    return convertLocksInfoToLocksExtended(clusterId, locks);
+  }
+
+  private List<BaseInfoExtended> convertLocksInfoToLocksExtended(
+      UUID clusterId, List<IObjectLockInfo> locks) {
+
+    List<BaseInfoExtended> locksExtended = new ArrayList<>();
+    locks.forEach(
+        connection -> locksExtended.add(new LockInfoExtended(this, clusterId, connection)));
+    Collections.sort(locksExtended);
+
+    return locksExtended;
+  }
+
+  /**
+   * Получение списка рабочих процессов кластера.
    *
-   * @param clusterId - cluster ID
-   * @return list of working processes descriptions
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @return Список рабочих процессов кластера
    */
   public List<IWorkingProcessInfo> getWorkingProcesses(UUID clusterId) {
     if (!isConnected()) {
@@ -2219,36 +2764,95 @@ public class Server {
     }
 
     List<IWorkingProcessInfo> workingProcesses;
-    try { // TODO debug
+    try {
       LOGGER.debug(
           "Gets the list of descriptions of working processes in the cluster <{}>", //$NON-NLS-1$
           clusterId);
       workingProcesses = agentConnection.getWorkingProcesses(clusterId);
     } catch (Exception excp) {
-      LOGGER.error(
-          "Error get the list of short descriptions of working processes", //$NON-NLS-1$
-          excp);
+      LOGGER.error("Error get the list of descriptions of working processes", excp); //$NON-NLS-1$
+
       return new ArrayList<>();
     }
     workingProcesses.forEach(
-        wp -> {
-          LOGGER.debug(
-              "\tWorking process: host name=<{}>, main port=<{}>", //$NON-NLS-1$
-              wp.getHostName(),
-              wp.getMainPort());
-        });
+        wp ->
+            LOGGER.debug(
+                "\tWorking process: host name=<{}>, main port=<{}>", //$NON-NLS-1$
+                wp.getHostName(),
+                wp.getMainPort()));
 
-    LOGGER.debug(
-        "Get the list of short descriptions of working processes succesful"); //$NON-NLS-1$
+    LOGGER.debug("Get the list of descriptions of working processes succesful"); //$NON-NLS-1$
     return workingProcesses;
+  }
+
+  //  /**
+  //   * Gets the extended list of infobase connection descriptions.
+  //   *
+  //   * @param clusterId - ID кластера
+  //   * @return Extended list of session descriptions
+  //   */
+  //  public List<WorkingProcessInfoExtended> getWorkingProcessesExtended(UUID clusterId) {
+  //    return convertWorkingProcessInfoToWorkingProcessExtended(
+  //        clusterId, getWorkingProcesses(clusterId));
+  //  }
+
+  /**
+   * Получение списка расширенной информации о рабочих процессах.
+   *
+   * @param treeItemType - тип элемента дерева, для которого идет получение списка
+   * @param clusterId - ID кластера
+   * @param workingProcessId - working process ID
+   * @return Список расширенной информации о рабочих процессах
+   */
+  public List<BaseInfoExtended> getWorkingProcessesExtendedInfo(
+      TreeItemType treeItemType, UUID clusterId, UUID workingProcessId) {
+
+    List<IWorkingProcessInfo> workingProcesses;
+
+    switch (treeItemType) {
+      case SERVER:
+        return new ArrayList<>();
+
+      case CLUSTER:
+      case INFOBASE_NODE:
+      case WORKINGPROCESS_NODE:
+        workingProcesses = getWorkingProcesses(clusterId);
+        break;
+
+      case WORKINGPROCESS:
+        workingProcesses = new ArrayList<>();
+        workingProcesses.add(this.getWorkingProcessInfo(clusterId, workingProcessId));
+        break;
+
+      case INFOBASE:
+        // TODO отметить рп обслуживающий базу
+        workingProcesses = getWorkingProcesses(clusterId);
+        break;
+
+      default:
+        return new ArrayList<>();
+    }
+
+    return convertWorkingProcessInfoToWorkingProcessExtended(clusterId, workingProcesses);
+  }
+
+  private List<BaseInfoExtended> convertWorkingProcessInfoToWorkingProcessExtended(
+      UUID clusterId, List<IWorkingProcessInfo> workingProcesses) {
+
+    List<BaseInfoExtended> workingProcessesExtended = new ArrayList<>();
+    workingProcesses.forEach(
+        wp -> workingProcessesExtended.add(new WorkingProcessInfoExtended(this, clusterId, wp)));
+    Collections.sort(workingProcessesExtended);
+
+    return workingProcessesExtended;
   }
 
   /**
    * Gets a working process description.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param processId - working process ID
    * @return working process description, or null if the working process with the specified ID does
    *     not exist
@@ -2280,9 +2884,9 @@ public class Server {
   /**
    * Gets the list of descriptions of working processes of a working server.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param serverId - working server ID
    * @return list of working process descriptions
    */
@@ -2295,12 +2899,12 @@ public class Server {
   }
 
   /**
-   * Gets the list of descriptions of working servers registered in the cluster.
+   * Получение списка рабочих серверов, зарегистрированных на кластере.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
-   * @return list of working server descriptions
+   * @param clusterId - ID кластера
+   * @return Список рабочих серверов
    */
   public List<IWorkingServerInfo> getWorkingServers(UUID clusterId) {
     if (!isConnected()) {
@@ -2312,36 +2916,72 @@ public class Server {
     }
 
     List<IWorkingServerInfo> workingServers;
-    try { // TODO debug
+    try {
       LOGGER.debug(
           "Gets the list of descriptions of working servers in the cluster <{}>", //$NON-NLS-1$
           clusterId);
       workingServers = agentConnection.getWorkingServers(clusterId);
     } catch (Exception excp) {
       LOGGER.error("Error get the list of descriptions of working servers", excp); //$NON-NLS-1$
-      throw new IllegalStateException("Error get working servers"); //$NON-NLS-1$
+      return new ArrayList<>();
     }
     workingServers.forEach(
-        ws -> {
-          LOGGER.debug(
-              "\tWorking server: host name=<{}>, main port=<{}>", //$NON-NLS-1$
-              ws.getHostName(),
-              ws.getMainPort());
-        });
+        ws ->
+            LOGGER.debug(
+                "\tWorking server: host name=<{}>, main port=<{}>", //$NON-NLS-1$
+                ws.getHostName(),
+                ws.getMainPort()));
 
     LOGGER.debug("Get the list of descriptions of working servers succesful"); //$NON-NLS-1$
     return workingServers;
   }
 
   /**
-   * Gets a description of a working server registered in the cluster.
+   * Получение списка расширенной информации о рабочих серверах, зарегистрированных на кластере.
    *
-   * <p>Cluster authentication is required.
+   * @param treeItemType - тип элемента дерева, дял которого идет получение списка
+   * @param clusterId - ID кластера
+   * @return Список расширенной информации о рабочих серверах
+   */
+  public List<BaseInfoExtended> getWorkingServersExtendedInfo(
+      TreeItemType treeItemType, UUID clusterId) {
+
+    switch (treeItemType) {
+      case SERVER:
+        return new ArrayList<>();
+
+      case CLUSTER:
+      case INFOBASE_NODE:
+      case WORKINGPROCESS_NODE:
+      case WORKINGPROCESS:
+      case INFOBASE:
+        return convertWorkingServersInfoToWorkingServersExtended(
+            clusterId, getWorkingServers(clusterId));
+
+      default:
+        return new ArrayList<>();
+    }
+  }
+
+  private List<BaseInfoExtended> convertWorkingServersInfoToWorkingServersExtended(
+      UUID clusterId, List<IWorkingServerInfo> workingServers) {
+
+    List<BaseInfoExtended> workingServersExtended = new ArrayList<>();
+    workingServers.forEach(
+        ws -> workingServersExtended.add(new WorkingServerInfoExtended(this, clusterId, ws)));
+    Collections.sort(workingServersExtended);
+
+    return workingServersExtended;
+  }
+
+  /**
+   * Получение информации о рабочем сервере кластера.
    *
-   * @param clusterId - cluster ID
-   * @param serverId - server ID
-   * @return working server description, or null if the working server with the specified ID does
-   *     not exist
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param serverId - ID рабочего сервера
+   * @return информация о рабочем сервере, или null если рабочий сервер с указанным ID не существует
    */
   public IWorkingServerInfo getWorkingServerInfo(UUID clusterId, UUID serverId) {
     if (!isConnected()) {
@@ -2353,7 +2993,7 @@ public class Server {
     }
 
     IWorkingServerInfo workingServerInfo;
-    try { // TODO debug
+    try {
       LOGGER.debug(
           "Gets the description of working server <{}> in the cluster <{}>", //$NON-NLS-1$
           serverId,
@@ -2361,7 +3001,8 @@ public class Server {
       workingServerInfo = agentConnection.getWorkingServerInfo(clusterId, serverId);
     } catch (Exception excp) {
       LOGGER.error("Error get the list of descriptions of working server", excp); //$NON-NLS-1$
-      throw new IllegalStateException("Error get working server"); //$NON-NLS-1$
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return null;
     }
 
     LOGGER.debug(
@@ -2375,17 +3016,16 @@ public class Server {
   }
 
   /**
-   * Creates a working server or changes the description of an existing one.
+   * Создание рабочего сервера или изменение существующего экземпляра.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере.
    *
-   * @param clusterId - cluster ID
-   * @param serverInfo - working server description
-   * @param createNew - if create new working server
-   * @return {@code true} if succes reg working server
+   * @param clusterId - ID кластера
+   * @param wsInfo - объект-описание рабочего сервера
+   * @param createNew - признак создания нового сервера
+   * @return {@code true} при успешном создании или изменении рабочего сервера
    */
-  public boolean regWorkingServer(
-      UUID clusterId, IWorkingServerInfo serverInfo, boolean createNew) {
+  public boolean regWorkingServer(UUID clusterId, IWorkingServerInfo wsInfo, boolean createNew) {
     if (!isConnected()) {
       return false;
     }
@@ -2398,35 +3038,36 @@ public class Server {
       LOGGER.debug("Registration NEW working server"); //$NON-NLS-1$
     }
 
-    try { // TODO debug
+    try {
       LOGGER.debug(
           "Registration working server <{}> registered in the cluster <{}>", //$NON-NLS-1$
-          serverInfo.getName(),
+          wsInfo.getName(),
           clusterId);
-      agentConnection.regWorkingServer(clusterId, serverInfo);
+      agentConnection.regWorkingServer(clusterId, wsInfo);
     } catch (Exception excp) {
       LOGGER.error("Error registration working server", excp); //$NON-NLS-1$
+      Helper.showMessageBox(excp.getLocalizedMessage());
       return false;
     }
 
     LOGGER.debug(
         "\tRegistration working server: name=<{}>, host name=<{}>, main port=<{}>", //$NON-NLS-1$
-        serverInfo.getName(),
-        serverInfo.getHostName(),
-        serverInfo.getMainPort());
+        wsInfo.getName(),
+        wsInfo.getHostName(),
+        wsInfo.getMainPort());
 
     LOGGER.debug("Registration working server succesful"); //$NON-NLS-1$
     return true;
   }
 
   /**
-   * Deletes a working server and removes its cluster registration.
+   * Удаляет рабочий сервер и удаляет его регистрацию в кластере.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере.
    *
-   * @param clusterId - cluster ID
-   * @param serverId - server ID
-   * @return infobase full infobase description
+   * @param clusterId - ID кластера
+   * @param serverId - ID рабочего сервера
+   * @return {@code true} при успешном удалении рабочего сервера
    */
   public boolean unregWorkingServer(UUID clusterId, UUID serverId) {
     if (!isConnected()) {
@@ -2437,7 +3078,7 @@ public class Server {
       return false;
     }
 
-    try { // TODO debug
+    try {
       LOGGER.debug(
           "Deletes a working server <{}> from the cluster <{}>", //$NON-NLS-1$
           serverId,
@@ -2445,9 +3086,7 @@ public class Server {
       agentConnection.unregWorkingServer(clusterId, serverId);
     } catch (Exception excp) {
       LOGGER.error("Error registration working server", excp); //$NON-NLS-1$
-      MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
+      Helper.showMessageBox(excp.getLocalizedMessage());
       return false;
     }
 
@@ -2458,9 +3097,9 @@ public class Server {
   /**
    * Gets the list of cluster service descriptions.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return list of cluster service descriptions
    */
   public List<IClusterServiceInfo> getClusterServices(UUID clusterId) {
@@ -2471,9 +3110,9 @@ public class Server {
   /**
    * Applies assignment rules.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param full - assigment rule application mode: 0 - partial 1 - full
    */
   public void applyAssignmentRules(UUID clusterId, int full) {
@@ -2484,9 +3123,9 @@ public class Server {
   /**
    * Gets the list of descriptions of working server assignment rules.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param serverId - server ID
    * @return infobase full infobase description
    */
@@ -2499,9 +3138,9 @@ public class Server {
    * Creates an assignment rule, changes an existing one, or moves an existing rule to a new
    * position.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param serverId - server ID
    * @param info - assignment rule description
    * @param position - position in the rule list (starts from 0)
@@ -2516,9 +3155,9 @@ public class Server {
   /**
    * Deletes an assignment rule from the list of working server rules.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param serverId - working server ID
    * @param ruleId - assignment rule ID
    */
@@ -2530,9 +3169,9 @@ public class Server {
   /**
    * Gets an assignment rule description.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param serverId - server ID
    * @param ruleId - assignment rule ID
    * @return assignment rule description
@@ -2545,9 +3184,9 @@ public class Server {
   /**
    * Gets the list of cluster security profiles.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return list of cluster security profiles
    */
   public List<ISecurityProfile> getSecurityProfiles(UUID clusterId) {
@@ -2558,9 +3197,9 @@ public class Server {
   /**
    * Creates or updates a cluster security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param profile -security profile
    */
   public void createSecurityProfile(UUID clusterId, ISecurityProfile profile) {
@@ -2571,9 +3210,9 @@ public class Server {
   /**
    * Deletes a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    */
   public void dropSecurityProfile(UUID clusterId, String spName) {
@@ -2584,9 +3223,9 @@ public class Server {
   /**
    * Gets the list of virtual directories of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @return list of virtual directories
    */
@@ -2599,9 +3238,9 @@ public class Server {
   /**
    * Creates or updates a virtual directory of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param directory - virtual directory
    */
   public void createSecurityProfileVirtualDirectory(
@@ -2613,9 +3252,9 @@ public class Server {
   /**
    * Deletes a virtual directory of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @param alias - virtual directory alias
    */
@@ -2627,9 +3266,9 @@ public class Server {
   /**
    * Gets the list of allowed COM classes of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @return infobase full infobase description
    */
@@ -2642,9 +3281,9 @@ public class Server {
   /**
    * Creates or updates an allowed COM class of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param comClass - allowed COM class
    */
   public void createSecurityProfileComClass(UUID clusterId, ISecurityProfileCOMClass comClass) {
@@ -2655,9 +3294,9 @@ public class Server {
   /**
    * Deletes an allowed COM class of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @param name - COM class name
    */
@@ -2669,9 +3308,9 @@ public class Server {
   /**
    * Gets the list of allowed add-ins of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @return list of allowed add-ins
    */
@@ -2683,9 +3322,9 @@ public class Server {
   /**
    * Creates or updates an allowed add-in of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param addIn - allowed add-in
    */
   public void createSecurityProfileAddIn(UUID clusterId, ISecurityProfileAddIn addIn) {
@@ -2696,9 +3335,9 @@ public class Server {
   /**
    * Deletes an allowed add-in of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName -security profile name
    * @param name -add-in name
    */
@@ -2710,9 +3349,9 @@ public class Server {
   /**
    * Gets the list of allowed unsafe external modules of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @return list of allowed external modules
    */
@@ -2725,9 +3364,9 @@ public class Server {
   /**
    * Creates or updates an allowed unsafe external module of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param module - allowed external module
    */
   public void createSecurityProfileUnsafeExternalModule(
@@ -2739,9 +3378,9 @@ public class Server {
   /**
    * Deletes an allowed unsafe external module of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @param name - external module name
    */
@@ -2753,9 +3392,9 @@ public class Server {
   /**
    * Gets the list of allowed applications of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @return list of allowed applications
    */
@@ -2768,9 +3407,9 @@ public class Server {
   /**
    * Creates or updates an allowed application of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param app - allowed application
    */
   public void createSecurityProfileApplication(UUID clusterId, ISecurityProfileApplication app) {
@@ -2781,9 +3420,9 @@ public class Server {
   /**
    * Deletes an allowed application of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @param name - application name
    */
@@ -2795,9 +3434,9 @@ public class Server {
   /**
    * Gets the list of Internet resources of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @return infobase full infobase description
    */
@@ -2810,9 +3449,9 @@ public class Server {
   /**
    * Creates or updates an Internet resource of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param resource - Internet resource
    */
   public void createSecurityProfileInternetResource(
@@ -2824,9 +3463,9 @@ public class Server {
   /**
    * Deletes an Internet resource of a security profile.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param spName - security profile name
    * @param name - Internet resource name
    */
@@ -2838,9 +3477,9 @@ public class Server {
   /**
    * Gets the list of resource counters.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return list of cluster resource counters
    */
   public List<IResourceConsumptionCounter> getResourceConsumptionCounters(UUID clusterId) {
@@ -2851,9 +3490,9 @@ public class Server {
   /**
    * Gets resource counters description.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param counterName - resource counter name
    * @return cluster resource counter info
    */
@@ -2866,9 +3505,9 @@ public class Server {
   /**
    * Creates or updates a resource counter.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param counter - resource counter info
    */
   public void regResourceConsumptionCounter(UUID clusterId, IResourceConsumptionCounter counter) {
@@ -2879,9 +3518,9 @@ public class Server {
   /**
    * Deletes a resource counter.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param counterName - resource counter name
    */
   public void unregResourceConsumptionCounter(UUID clusterId, String counterName) {
@@ -2892,9 +3531,9 @@ public class Server {
   /**
    * Gets the list of resource limits.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @return list of cluster resource limits
    */
   public List<IResourceConsumptionLimit> getResourceConsumptionLimits(UUID clusterId) {
@@ -2905,9 +3544,9 @@ public class Server {
   /**
    * Gets resource limits description.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param limitName - resource limit name
    * @return cluster resource counter info
    */
@@ -2920,9 +3559,9 @@ public class Server {
   /**
    * Creates or updates a resource limit.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param limit - cluster resource limit info
    */
   public void regResourceConsumptionLimit(UUID clusterId, IResourceConsumptionLimit limit) {
@@ -2933,9 +3572,9 @@ public class Server {
   /**
    * Deletes a resource limits.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param limitName - resource limit name
    */
   public void unregResourceConsumptionLimit(UUID clusterId, String limitName) {
@@ -2946,9 +3585,9 @@ public class Server {
   /**
    * Gets the list of resource counter values.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param counterName - resource counter name
    * @param object - object name
    * @return list of resource counter values
@@ -2962,9 +3601,9 @@ public class Server {
   /**
    * Deletes a resource counter values.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param counterName - resource counter name
    * @param object - object name
    */
@@ -2978,9 +3617,9 @@ public class Server {
   /**
    * Gets the list of resource counter accumulated values.
    *
-   * <p>Cluster authentication is required.
+   * <p>Требует аутентификации в кластере
    *
-   * @param clusterId - cluster ID
+   * @param clusterId - ID кластера
    * @param counterName - resource counter name
    * @param object - object name
    * @return ist of resource counter accumulated values

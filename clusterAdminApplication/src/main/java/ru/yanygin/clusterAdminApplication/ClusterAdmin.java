@@ -17,7 +17,7 @@ public class ClusterAdmin {
   public static void main(String[] args) {
 
     try {
-      ClusterViewer window = new ClusterViewer();
+      ClusterViewer window = new ClusterViewer(null);
       window.setBlockOnOpen(true);
       window.open();
       Display.getCurrent().dispose();

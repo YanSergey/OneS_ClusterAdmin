@@ -12,7 +12,6 @@ import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -20,44 +19,41 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.wb.swt.SWTResourceManager;
+import ru.yanygin.clusterAdminLibrary.Helper;
 import ru.yanygin.clusterAdminLibrary.Server;
 
-/** Dialog for create infobase. */
+/** Диалог создания информационной базы. */
 public class CreateInfobaseDialog extends Dialog {
 
-  private UUID clusterId;
+  private static final String DBMS_TYPE_MSSQLSERVER = "MSSQLServer"; //$NON-NLS-1$
+  private static final String DBMS_TYPE_POSTGRESQL = "PostgreSQL"; //$NON-NLS-1$
+  private static final String DBMS_TYPE_IBMDB2 = "IBMDB2"; //$NON-NLS-1$
+  private static final String DBMS_TYPE_ORACLEDATABASE = "OracleDatabase"; //$NON-NLS-1$
+  private static final String ZERO_OFFSET = "0"; //$NON-NLS-1$
+  private static final String MSSQL_OFFSET = "2000"; //$NON-NLS-1$
 
   private Server server;
-  private Button btnSheduledJobsDenied;
-  private Button btnAllowDistributeLicense;
-  private Button btnInfobaseCreationMode;
+  private UUID clusterId;
+  private UUID newInfobaseUuid;
+  private UUID sampleInfobaseId;
+
   private Text txtInfobaseName;
   private Text txtServerDbName;
   private Text txtDatabaseDbName;
   private Text txtDatabaseDbUser;
   private Text txtDatabaseDbPassword;
   private Text txtInfobaseDescription;
+  
   private Combo comboSecurityLevel;
   private Combo comboServerDbType;
   private Combo comboLocale; // Откуда то загрузить все возможные локали
   private Combo comboDateOffset;
 
-  private UUID newInfobaseUuid;
-
-  /**
-   * Return infobase ID for create new infobase from sample.
-   *
-   * @return infobase ID
-   */
-  public UUID getNewInfobaseUuid() {
-    return newInfobaseUuid;
-  }
-
-  private UUID sampleInfobaseId;
+  private Button btnSheduledJobsDenied;
+  private Button btnAllowDistributeLicense;
+  private Button btnInfobaseCreationMode;
 
   /**
    * Create the dialog.
@@ -72,12 +68,15 @@ public class CreateInfobaseDialog extends Dialog {
     super(parentShell);
     setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
-    // super.configureShell(parentShell);
-    // parentShell.setText("Parameters of the 1C:Enterprise infobase");
-
     this.server = server;
     this.clusterId = clusterId;
     this.sampleInfobaseId = sampleInfobaseId;
+  }
+
+  @Override
+  protected void configureShell(Shell newShell) {
+    super.configureShell(newShell);
+    newShell.setText(Strings.TITLE_WINDOW);
   }
 
   /**
@@ -94,7 +93,7 @@ public class CreateInfobaseDialog extends Dialog {
 
     Label lblInfobaseName = new Label(container, SWT.NONE);
     lblInfobaseName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblInfobaseName.setText(Messages.getString("InfobaseDialog.InfobaseName")); //$NON-NLS-1$
+    lblInfobaseName.setText(Strings.INFOBASE_NAME);
 
     txtInfobaseName = new Text(container, SWT.BORDER);
     txtInfobaseName.addModifyListener(
@@ -104,145 +103,119 @@ public class CreateInfobaseDialog extends Dialog {
             txtDatabaseDbName.setText(((Text) e.widget).getText());
           }
         });
-    txtInfobaseName.setToolTipText(
-        Messages.getString("InfobaseDialog.InfobaseName")); //$NON-NLS-1$
     txtInfobaseName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
     Label lblInfobaseDescription = new Label(container, SWT.NONE);
     lblInfobaseDescription.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblInfobaseDescription.setText(Messages.getString("InfobaseDialog.Description")); //$NON-NLS-1$
+    lblInfobaseDescription.setText(Strings.INFOBASE_DESCRIPTION);
 
     txtInfobaseDescription = new Text(container, SWT.BORDER);
-    txtInfobaseDescription.setToolTipText(
-        Messages.getString("InfobaseDialog.Description")); //$NON-NLS-1$
     txtInfobaseDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
     Label lblSecurityLevel = new Label(container, SWT.NONE);
     lblSecurityLevel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblSecurityLevel.setText(Messages.getString("Dialogs.SecurityLevel")); //$NON-NLS-1$
+    lblSecurityLevel.setText(Strings.SECURITY_LEVEL);
 
     comboSecurityLevel = new Combo(container, SWT.READ_ONLY);
-    comboSecurityLevel.setToolTipText(Messages.getString("Dialogs.SecurityLevel")); //$NON-NLS-1$
     comboSecurityLevel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
-    comboSecurityLevel.add(Messages.getString("Dialogs.Disable")); //$NON-NLS-1$
-    comboSecurityLevel.setData(Messages.getString("Dialogs.Disable"), 0); //$NON-NLS-1$
-    comboSecurityLevel.add(Messages.getString("Dialogs.ConnectionOnly")); //$NON-NLS-1$
-    comboSecurityLevel.setData(Messages.getString("Dialogs.ConnectionOnly"), 1); //$NON-NLS-1$
-    comboSecurityLevel.add(Messages.getString("Dialogs.Constantly")); //$NON-NLS-1$
-    comboSecurityLevel.setData(Messages.getString("Dialogs.Constantly"), 2); //$NON-NLS-1$
+    comboSecurityLevel.add(Strings.SECURITY_LEVEL_DISABLE);
+    comboSecurityLevel.setData(Strings.SECURITY_LEVEL_DISABLE, 0);
+    comboSecurityLevel.add(Strings.SECURITY_LEVEL_CONNECTIONONLY);
+    comboSecurityLevel.setData(Strings.SECURITY_LEVEL_CONNECTIONONLY, 1);
+    comboSecurityLevel.add(Strings.SECURITY_LEVEL_CONSTANTLY);
+    comboSecurityLevel.setData(Strings.SECURITY_LEVEL_CONSTANTLY, 2);
     comboSecurityLevel.select(0);
 
     Label lblServerDbName = new Label(container, SWT.NONE);
     lblServerDbName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblServerDbName.setText(Messages.getString("InfobaseDialog.ServerDBName")); //$NON-NLS-1$
+    lblServerDbName.setText(Strings.SERVER_DB_NAME);
 
     txtServerDbName = new Text(container, SWT.BORDER);
-    txtServerDbName.setToolTipText(
-        Messages.getString("InfobaseDialog.ServerDBName")); //$NON-NLS-1$
     txtServerDbName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
     Label lblServerDbType = new Label(container, SWT.NONE);
     lblServerDbType.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblServerDbType.setText(Messages.getString("InfobaseDialog.DBMSType")); //$NON-NLS-1$
+    lblServerDbType.setText(Strings.DBMS_TYPE);
 
     comboServerDbType = new Combo(container, SWT.READ_ONLY);
     comboServerDbType.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
-    comboServerDbType.add(Messages.getString("InfobaseDialog.MSSQLServer")); //$NON-NLS-1$
-    comboServerDbType.add(Messages.getString("InfobaseDialog.PostgreSQL")); //$NON-NLS-1$
-    comboServerDbType.add(Messages.getString("InfobaseDialog.IBMDB2")); //$NON-NLS-1$
-    comboServerDbType.add(Messages.getString("InfobaseDialog.OracleDatabase")); //$NON-NLS-1$
+    comboServerDbType.add(DBMS_TYPE_MSSQLSERVER);
+    comboServerDbType.add(DBMS_TYPE_POSTGRESQL);
+    comboServerDbType.add(DBMS_TYPE_IBMDB2);
+    comboServerDbType.add(DBMS_TYPE_ORACLEDATABASE);
     comboServerDbType.select(0);
 
     comboServerDbType.addSelectionListener(
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
-            boolean dateOffsetEnabled =
-                comboServerDbType
-                    .getText()
-                    .equals(Messages.getString("InfobaseDialog.MSSQLServer")); //$NON-NLS-1$
-            comboDateOffset.setEnabled(dateOffsetEnabled);
-            comboDateOffset.setText(dateOffsetEnabled ? "2000" : "0"); //$NON-NLS-1$ //$NON-NLS-2$
+            boolean dbmsTypeIsMsSql = comboServerDbType.getText().equals(DBMS_TYPE_MSSQLSERVER);
+            comboDateOffset.setEnabled(dbmsTypeIsMsSql);
+            comboDateOffset.setText(dbmsTypeIsMsSql ? MSSQL_OFFSET : ZERO_OFFSET);
           }
         });
 
     Label lblDatabaseDbName = new Label(container, SWT.NONE);
     lblDatabaseDbName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblDatabaseDbName.setText(Messages.getString("InfobaseDialog.DatabaseDBName")); //$NON-NLS-1$
+    lblDatabaseDbName.setText(Strings.DATABASE_DB_NAME);
 
     txtDatabaseDbName = new Text(container, SWT.BORDER);
-    txtDatabaseDbName.setToolTipText(
-        Messages.getString("InfobaseDialog.DatabaseDBName")); //$NON-NLS-1$
     txtDatabaseDbName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
     Label lblDatabaseDbUser = new Label(container, SWT.NONE);
     lblDatabaseDbUser.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblDatabaseDbUser.setText(Messages.getString("InfobaseDialog.DatabaseDBUser")); //$NON-NLS-1$
+    lblDatabaseDbUser.setText(Strings.DATABASE_DB_USER);
 
     txtDatabaseDbUser = new Text(container, SWT.BORDER);
-    txtDatabaseDbUser.setToolTipText(
-        Messages.getString("InfobaseDialog.DatabaseDBUser")); //$NON-NLS-1$
     txtDatabaseDbUser.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
     Label lblDatabaseDbPassword = new Label(container, SWT.NONE);
     lblDatabaseDbPassword.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
     lblDatabaseDbPassword.setAlignment(SWT.RIGHT);
-    lblDatabaseDbPassword.setText(
-        Messages.getString("InfobaseDialog.DatabaseDBPassword")); //$NON-NLS-1$
+    lblDatabaseDbPassword.setText(Strings.DATABASE_DB_PASSWORD);
 
     txtDatabaseDbPassword = new Text(container, SWT.BORDER | SWT.PASSWORD);
-    txtDatabaseDbPassword.setToolTipText(
-        Messages.getString("InfobaseDialog.DatabaseDBPassword")); //$NON-NLS-1$
     txtDatabaseDbPassword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
     btnAllowDistributeLicense = new Button(container, SWT.CHECK);
     btnAllowDistributeLicense.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1));
-    btnAllowDistributeLicense.setText(
-        Messages.getString("InfobaseDialog.AllowDistributeLicense")); //$NON-NLS-1$
+    btnAllowDistributeLicense.setText(Strings.ALLOW_DISTRIBUTE_LICENSE);
 
     Label lblLocale = new Label(container, SWT.NONE);
     lblLocale.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblLocale.setText(Messages.getString("InfobaseDialog.Locale")); //$NON-NLS-1$
+    lblLocale.setText(Strings.LOCALE);
 
     comboLocale = new Combo(container, SWT.READ_ONLY);
-    comboLocale.setItems(
-        new String[] {
-          Messages.getString("InfobaseDialog.ru_RU"),
-          Messages.getString("InfobaseDialog.en_US"),
-          "xx_XX",
-          "yy_YY"
-        });
+    comboLocale.setItems(getLocales());
     comboLocale.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
     comboLocale.select(0);
 
     Label lblDateOffset = new Label(container, SWT.NONE);
     lblDateOffset.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblDateOffset.setText(Messages.getString("InfobaseDialog.DateOffset")); //$NON-NLS-1$
+    lblDateOffset.setText(Strings.DATE_OFFSET);
 
     comboDateOffset = new Combo(container, SWT.READ_ONLY);
-    comboDateOffset.setItems("0", "2000"); //$NON-NLS-1$ //$NON-NLS-2$
+    comboDateOffset.setItems(ZERO_OFFSET, MSSQL_OFFSET);
     comboDateOffset.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-    comboDateOffset.setText("2000"); //$NON-NLS-1$
+    comboDateOffset.setText(MSSQL_OFFSET);
 
     btnInfobaseCreationMode = new Button(container, SWT.CHECK);
     btnInfobaseCreationMode.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1));
-    btnInfobaseCreationMode.setText(
-        Messages.getString("InfobaseDialog.CreateDatabaseIfNotAvailable")); //$NON-NLS-1$
+    btnInfobaseCreationMode.setText(Strings.CREATE_DATABASE_IF_NOTAVAILABLE);
 
     btnSheduledJobsDenied = new Button(container, SWT.CHECK);
     btnSheduledJobsDenied.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1));
-    btnSheduledJobsDenied.setText(
-        Messages.getString("InfobaseDialog.SheduledJobsDenied")); //$NON-NLS-1$
+    btnSheduledJobsDenied.setText(Strings.SHEDULED_JOBS_DENIED);
     new Label(container, SWT.NONE);
 
-    initInfobaseProperties();
+    initProperties();
 
     return container;
   }
 
-  private void initInfobaseProperties() {
+  private void initProperties() {
     if (sampleInfobaseId == null) {
 
       txtInfobaseName.setText(""); //$NON-NLS-1$
@@ -257,8 +230,7 @@ public class CreateInfobaseDialog extends Dialog {
       txtDatabaseDbName.setText(""); //$NON-NLS-1$
       txtDatabaseDbUser.setText(""); //$NON-NLS-1$
       txtDatabaseDbPassword.setText(""); //$NON-NLS-1$
-      txtDatabaseDbPassword.setToolTipText(
-          Messages.getString("InfobaseDialog.YouNeedToEnter")); //$NON-NLS-1$
+      txtDatabaseDbPassword.setToolTipText(Strings.NEED_TO_ENTER);
 
     } else {
 
@@ -281,13 +253,12 @@ public class CreateInfobaseDialog extends Dialog {
       txtDatabaseDbName.setText(infoBaseInfo.getDbName());
       txtDatabaseDbUser.setText(infoBaseInfo.getDbUser());
       txtDatabaseDbPassword.setText(""); //$NON-NLS-1$
-      txtDatabaseDbPassword.setToolTipText(
-          Messages.getString("InfobaseDialog.YouNeedToEnter")); //$NON-NLS-1$
+      txtDatabaseDbPassword.setToolTipText(Strings.NEED_TO_ENTER);
 
-      txtInfobaseName.setForeground(new Color(255, 0, 0));
-      txtDatabaseDbName.setForeground(new Color(255, 0, 0));
-      btnInfobaseCreationMode.setForeground(new Color(255, 0, 0));
-      txtDatabaseDbPassword.setForeground(new Color(255, 0, 0));
+      txtInfobaseName.setForeground(Helper.getRedColor());
+      txtDatabaseDbName.setForeground(Helper.getRedColor());
+      btnInfobaseCreationMode.setForeground(Helper.getRedColor());
+      txtDatabaseDbPassword.setForeground(Helper.getRedColor());
     }
   }
 
@@ -303,10 +274,10 @@ public class CreateInfobaseDialog extends Dialog {
 
     for (Text control : checksTextControls) {
       if (control.getText().isBlank()) {
-        control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+        control.setBackground(Helper.getPinkColor());
         existsError = true;
       } else {
-        control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+        control.setBackground(Helper.getWhiteColor());
       }
     }
 
@@ -335,23 +306,29 @@ public class CreateInfobaseDialog extends Dialog {
     infoBaseInfo.setDbUser(txtDatabaseDbUser.getText());
     infoBaseInfo.setDbPassword(txtDatabaseDbPassword.getText());
     infoBaseInfo.setLocale(comboLocale.getText());
-    if (comboServerDbType
-        .getText()
-        .equals(Messages.getString("InfobaseDialog.MSSQLServer"))) { //$NON-NLS-1$
+    if (comboServerDbType.getText().equals(DBMS_TYPE_MSSQLSERVER)) {
       infoBaseInfo.setDateOffset(Integer.parseInt(comboDateOffset.getText()));
     }
 
-    try {
-      newInfobaseUuid =
-          server.createInfoBase(
-              clusterId, infoBaseInfo, (btnInfobaseCreationMode.getSelection() ? 1 : 0));
-    } catch (Exception excp) {
-      var messageBox = new MessageBox(getParentShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
-      return false;
-    }
-    return true;
+    newInfobaseUuid =
+        server.createInfoBase(
+            clusterId, infoBaseInfo, (btnInfobaseCreationMode.getSelection() ? 1 : 0));
+
+    return newInfobaseUuid != Helper.EMPTY_UUID;
+  }
+
+  /**
+   * Возвращает ID созданной инфобазы (при создании из образца).
+   *
+   * @return ID инфобазы
+   */
+  public UUID getNewInfobaseUuid() {
+    return newInfobaseUuid;
+  }
+
+  private String[] getLocales() {
+    // return Locale.getAvailableLocales();
+    return new String[] {"ru_RU", "en_US", "xx_XX", "yy_YY"};
   }
 
   /**
@@ -361,9 +338,9 @@ public class CreateInfobaseDialog extends Dialog {
    */
   @Override
   protected void createButtonsForButtonBar(Composite parent) {
-    Button button =
+    Button buttonOk =
         createButton(parent, IDialogConstants.FINISH_ID, IDialogConstants.OK_LABEL, true);
-    button.addSelectionListener(
+    buttonOk.addSelectionListener(
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
@@ -374,5 +351,32 @@ public class CreateInfobaseDialog extends Dialog {
         });
 
     createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
+  }
+
+  private static class Strings {
+
+    static final String TITLE_WINDOW = getString("TitleDialog");
+    static final String INFOBASE_NAME = getString("InfobaseName");
+    static final String INFOBASE_DESCRIPTION = getString("Description");
+    static final String SECURITY_LEVEL = Messages.getString("Dialogs.SecurityLevel");
+    static final String SECURITY_LEVEL_DISABLE = Messages.getString("Dialogs.Disable");
+    static final String SECURITY_LEVEL_CONNECTIONONLY =
+        Messages.getString("Dialogs.ConnectionOnly");
+    static final String SECURITY_LEVEL_CONSTANTLY = Messages.getString("Dialogs.Constantly");
+    static final String SERVER_DB_NAME = getString("ServerDBName");
+    static final String DBMS_TYPE = getString("DBMSType");
+    static final String DATABASE_DB_NAME = getString("DatabaseDBName");
+    static final String DATABASE_DB_USER = getString("DatabaseDBUser");
+    static final String DATABASE_DB_PASSWORD = getString("DatabaseDBPassword");
+    static final String ALLOW_DISTRIBUTE_LICENSE = getString("AllowDistributeLicense");
+    static final String LOCALE = getString("Locale");
+    static final String DATE_OFFSET = getString("DateOffset");
+    static final String CREATE_DATABASE_IF_NOTAVAILABLE = getString("CreateDatabaseIfNotAvailable");
+    static final String SHEDULED_JOBS_DENIED = getString("SheduledJobsDenied");
+    static final String NEED_TO_ENTER = getString("YouNeedToEnter");
+
+    static String getString(String key) {
+      return Messages.getString("InfobaseDialog." + key); //$NON-NLS-1$
+    }
   }
 }

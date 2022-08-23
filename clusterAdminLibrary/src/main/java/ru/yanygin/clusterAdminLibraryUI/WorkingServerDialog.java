@@ -23,35 +23,38 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.wb.swt.SWTResourceManager;
+import ru.yanygin.clusterAdminLibrary.Helper;
 import ru.yanygin.clusterAdminLibrary.Server;
+import ru.yanygin.clusterAdminLibrary.WorkingServerInfoExtended;
 
-/** Dialog for create and edit Working Server parameters. */
-public class CreateEditWorkingServerDialog extends Dialog {
+/** Диалог редактирования параметров рабочего сервера. */
+public class WorkingServerDialog extends Dialog {
 
+  private static final String DEFAULT_PROF_VALUE = "8"; //$NON-NLS-1$
+  private static final String EMPTY_STRING = ""; //$NON-NLS-1$
+  private static final String DEFAULT_INFOBASES_PER_WP = "8"; //$NON-NLS-1$
+  private static final String DEFAULT_CONNECTIONS_PER_WP = "128"; //$NON-NLS-1$
+
+  private Server server;
   private UUID clusterId;
   private UUID workingServerId;
-  private Server server;
 
-  private Button btnIsDedicatedManagers;
   private Text txtServerName;
   private Text txtComputerName;
   private Text txtIpPort;
   private Text txtPortRange;
-
   private Text txtInfoBasesPerWorkingProcessLimit;
   private Text txtConnectionsPerWorkingProcessLimit;
   private Text txtIpPortMainManager;
-  private Button btnIsMainServer;
   private Text txtWorkingProcessMemoryLimit;
   private Text txtSafeCallMemoryLimit;
   private Text txtCriticalProcessesTotalMemory;
   private Text txtTemporaryAllowedProcessesTotalMemory;
   private Text txtTemporaryAllowedProcessesTotalMemoryTimeLimit;
   private Text txtSafeWorkingProcessesMemoryLimit;
+  
   private Label lblSafeWorkingProcessesMemoryLimitMb;
   private Label lblSafeCallMemoryLimitMb;
   private Label lblWorkingProcessMemoryLimitMb;
@@ -59,29 +62,46 @@ public class CreateEditWorkingServerDialog extends Dialog {
   private Label lblTemporaryAllowedProcessesTotalMemoryMb;
   private Label lblTemporaryAllowedProcessesTotalMemoryTimeLimitMin;
 
-  public UUID getNewWorkingServerId() {
-    return workingServerId;
-  }
+  private Button btnIsDedicatedManagers;
+  private Button btnIsMainServer;
 
   /**
-   * Create the dialog.
+   * Диалог создания нового или редактирования рабочего сервера.
    *
    * @param parentShell - parent shell
    * @param server - server
    * @param clusterId - cluster ID
-   * @param workingServerId - working server ID
+   * @param workingServerId - working server ID (null для создания нового)
    */
-  public CreateEditWorkingServerDialog(
+  public WorkingServerDialog(
       Shell parentShell, Server server, UUID clusterId, UUID workingServerId) {
     super(parentShell);
     setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
-    // super.configureShell(parentShell);
-    // parentShell.setText("Parameters of the 1C:Enterprise infobase");
-
     this.server = server;
     this.clusterId = clusterId;
     this.workingServerId = workingServerId;
+  }
+
+  /**
+   * Диалог редактирования рабочего сервера.
+   *
+   * @param parentShell - parent shell
+   * @param workingServerExtInfo - расширенная информация рабочего сервера
+   */
+  public WorkingServerDialog(Shell parentShell, WorkingServerInfoExtended workingServerExtInfo) {
+    super(parentShell);
+    setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+
+    this.server = workingServerExtInfo.getServer();
+    this.clusterId = workingServerExtInfo.getClusterId();
+    this.workingServerId = workingServerExtInfo.getWorkingServerId();
+  }
+
+  @Override
+  protected void configureShell(Shell newShell) {
+    super.configureShell(newShell);
+    newShell.setText(Strings.TITLE_WINDOW);
   }
 
   /**
@@ -100,47 +120,40 @@ public class CreateEditWorkingServerDialog extends Dialog {
 
     Label lblServerName = new Label(container, SWT.NONE);
     lblServerName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblServerName.setText(Messages.getString("WorkingServerDialog.ServerName")); //$NON-NLS-1$
+    lblServerName.setText(Strings.SERVER_NAME);
 
     txtServerName = new Text(container, SWT.BORDER);
-    txtServerName.setToolTipText(
-        Messages.getString("WorkingServerDialog.ServerName")); //$NON-NLS-1$
     txtServerName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
     new Label(container, SWT.NONE);
 
     Label lblComputerName = new Label(container, SWT.NONE);
     lblComputerName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblComputerName.setText(Messages.getString("WorkingServerDialog.ComputerName")); //$NON-NLS-1$
+    lblComputerName.setText(Strings.COMPUTER_NAME);
 
     txtComputerName = new Text(container, SWT.BORDER);
-    txtComputerName.setToolTipText(
-        Messages.getString("WorkingServerDialog.ComputerName")); //$NON-NLS-1$
     txtComputerName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
     new Label(container, SWT.NONE);
 
     Label lblIpPort = new Label(container, SWT.NONE);
     lblIpPort.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblIpPort.setText(Messages.getString("WorkingServerDialog.IPPort")); //$NON-NLS-1$
+    lblIpPort.setText(Strings.IP_PORT);
 
     txtIpPort = new Text(container, SWT.BORDER);
-    txtIpPort.setToolTipText(Messages.getString("WorkingServerDialog.IPPort")); //$NON-NLS-1$
     txtIpPort.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
     new Label(container, SWT.NONE);
 
     Label lblPortRange = new Label(container, SWT.NONE);
     lblPortRange.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblPortRange.setText(Messages.getString("WorkingServerDialog.PortRange")); //$NON-NLS-1$
+    lblPortRange.setText(Strings.PORT_RANGE);
 
     txtPortRange = new Text(container, SWT.BORDER);
-    txtPortRange.setToolTipText(Messages.getString("WorkingServerDialog.PortRange")); //$NON-NLS-1$
     txtPortRange.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
     new Label(container, SWT.NONE);
 
     Label lblSafeWorkingProcessesMemoryLimit = new Label(container, SWT.NONE);
     lblSafeWorkingProcessesMemoryLimit.setLayoutData(
         new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblSafeWorkingProcessesMemoryLimit.setText(
-        Messages.getString("WorkingServerDialog.SafeWorkingProcessesMemoryLimit")); //$NON-NLS-1$
+    lblSafeWorkingProcessesMemoryLimit.setText(Strings.SAFE_WORKING_PROCESSES_MEMORY_LIMIT);
 
     txtSafeWorkingProcessesMemoryLimit = new Text(container, SWT.BORDER);
     txtSafeWorkingProcessesMemoryLimit.addModifyListener(
@@ -151,8 +164,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
           }
         });
 
-    txtSafeWorkingProcessesMemoryLimit.setToolTipText(
-        Messages.getString("WorkingServerDialog.SafeWorkingProcessesMemoryLimit")); //$NON-NLS-1$
     txtSafeWorkingProcessesMemoryLimit.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 
@@ -164,8 +175,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 
     Label lblSafeCallMemoryLimit = new Label(container, SWT.NONE);
     lblSafeCallMemoryLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblSafeCallMemoryLimit.setText(
-        Messages.getString("WorkingServerDialog.SafeCallMemoryLimit")); //$NON-NLS-1$
+    lblSafeCallMemoryLimit.setText(Strings.SAFE_CALL_MEMORY_LIMIT);
 
     txtSafeCallMemoryLimit = new Text(container, SWT.BORDER);
     txtSafeCallMemoryLimit.addModifyListener(
@@ -175,8 +185,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
             lblSafeCallMemoryLimitMb.setText(convertToMegabytes((Text) e.widget));
           }
         });
-    txtSafeCallMemoryLimit.setToolTipText(
-        Messages.getString("WorkingServerDialog.SafeCallMemoryLimit")); //$NON-NLS-1$
     txtSafeCallMemoryLimit.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 
     lblSafeCallMemoryLimitMb = new Label(container, SWT.NONE);
@@ -187,8 +195,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
     Label lblWorkingProcessMemoryLimit = new Label(container, SWT.NONE);
     lblWorkingProcessMemoryLimit.setLayoutData(
         new GridData(SWT.RIGHT, SWT.CENTER, true, false, 1, 1));
-    lblWorkingProcessMemoryLimit.setText(
-        Messages.getString("WorkingServerDialog.WorkingProcessMemoryLimit")); //$NON-NLS-1$
+    lblWorkingProcessMemoryLimit.setText(Strings.WORKING_PROCESS_MEMORY_LIMIT);
 
     txtWorkingProcessMemoryLimit = new Text(container, SWT.BORDER);
     txtWorkingProcessMemoryLimit.addModifyListener(
@@ -198,8 +205,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
             lblWorkingProcessMemoryLimitMb.setText(convertToMegabytes((Text) e.widget));
           }
         });
-    txtWorkingProcessMemoryLimit.setToolTipText(
-        Messages.getString("WorkingServerDialog.WorkingProcessMemoryLimit")); //$NON-NLS-1$
     txtWorkingProcessMemoryLimit.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
@@ -210,8 +215,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
     lblWorkingProcessMemoryLimitMb.setLayoutData(gdlblWorkingProcessMemoryLimitMb);
 
     Label lblCriticalProcessesTotalMemory = new Label(container, SWT.NONE);
-    lblCriticalProcessesTotalMemory.setText(
-        Messages.getString("WorkingServerDialog.CriticalProcessesTotalMemory")); //$NON-NLS-1$
+    lblCriticalProcessesTotalMemory.setText(Strings.CRITICAL_PROCESSES_TOTAL_MEMORY);
     lblCriticalProcessesTotalMemory.setLayoutData(
         new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 
@@ -223,8 +227,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
             lblCriticalProcessesTotalMemoryMb.setText(convertToMegabytes((Text) e.widget));
           }
         });
-    txtCriticalProcessesTotalMemory.setToolTipText(
-        Messages.getString("WorkingServerDialog.CriticalProcessesTotalMemory")); //$NON-NLS-1$
     txtCriticalProcessesTotalMemory.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 
@@ -238,8 +240,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
     lblTemporaryAllowedProcessesTotalMemory.setLayoutData(
         new GridData(SWT.RIGHT, SWT.FILL, false, false, 1, 1));
     lblTemporaryAllowedProcessesTotalMemory.setText(
-        Messages.getString(
-            "WorkingServerDialog.TemporaryAllowedProcessesTotalMemoryLabel")); //$NON-NLS-1$
+        Strings.TEMPORARY_ALLOWED_PROCESSES_TOTAL_MEMORY);
 
     txtTemporaryAllowedProcessesTotalMemory = new Text(container, SWT.BORDER);
     txtTemporaryAllowedProcessesTotalMemory.addModifyListener(
@@ -249,9 +250,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
             lblTemporaryAllowedProcessesTotalMemoryMb.setText(convertToMegabytes((Text) e.widget));
           }
         });
-    txtTemporaryAllowedProcessesTotalMemory.setToolTipText(
-        Messages.getString(
-            "WorkingServerDialog.TemporaryAllowedProcessesTotalMemoryToolTip")); //$NON-NLS-1$
     txtTemporaryAllowedProcessesTotalMemory.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 
@@ -266,8 +264,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
     lblTemporaryAllowedProcessesTotalMemoryTimeLimit.setLayoutData(
         new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
     lblTemporaryAllowedProcessesTotalMemoryTimeLimit.setText(
-        Messages.getString(
-            "WorkingServerDialog.TemporaryAllowedProcessesTotalMemoryTimeLimitLabel")); //$NON-NLS-1$
+        Strings.TEMPORARY_ALLOWED_PROCESSES_TOTAL_MEMORY_TIME_LIMIT);
 
     txtTemporaryAllowedProcessesTotalMemoryTimeLimit = new Text(container, SWT.BORDER);
     txtTemporaryAllowedProcessesTotalMemoryTimeLimit.addModifyListener(
@@ -278,9 +275,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
                 convertToMinutes((Text) e.widget));
           }
         });
-    txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText(
-        Messages.getString(
-            "WorkingServerDialog.TemporaryAllowedProcessesTotalMemoryTimeLimitToolTip")); //$NON-NLS-1$
     txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 
@@ -292,8 +286,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
         gdlblTemporaryAllowedProcessesTotalMemoryTimeLimitMin);
 
     Group groupWorkProcessesParams = new Group(container, SWT.NONE);
-    groupWorkProcessesParams.setText(
-        Messages.getString("WorkingServerDialog.WorkingProcessesParameters")); //$NON-NLS-1$
+    groupWorkProcessesParams.setText(Strings.WORKING_PROCESSES_PARAMETERS);
     GridLayout glgroupWorkProcessesParams = new GridLayout(2, true);
     glgroupWorkProcessesParams.verticalSpacing = 8;
     groupWorkProcessesParams.setLayout(glgroupWorkProcessesParams);
@@ -304,52 +297,42 @@ public class CreateEditWorkingServerDialog extends Dialog {
     Label lblInfoBasesPerWorkingProcessLimit = new Label(groupWorkProcessesParams, SWT.NONE);
     lblInfoBasesPerWorkingProcessLimit.setLayoutData(
         new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblInfoBasesPerWorkingProcessLimit.setText(
-        Messages.getString("WorkingServerDialog.InfobasesPerWorkingProcessLimit")); //$NON-NLS-1$
+    lblInfoBasesPerWorkingProcessLimit.setText(Strings.INFOBASES_PER_WORKING_PROCESS_LIMIT);
     lblInfoBasesPerWorkingProcessLimit.setBounds(0, 0, 35, 15);
 
     txtInfoBasesPerWorkingProcessLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
     txtInfoBasesPerWorkingProcessLimit.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-    txtInfoBasesPerWorkingProcessLimit.setToolTipText(
-        Messages.getString("WorkingServerDialog.InfobasesPerWorkingProcessLimit")); //$NON-NLS-1$
     txtInfoBasesPerWorkingProcessLimit.setBounds(0, 0, 76, 21);
 
     Label lblConnectionsPerWorkingProcessLimit = new Label(groupWorkProcessesParams, SWT.WRAP);
     lblConnectionsPerWorkingProcessLimit.setLayoutData(
         new GridData(SWT.RIGHT, SWT.TOP, false, false, 1, 1));
-    lblConnectionsPerWorkingProcessLimit.setText(
-        Messages.getString("WorkingServerDialog.ConnectionsPerWorkingProcessLimit")); //$NON-NLS-1$
+    lblConnectionsPerWorkingProcessLimit.setText(Strings.CONNECTIONS_PER_WORKING_PROCESS_LIMIT);
     lblConnectionsPerWorkingProcessLimit.setBounds(0, 0, 35, 15);
 
     txtConnectionsPerWorkingProcessLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
     txtConnectionsPerWorkingProcessLimit.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
-    txtConnectionsPerWorkingProcessLimit.setToolTipText(
-        Messages.getString("WorkingServerDialog.ConnectionsPerWorkingProcessLimit")); //$NON-NLS-1$
     txtConnectionsPerWorkingProcessLimit.setBounds(0, 0, 76, 21);
     new Label(container, SWT.NONE);
 
     Label lblIpPortMainManager = new Label(container, SWT.NONE);
     lblIpPortMainManager.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblIpPortMainManager.setText(
-        Messages.getString("WorkingServerDialog.IPPortMainClusterManager")); //$NON-NLS-1$
+    lblIpPortMainManager.setText(Strings.IP_PORT_MAIN_CLUSTER_MANAGER);
 
     txtIpPortMainManager = new Text(container, SWT.BORDER);
-    txtIpPortMainManager.setToolTipText(
-        Messages.getString("WorkingServerDialog.IPPortMainClusterManager")); //$NON-NLS-1$
     txtIpPortMainManager.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
     new Label(container, SWT.NONE);
     new Label(container, SWT.NONE);
 
     btnIsDedicatedManagers = new Button(container, SWT.CHECK);
-    btnIsDedicatedManagers.setText(
-        Messages.getString("WorkingServerDialog.IsDedicatedManagers")); //$NON-NLS-1$
+    btnIsDedicatedManagers.setText(Strings.IS_DEDICATED_MANAGERS);
     new Label(container, SWT.NONE);
     new Label(container, SWT.NONE);
 
     btnIsMainServer = new Button(container, SWT.CHECK);
-    btnIsMainServer.setText(Messages.getString("WorkingServerDialog.IsMainServer")); //$NON-NLS-1$
+    btnIsMainServer.setText(Strings.IS_MAIN_SERVER);
     new Label(container, SWT.NONE);
     new Label(container, SWT.NONE);
     new Label(container, SWT.NONE);
@@ -362,7 +345,19 @@ public class CreateEditWorkingServerDialog extends Dialog {
   private void initServerProperties() {
     IWorkingServerInfo serverInfo;
 
-    if (workingServerId != null) { // Редактируем существующий рабочий сервер
+    if (workingServerId == null) {
+      // Создаем новый рабочий сервер
+      int clusterPort = server.getClusterInfo(clusterId).getMainPort();
+      serverInfo = new WorkingServerInfo(clusterPort);
+
+      txtServerName.setText(EMPTY_STRING);
+      txtPortRange.setText(EMPTY_STRING);
+      txtComputerName.setText(EMPTY_STRING);
+
+      txtInfoBasesPerWorkingProcessLimit.setText(DEFAULT_INFOBASES_PER_WP);
+      txtConnectionsPerWorkingProcessLimit.setText(DEFAULT_CONNECTIONS_PER_WP);
+    } else {
+      // Редактируем существующий рабочий сервер
       serverInfo = server.getWorkingServerInfo(clusterId, workingServerId);
 
       txtServerName.setText(serverInfo.getName());
@@ -379,16 +374,6 @@ public class CreateEditWorkingServerDialog extends Dialog {
           Integer.toString(serverInfo.getInfoBasesPerWorkingProcessLimit()));
       txtConnectionsPerWorkingProcessLimit.setText(
           Integer.toString(serverInfo.getConnectionsPerWorkingProcessLimit()));
-
-    } else { // Создаем новый рабочий сервер
-      serverInfo = new WorkingServerInfo();
-
-      txtServerName.setText(""); //$NON-NLS-1$
-      txtPortRange.setText(""); //$NON-NLS-1$
-      txtComputerName.setText(""); //$NON-NLS-1$
-
-      txtInfoBasesPerWorkingProcessLimit.setText("8"); //$NON-NLS-1$
-      txtConnectionsPerWorkingProcessLimit.setText("128"); //$NON-NLS-1$
     }
 
     txtIpPort.setText(Integer.toString(serverInfo.getMainPort()));
@@ -412,21 +397,16 @@ public class CreateEditWorkingServerDialog extends Dialog {
       txtSafeWorkingProcessesMemoryLimit.setEditable(false);
       txtWorkingProcessMemoryLimit.setEditable(false);
 
-      txtSafeWorkingProcessesMemoryLimit.setToolTipText(
-          Messages.getString("Dialogs.DeprecatedInFifteen")); //$NON-NLS-1$
-      txtWorkingProcessMemoryLimit.setToolTipText(
-          Messages.getString("Dialogs.DeprecatedInFifteen")); //$NON-NLS-1$
+      txtSafeWorkingProcessesMemoryLimit.setToolTipText(Strings.DEPRECATED_IN_FIFTEEN);
+      txtWorkingProcessMemoryLimit.setToolTipText(Strings.DEPRECATED_IN_FIFTEEN);
     } else { // 8.3.15-
       txtCriticalProcessesTotalMemory.setEditable(false);
       txtTemporaryAllowedProcessesTotalMemory.setEditable(false);
       txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setEditable(false);
 
-      txtCriticalProcessesTotalMemory.setToolTipText(
-          Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
-      txtTemporaryAllowedProcessesTotalMemory.setToolTipText(
-          Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
-      txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText(
-          Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
+      txtCriticalProcessesTotalMemory.setToolTipText(Strings.APPEARED_IN_FIFTEEN);
+      txtTemporaryAllowedProcessesTotalMemory.setToolTipText(Strings.APPEARED_IN_FIFTEEN);
+      txtTemporaryAllowedProcessesTotalMemoryTimeLimit.setToolTipText(Strings.APPEARED_IN_FIFTEEN);
     }
 
     if (workingServerId != null) { // У уже созданного кластера запрещено менять хост и порт
@@ -436,18 +416,17 @@ public class CreateEditWorkingServerDialog extends Dialog {
     } else {
       // Почему новому серверу запрещено сразу ставить галочку Центральный сервер?
       btnIsMainServer.setEnabled(false);
-      txtIpPortMainManager.setText("<auto>"); //$NON-NLS-1$
     }
     txtIpPortMainManager.setEditable(false);
   }
 
   private void resetToProf() {
     if (!server.isFifteenOrMoreAgentVersion()) { // 8.3.15-
-      txtSafeWorkingProcessesMemoryLimit.setText("0"); //$NON-NLS-1$
-      txtWorkingProcessMemoryLimit.setText("0"); //$NON-NLS-1$
+      txtSafeWorkingProcessesMemoryLimit.setText(DEFAULT_PROF_VALUE);
+      txtWorkingProcessMemoryLimit.setText(DEFAULT_PROF_VALUE);
     }
-    txtSafeCallMemoryLimit.setText("0"); //$NON-NLS-1$
-    txtInfoBasesPerWorkingProcessLimit.setText("8"); //$NON-NLS-1$
+    txtSafeCallMemoryLimit.setText(DEFAULT_PROF_VALUE);
+    txtInfoBasesPerWorkingProcessLimit.setText(DEFAULT_PROF_VALUE);
   }
 
   private boolean checkVariablesFromControls() {
@@ -462,10 +441,10 @@ public class CreateEditWorkingServerDialog extends Dialog {
 
     for (Text control : checksTextControls) {
       if (control.getText().isBlank()) {
-        control.setBackground(SWTResourceManager.getPinkColor());
+        control.setBackground(Helper.getPinkColor());
         existsError = true;
       } else {
-        control.setBackground(SWTResourceManager.getWhiteColor());
+        control.setBackground(Helper.getWhiteColor());
       }
     }
 
@@ -477,9 +456,9 @@ public class CreateEditWorkingServerDialog extends Dialog {
     for (Text control : checksIntControls) {
       try {
         Integer.parseInt(control.getText());
-        control.setBackground(SWTResourceManager.getWhiteColor());
+        control.setBackground(Helper.getWhiteColor());
       } catch (Exception e) {
-        control.setBackground(SWTResourceManager.getPinkColor());
+        control.setBackground(Helper.getPinkColor());
         existsError = true;
       }
     }
@@ -495,9 +474,9 @@ public class CreateEditWorkingServerDialog extends Dialog {
     for (Text control : checksLongControls) {
       try {
         Long.parseLong(control.getText());
-        control.setBackground(SWTResourceManager.getWhiteColor());
+        control.setBackground(Helper.getWhiteColor());
       } catch (Exception e) {
-        control.setBackground(SWTResourceManager.getPinkColor());
+        control.setBackground(Helper.getPinkColor());
         existsError = true;
       }
     }
@@ -505,9 +484,9 @@ public class CreateEditWorkingServerDialog extends Dialog {
     try {
       String[] portRange = txtPortRange.getText().split(":"); //$NON-NLS-1$
       new PortRangeInfo(Integer.parseInt(portRange[1]), Integer.parseInt(portRange[0]));
-      txtPortRange.setBackground(SWTResourceManager.getWhiteColor());
+      txtPortRange.setBackground(Helper.getWhiteColor());
     } catch (Exception e) {
-      txtPortRange.setBackground(SWTResourceManager.getPinkColor());
+      txtPortRange.setBackground(Helper.getPinkColor());
       existsError = true;
     }
 
@@ -522,11 +501,14 @@ public class CreateEditWorkingServerDialog extends Dialog {
     IWorkingServerInfo workingServerInfo;
 
     if (workingServerId == null) {
-      workingServerInfo = new WorkingServerInfo();
+      // создание нового рабочего сервера
+      int clusterPort = server.getClusterInfo(clusterId).getMainPort();
+      workingServerInfo = new WorkingServerInfo(txtServerName.getText(), clusterPort);
 
       workingServerInfo.setHostName(txtComputerName.getText());
       workingServerInfo.setMainPort(Integer.parseInt(txtIpPort.getText()));
     } else {
+      // изменение рабочего сервера
       workingServerInfo = server.getWorkingServerInfo(clusterId, workingServerId);
     }
 
@@ -561,17 +543,30 @@ public class CreateEditWorkingServerDialog extends Dialog {
           Long.parseLong(txtWorkingProcessMemoryLimit.getText()));
     }
 
-    try {
-      if (server.regWorkingServer(clusterId, workingServerInfo, workingServerId == null)) {
-        workingServerId = workingServerInfo.getWorkingServerId();
-        return true;
-      }
-    } catch (Exception excp) {
-      var messageBox = new MessageBox(getParentShell());
-      messageBox.setMessage(excp.getLocalizedMessage());
-      messageBox.open();
+    if (server.regWorkingServer(clusterId, workingServerInfo, workingServerId == null)) {
+      workingServerId = workingServerInfo.getWorkingServerId();
+      return true;
     }
     return false;
+  }
+
+  /**
+   * Получение ID нового рабочего сервера.
+   *
+   * @return ID нового рабочего сервера
+   */
+  public UUID getNewWorkingServerId() {
+    return workingServerId;
+  }
+
+  private String convertToMegabytes(Text textControl) {
+    long inMb = Long.parseLong(textControl.getText()) / (1024 * 1024);
+    return Long.toString(inMb).concat(Strings.MEGABYTES);
+  }
+
+  private String convertToMinutes(Text textControl) {
+    long inMb = Long.parseLong(textControl.getText()) / (60);
+    return Long.toString(inMb).concat(Strings.MINUTES);
   }
 
   /**
@@ -595,12 +590,7 @@ public class CreateEditWorkingServerDialog extends Dialog {
 
     createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 
-    Button buttonApply =
-        createButton(
-            parent,
-            IDialogConstants.PROCEED_ID,
-            Messages.getString("Dialogs.Apply"), //$NON-NLS-1$
-            false);
+    Button buttonApply = createButton(parent, IDialogConstants.PROCEED_ID, Strings.APPLY, false);
     buttonApply.addSelectionListener(
         new SelectionAdapter() {
           @Override
@@ -609,13 +599,8 @@ public class CreateEditWorkingServerDialog extends Dialog {
           }
         });
 
-    Button buttonReset =
-        createButton(
-            parent,
-            IDialogConstants.RETRY_ID,
-            Messages.getString("Dialogs.Reset"), //$NON-NLS-1$
-            false);
-    buttonReset.setText(Messages.getString("Dialogs.Reset")); //$NON-NLS-1$
+    Button buttonReset = createButton(parent, IDialogConstants.RETRY_ID, Strings.RESET, false);
+    buttonReset.setText(Strings.RESET);
     buttonReset.addSelectionListener(
         new SelectionAdapter() {
           @Override
@@ -625,32 +610,26 @@ public class CreateEditWorkingServerDialog extends Dialog {
         });
 
     Button buttonResetToProf =
-        createButton(
-            parent,
-            IDialogConstants.RETRY_ID,
-            Messages.getString("Dialogs.ResetToPROF"), //$NON-NLS-1$
-            false);
+        createButton(parent, IDialogConstants.RETRY_ID, Strings.RESET_TO_PROF, false);
+    buttonResetToProf.setText(Strings.RESET_TO_PROF);
     buttonResetToProf.addMouseTrackListener(
         new MouseTrackAdapter() {
           @Override
           public void mouseEnter(MouseEvent e) {
-            txtSafeCallMemoryLimit.setBackground(SWTResourceManager.getLightGreenColor());
-            txtSafeWorkingProcessesMemoryLimit.setBackground(
-                SWTResourceManager.getLightGreenColor());
-            txtWorkingProcessMemoryLimit.setBackground(SWTResourceManager.getLightGreenColor());
-            txtInfoBasesPerWorkingProcessLimit.setBackground(
-                SWTResourceManager.getLightGreenColor());
+            txtSafeCallMemoryLimit.setBackground(Helper.getLightGreenColor());
+            txtSafeWorkingProcessesMemoryLimit.setBackground(Helper.getLightGreenColor());
+            txtWorkingProcessMemoryLimit.setBackground(Helper.getLightGreenColor());
+            txtInfoBasesPerWorkingProcessLimit.setBackground(Helper.getLightGreenColor());
           }
 
           @Override
           public void mouseExit(MouseEvent e) {
-            txtSafeCallMemoryLimit.setBackground(SWTResourceManager.getWhiteColor());
-            txtSafeWorkingProcessesMemoryLimit.setBackground(SWTResourceManager.getWhiteColor());
-            txtWorkingProcessMemoryLimit.setBackground(SWTResourceManager.getWhiteColor());
-            txtInfoBasesPerWorkingProcessLimit.setBackground(SWTResourceManager.getWhiteColor());
+            txtSafeCallMemoryLimit.setBackground(Helper.getWhiteColor());
+            txtSafeWorkingProcessesMemoryLimit.setBackground(Helper.getWhiteColor());
+            txtWorkingProcessMemoryLimit.setBackground(Helper.getWhiteColor());
+            txtInfoBasesPerWorkingProcessLimit.setBackground(Helper.getWhiteColor());
           }
         });
-    buttonResetToProf.setText(Messages.getString("Dialogs.ResetToPROF")); //$NON-NLS-1$
     buttonResetToProf.addSelectionListener(
         new SelectionAdapter() {
           @Override
@@ -660,15 +639,42 @@ public class CreateEditWorkingServerDialog extends Dialog {
         });
   }
 
-  private String convertToMegabytes(Text textControl) {
-    long inMb = Long.parseLong(textControl.getText()) / (1024 * 1024);
-    return Long.toString(inMb)
-        .concat(Messages.getString("WorkingServerDialog.Megabytes")); //$NON-NLS-1$
-  }
+  private static class Strings {
 
-  private String convertToMinutes(Text textControl) {
-    long inMb = Long.parseLong(textControl.getText()) / (60);
-    return Long.toString(inMb)
-        .concat(Messages.getString("WorkingServerDialog.Minutes")); //$NON-NLS-1$
+    static final String TITLE_WINDOW = getString("TitleDialog");
+    static final String SERVER_NAME = getString("ServerName");
+    static final String COMPUTER_NAME = getString("ComputerName");
+    static final String IP_PORT = getString("IPPort");
+    static final String PORT_RANGE = getString("PortRange");
+    static final String SAFE_WORKING_PROCESSES_MEMORY_LIMIT =
+        getString("SafeWorkingProcessesMemoryLimit");
+    static final String SAFE_CALL_MEMORY_LIMIT = getString("SafeCallMemoryLimit");
+    static final String WORKING_PROCESS_MEMORY_LIMIT = getString("WorkingProcessMemoryLimit");
+    static final String CRITICAL_PROCESSES_TOTAL_MEMORY = getString("CriticalProcessesTotalMemory");
+    static final String TEMPORARY_ALLOWED_PROCESSES_TOTAL_MEMORY =
+        getString("TemporaryAllowedProcessesTotalMemory");
+    static final String TEMPORARY_ALLOWED_PROCESSES_TOTAL_MEMORY_TIME_LIMIT =
+        getString("TemporaryAllowedProcessesTotalMemoryTimeLimit");
+    static final String WORKING_PROCESSES_PARAMETERS = getString("WorkingProcessesParameters");
+    static final String INFOBASES_PER_WORKING_PROCESS_LIMIT =
+        getString("InfobasesPerWorkingProcessLimit");
+    static final String CONNECTIONS_PER_WORKING_PROCESS_LIMIT =
+        getString("ConnectionsPerWorkingProcessLimit");
+    static final String IP_PORT_MAIN_CLUSTER_MANAGER = getString("IPPortMainClusterManager");
+    static final String IS_DEDICATED_MANAGERS = getString("IsDedicatedManagers");
+    static final String IS_MAIN_SERVER = getString("IsMainServer");
+
+    static final String DEPRECATED_IN_FIFTEEN = Messages.getString("Dialogs.DeprecatedInFifteen");
+    static final String APPEARED_IN_FIFTEEN = Messages.getString("Dialogs.AppearedInFifteen");
+    static final String APPLY = Messages.getString("Dialogs.Apply");
+    static final String RESET = Messages.getString("Dialogs.Reset");
+    static final String RESET_TO_PROF = Messages.getString("Dialogs.ResetToPROF");
+
+    static final String MEGABYTES = getString("Megabytes");
+    static final String MINUTES = getString("Minutes");
+
+    static String getString(String key) {
+      return Messages.getString("WorkingServerDialog." + key); //$NON-NLS-1$
+    }
   }
 }

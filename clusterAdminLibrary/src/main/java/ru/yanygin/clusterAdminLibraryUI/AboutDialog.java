@@ -1,5 +1,6 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.lang.module.ModuleDescriptor.Version;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
@@ -15,9 +16,20 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.wb.swt.SWTResourceManager;
+import ru.yanygin.clusterAdminLibrary.Config;
 
-/** About dialog. */
+/** Диалог "О программе". */
 public class AboutDialog extends Dialog {
+
+  private static final String SEGOE_FONT = "Segoe UI"; //$NON-NLS-1$
+  private static final String GITHUB_LINK =
+      "https://github.com/YanSergey/OneS_ClusterAdmin"; //$NON-NLS-1$
+  private static final String TELEGRAM_LINK = "https://t.me/YanSergey"; //$NON-NLS-1$
+  private static final String EMAIL_LINK = "mailto:yanyginsa@gmail.com"; //$NON-NLS-1$
+
+  Config config = Config.currentConfig;
+
+  private Link linkLatestVersion;
 
   /**
    * Create the dialog.
@@ -27,6 +39,12 @@ public class AboutDialog extends Dialog {
   public AboutDialog(Shell parentShell) {
     super(parentShell);
     setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+  }
+
+  @Override
+  protected void configureShell(Shell newShell) {
+    super.configureShell(newShell);
+    newShell.setText(Strings.TITLE_WINDOW);
   }
 
   /**
@@ -41,49 +59,54 @@ public class AboutDialog extends Dialog {
 
     Label lblMainTitle = new Label(container, SWT.NONE);
     lblMainTitle.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1));
-    lblMainTitle.setFont(SWTResourceManager.getFont("Segoe UI", 20, SWT.BOLD)); //$NON-NLS-1$
-    lblMainTitle.setText(Messages.getString("AboutDialog.MainTitle"));
+    lblMainTitle.setFont(SWTResourceManager.getFont(SEGOE_FONT, 20, SWT.BOLD));
+    lblMainTitle.setText(Strings.MAIN_TITLE);
 
     Label lblDescription = new Label(container, SWT.NONE);
     lblDescription.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-    lblDescription.setText(Messages.getString("AboutDialog.Description")); //$NON-NLS-1$
-    lblDescription.setFont(SWTResourceManager.getFont("Segoe UI", 10, SWT.NORMAL));
+    lblDescription.setText(Strings.DESCRIPTION);
+    lblDescription.setFont(SWTResourceManager.getFont(SEGOE_FONT, 10, SWT.NORMAL));
+
+    Link linkCurrentVersion = new Link(container, 0);
+    linkCurrentVersion.setFont(SWTResourceManager.getFont(SEGOE_FONT, 10, SWT.NORMAL));
+    linkCurrentVersion.setText(String.format(Strings.CURRENT_VERSION, config.getCurrentVersion()));
+
+    linkLatestVersion = new Link(container, 0);
+    linkLatestVersion.setText(Strings.CURRENT_VERSION_IS_UNKNOWN);
+    linkLatestVersion.addSelectionListener(downloadLatestVersionListener);
+    makeLatestVersionTitle();
 
     Label lblAutor = new Label(container, SWT.NONE);
-    lblAutor.setText(Messages.getString("AboutDialog.Autor"));
-    lblAutor.setFont(SWTResourceManager.getFont("Segoe UI", 10, SWT.NORMAL));
+    lblAutor.setText(Strings.AUTOR);
 
     Link linkGitHub = new Link(container, SWT.NONE);
-    linkGitHub.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            Program.launch("https://github.com/YanSergey/OneS_ClusterAdmin");
-          }
-        });
-    linkGitHub.setText(Messages.getString("AboutDialog.GitHub"));
+    linkGitHub.setText(Strings.GITHUB_DESCRIPTION);
+    linkGitHub.addSelectionListener(goToLinkListener);
 
     Link linkTelegram = new Link(container, 0);
-    linkTelegram.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            Program.launch("https://t.me/YanSergey");
-          }
-        });
-    linkTelegram.setText(Messages.getString("AboutDialog.Telegram"));
+    linkTelegram.setText(Strings.TELEGRAM_DESCRIPTION);
+    linkTelegram.addSelectionListener(goToLinkListener);
 
     Link linkEmail = new Link(container, 0);
-    linkEmail.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            Program.launch("mailto:yanyginsa@gmail.com");
-          }
-        });
-    linkEmail.setText(Messages.getString("AboutDialog.Email"));
+    linkEmail.setText(Strings.EMAIL_DESCRIPTION);
+    linkEmail.addSelectionListener(goToLinkListener);
 
     return container;
+  }
+
+  private void makeLatestVersionTitle() {
+
+    final Version currentVersion = config.getCurrentVersion();
+    final Version latestVersion = config.getLatestVersion();
+
+    if (latestVersion == null) {
+      linkLatestVersion.setText(Strings.CURRENT_VERSION_IS_UNKNOWN);
+    } else if (currentVersion.equals(latestVersion)
+        || currentVersion.compareTo(latestVersion) > 0) {
+      linkLatestVersion.setText(Strings.CURRENT_VERSION_IS_LATEST);
+    } else {
+      linkLatestVersion.setText(String.format(Strings.CURRENT_VERSION_IS_OLD, latestVersion));
+    }
   }
 
   /**
@@ -104,8 +127,53 @@ public class AboutDialog extends Dialog {
         });
   }
 
+  SelectionAdapter downloadLatestVersionListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          if (config.getLatestVersion() == null) {
+            config.readUpstreamVersion();
+            makeLatestVersionTitle();
+          } else {
+            config.runDownloadRelease(getParentShell());
+          }
+        }
+      };
+
+  SelectionAdapter goToLinkListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          Program.launch(e.text);
+        }
+      };
+
+  private static class Strings {
+
+    static final String TITLE_WINDOW = getString("TitleDialog");
+    static final String MAIN_TITLE = getString("MainTitle");
+
+    static final String CURRENT_VERSION = getString("CurrentVersion");
+    static final String CURRENT_VERSION_IS_LATEST = getString("CurrentVersionIsLatest");
+    static final String CURRENT_VERSION_IS_OLD = getString("CurrentVersionIsOld");
+    static final String CURRENT_VERSION_IS_UNKNOWN = getString("CurrentVersionIsUnknown");
+
+    static final String DESCRIPTION = getString("Description");
+    static final String AUTOR = getString("Autor");
+    static final String GITHUB_DESCRIPTION =
+        String.format(getString("GitHub_Description"), GITHUB_LINK);
+    static final String TELEGRAM_DESCRIPTION =
+        String.format(getString("Telegram_Description"), TELEGRAM_LINK);
+    static final String EMAIL_DESCRIPTION =
+        String.format(getString("Email_Description"), EMAIL_LINK);
+
+    static String getString(String key) {
+      return Messages.getString("AboutDialog." + key); //$NON-NLS-1$
+    }
+  }
+
   @Override
   protected Point getInitialSize() {
-    return new Point(500, 330);
+    return new Point(500, 380);
   }
 }

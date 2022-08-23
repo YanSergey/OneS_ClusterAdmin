@@ -12,6 +12,7 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolBar;
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
+import ru.yanygin.clusterAdminLibrary.Config;
 import ru.yanygin.clusterAdminLibraryUI.ViewerArea;
 
 /** Application window class. */
@@ -20,20 +21,26 @@ public class ClusterViewer extends ApplicationWindow {
   Composite mainForm;
 
   ClusterProvider clusterProvider = new ClusterProvider();
+  Config config;
 
-  /** Create the application window. */
-  public ClusterViewer() {
+  /**
+   * Create the application window.
+   *
+   * @param configPath - путь к файлу конфигурации
+   */
+  public ClusterViewer(String configPath) {
     super(null);
     createActions();
     addToolBar(SWT.FLAT | SWT.WRAP);
     addMenuBar();
     addStatusLine();
 
+    this.config = Config.readConfig(configPath);
   }
 
   @Override
   public boolean close() {
-    clusterProvider.close();
+    config.close();
     return super.close();
   }
   
@@ -50,7 +57,7 @@ public class ClusterViewer extends ApplicationWindow {
 
     Menu menu = this.getMenuBarManager().getMenu();
 
-    ViewerArea container = new ViewerArea(parent, SWT.NONE, menu, toolBar, clusterProvider);
+    ViewerArea container = new ViewerArea(parent, SWT.NONE, menu, toolBar, clusterProvider, config);
 
     return container;
   }

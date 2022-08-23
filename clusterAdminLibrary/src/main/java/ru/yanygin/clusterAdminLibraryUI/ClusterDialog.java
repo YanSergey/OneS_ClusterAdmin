@@ -23,27 +23,32 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.wb.swt.SWTResourceManager;
+import ru.yanygin.clusterAdminLibrary.Helper;
 import ru.yanygin.clusterAdminLibrary.Server;
 
-/** Dialog for сreate and edit cluster. */
-public class CreateEditClusterDialog extends Dialog {
+/** Диалог редактирования параметров кластера. */
+public class ClusterDialog extends Dialog {
 
-  private UUID clusterId;
+  private static final String EMPTY_STRING = ""; //$NON-NLS-1$
+
   private Server server;
+  private UUID clusterId;
 
-  private Button btnClusterRecyclingKillProblemProcesses;
+  // Controls
   private Text txtClusterName;
   private Text txtComputerName;
   private Text txtIpPort;
-  private Combo comboSecurityLevel;
   private Text txtLifeTimeLimit;
   private Text txtMaxMemorySize;
   private Text txtMaxMemoryTimeLimit;
   private Text txtClusterRecyclingErrorsCountThreshold;
   private Text txtExpirationTimeout;
   private Text txtSessionFaultToleranceLevel;
+
+  private Combo comboSecurityLevel;
   private Combo comboLoadBalancingMode;
+
+  private Button btnClusterRecyclingKillProblemProcesses;
   private Button btnClusterRecyclingKillByMemoryWithDump;
 
   /**
@@ -53,15 +58,18 @@ public class CreateEditClusterDialog extends Dialog {
    * @param server - server
    * @param clusterId - cluster ID
    */
-  public CreateEditClusterDialog(Shell parentShell, Server server, UUID clusterId) {
+  public ClusterDialog(Shell parentShell, Server server, UUID clusterId) {
     super(parentShell);
     setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
-    // super.configureShell(parentShell);
-    // parentShell.setText("Parameters of the 1C:Enterprise infobase");
-
     this.server = server;
     this.clusterId = clusterId;
+  }
+
+  @Override
+  protected void configureShell(Shell newShell) {
+    super.configureShell(newShell);
+    newShell.setText(Strings.TITLE_WINDOW);
   }
 
   /**
@@ -80,57 +88,52 @@ public class CreateEditClusterDialog extends Dialog {
 
     Label lblClusterName = new Label(container, SWT.NONE);
     lblClusterName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblClusterName.setText(Messages.getString("ClusterDialog.ClusterName")); //$NON-NLS-1$
+    lblClusterName.setText(Strings.CLUSTER_NAME);
 
     txtClusterName = new Text(container, SWT.BORDER);
-    txtClusterName.setToolTipText(Messages.getString("ClusterDialog.ClusterName"));
     GridData gdtxtClusterName = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
     gdtxtClusterName.widthHint = 200;
     txtClusterName.setLayoutData(gdtxtClusterName);
 
     Label lblComputerName = new Label(container, SWT.NONE);
     lblComputerName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblComputerName.setText(Messages.getString("ClusterDialog.ComputerName")); //$NON-NLS-1$
+    lblComputerName.setText(Strings.COMPUTER_NAME);
 
     txtComputerName = new Text(container, SWT.BORDER);
-    txtComputerName.setToolTipText(Messages.getString("ClusterDialog.ComputerName"));
     GridData gdtxtComputerName = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
     gdtxtComputerName.widthHint = 200;
     txtComputerName.setLayoutData(gdtxtComputerName);
 
     Label lblIpPort = new Label(container, SWT.NONE);
     lblIpPort.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblIpPort.setText(Messages.getString("ClusterDialog.IPPort")); //$NON-NLS-1$
+    lblIpPort.setText(Strings.IP_PORT);
 
     txtIpPort = new Text(container, SWT.BORDER);
-    txtIpPort.setToolTipText(Messages.getString("ClusterDialog.IPPort"));
     GridData gdtxtIpPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
     gdtxtIpPort.widthHint = 200;
     txtIpPort.setLayoutData(gdtxtIpPort);
 
     Label lblSecurityLevel = new Label(container, SWT.NONE);
     lblSecurityLevel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblSecurityLevel.setText(Messages.getString("Dialogs.SecurityLevel")); //$NON-NLS-1$
+    lblSecurityLevel.setText(Strings.SECURITY_LEVEL);
 
     comboSecurityLevel = new Combo(container, SWT.READ_ONLY);
     comboSecurityLevel.setVisibleItemCount(3);
     comboSecurityLevel.setTouchEnabled(true);
-    comboSecurityLevel.setToolTipText(Messages.getString("Dialogs.SecurityLevel"));
     GridData gdcomboSecurityLevel = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
     gdcomboSecurityLevel.widthHint = 200;
     comboSecurityLevel.setLayoutData(gdcomboSecurityLevel);
 
-    comboSecurityLevel.add(Messages.getString("Dialogs.Disable")); //$NON-NLS-1$
-    comboSecurityLevel.setData(Messages.getString("Dialogs.Disable"), 0); //$NON-NLS-1$
-    comboSecurityLevel.add(Messages.getString("Dialogs.ConnectionOnly")); //$NON-NLS-1$
-    comboSecurityLevel.setData(Messages.getString("Dialogs.ConnectionOnly"), 1); //$NON-NLS-1$
-    comboSecurityLevel.add(Messages.getString("Dialogs.Constantly")); //$NON-NLS-1$
-    comboSecurityLevel.setData(Messages.getString("Dialogs.Constantly"), 2); //$NON-NLS-1$
+    comboSecurityLevel.add(Strings.SECURITY_LEVEL_DISABLE);
+    comboSecurityLevel.setData(Strings.SECURITY_LEVEL_DISABLE, 0);
+    comboSecurityLevel.add(Strings.SECURITY_LEVEL_CONNECTIONONLY);
+    comboSecurityLevel.setData(Strings.SECURITY_LEVEL_CONNECTIONONLY, 1);
+    comboSecurityLevel.add(Strings.SECURITY_LEVEL_CONSTANTLY);
+    comboSecurityLevel.setData(Strings.SECURITY_LEVEL_CONSTANTLY, 2);
     comboSecurityLevel.select(0);
 
     Group groupWorkProcessesParams = new Group(container, SWT.NONE);
-    groupWorkProcessesParams.setText(
-        Messages.getString("ClusterDialog.RestartWorkProcesses")); //$NON-NLS-1$
+    groupWorkProcessesParams.setText(Strings.WP_RESTART);
     GridLayout glgroupWorkProcessesParams = new GridLayout(2, true);
     glgroupWorkProcessesParams.verticalSpacing = 8;
     groupWorkProcessesParams.setLayout(glgroupWorkProcessesParams);
@@ -138,47 +141,37 @@ public class CreateEditClusterDialog extends Dialog {
 
     Label lblLifeTimeLimit = new Label(groupWorkProcessesParams, SWT.NONE);
     lblLifeTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblLifeTimeLimit.setText(Messages.getString("ClusterDialog.RestartInterval")); //$NON-NLS-1$
+    lblLifeTimeLimit.setText(Strings.WP_RESTART_INTERVAL);
 
     txtLifeTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
     GridData gdtxtLifeTimeLimit = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
     gdtxtLifeTimeLimit.widthHint = 200;
     txtLifeTimeLimit.setLayoutData(gdtxtLifeTimeLimit);
-    txtLifeTimeLimit.setToolTipText(
-        Messages.getString("ClusterDialog.RestartInterval")); //$NON-NLS-1$
 
     Label lblMaxMemorySize = new Label(groupWorkProcessesParams, SWT.NONE);
     lblMaxMemorySize.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblMaxMemorySize.setText(
-        Messages.getString("ClusterDialog.AllowedAmountOfMemoryWithLineBreak")); //$NON-NLS-1$
+    lblMaxMemorySize.setText(Strings.WP_ALLOWED_AMOUNT_OFMEMORY);
 
     txtMaxMemorySize = new Text(groupWorkProcessesParams, SWT.BORDER);
     GridData gdtxtMaxMemorySize = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
     gdtxtMaxMemorySize.widthHint = 200;
     txtMaxMemorySize.setLayoutData(gdtxtMaxMemorySize);
-    txtMaxMemorySize.setToolTipText(
-        Messages.getString("ClusterDialog.AllowedAmountOfMemory")); //$NON-NLS-1$
 
     Label lblMaxMemoryTimeLimit = new Label(groupWorkProcessesParams, SWT.WRAP);
     lblMaxMemoryTimeLimit.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
-    lblMaxMemoryTimeLimit.setText(
-        Messages.getString(
-            "ClusterDialog.IntervalExceedingAllowedAmountOfMemoryWithLineBreak")); //$NON-NLS-1$
+    lblMaxMemoryTimeLimit.setText(Strings.WP_INTERVAL_EXCEEDING_ALLOWED_AMOUNT_OFMEMORY);
 
     txtMaxMemoryTimeLimit = new Text(groupWorkProcessesParams, SWT.BORDER);
     GridData gdtxtMaxMemoryTimeLimit = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
     gdtxtMaxMemoryTimeLimit.widthHint = 200;
     txtMaxMemoryTimeLimit.setLayoutData(gdtxtMaxMemoryTimeLimit);
-    txtMaxMemoryTimeLimit.setToolTipText(
-        Messages.getString("ClusterDialog.IntervalExceedingAllowedAmountOfMemory")); //$NON-NLS-1$
 
     Label lblAcceptableDeviationOfNumberOfServerErrors =
         new Label(groupWorkProcessesParams, SWT.WRAP);
     lblAcceptableDeviationOfNumberOfServerErrors.setLayoutData(
         new GridData(SWT.RIGHT, SWT.FILL, false, true, 1, 1));
     lblAcceptableDeviationOfNumberOfServerErrors.setText(
-        Messages.getString(
-            "ClusterDialog.AcceptableDeviationOfTheNumberOfServerErrorsWithLineBreak")); //$NON-NLS-1$
+        Strings.ACCEPTABLE_DEVIATION_OFTHENUMBER_OFSERVER_ERRORS);
 
     txtClusterRecyclingErrorsCountThreshold = new Text(groupWorkProcessesParams, SWT.BORDER);
     GridData gdtxtClusterRecyclingErrorsCountThreshold =
@@ -186,30 +179,23 @@ public class CreateEditClusterDialog extends Dialog {
     gdtxtClusterRecyclingErrorsCountThreshold.widthHint = 200;
     txtClusterRecyclingErrorsCountThreshold.setLayoutData(
         gdtxtClusterRecyclingErrorsCountThreshold);
-    txtClusterRecyclingErrorsCountThreshold.setToolTipText(
-        Messages.getString(
-            "ClusterDialog.AcceptableDeviationOfTheNumberOfServerErrors")); //$NON-NLS-1$
 
     btnClusterRecyclingKillProblemProcesses = new Button(groupWorkProcessesParams, SWT.CHECK);
     btnClusterRecyclingKillProblemProcesses.setLayoutData(
         new GridData(SWT.FILL, SWT.FILL, false, true, 2, 1));
-    btnClusterRecyclingKillProblemProcesses.setText(
-        Messages.getString("ClusterDialog.ForceShutdownOfProblematicProcesses")); //$NON-NLS-1$
+    btnClusterRecyclingKillProblemProcesses.setText(Strings.FORCE_SHUTDOWN_OFPROBLEMATIC_PROCESSES);
 
     btnClusterRecyclingKillByMemoryWithDump = new Button(groupWorkProcessesParams, SWT.CHECK);
     btnClusterRecyclingKillByMemoryWithDump.setLayoutData(
         new GridData(SWT.FILL, SWT.FILL, false, false, 2, 1));
     btnClusterRecyclingKillByMemoryWithDump.setText(
-        Messages.getString("ClusterDialog.ClusterRecyclingKillByMemoryWithDump")); //$NON-NLS-1$
+        Strings.CLUSTER_RECYCLING_KILL_BYMEMORY_WITHDUMP);
 
     Label lblExpirationTimeout = new Label(container, SWT.NONE);
     lblExpirationTimeout.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblExpirationTimeout.setText(
-        Messages.getString("ClusterDialog.ShutDownProcessesStopAfterSecond")); //$NON-NLS-1$
+    lblExpirationTimeout.setText(Strings.SHUTDOWN_PROCESSES_STOP_AFTER);
 
     txtExpirationTimeout = new Text(container, SWT.BORDER);
-    txtExpirationTimeout.setToolTipText(
-        Messages.getString("ClusterDialog.ShutDownProcessesStopAfter"));
     GridData gdtxtExpirationTimeout = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
     gdtxtExpirationTimeout.widthHint = 200;
     txtExpirationTimeout.setLayoutData(gdtxtExpirationTimeout);
@@ -217,12 +203,9 @@ public class CreateEditClusterDialog extends Dialog {
     Label lblSessionFaultToleranceLevel = new Label(container, SWT.NONE);
     lblSessionFaultToleranceLevel.setLayoutData(
         new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblSessionFaultToleranceLevel.setText(
-        Messages.getString("ClusterDialog.FaultToleranceLevel")); //$NON-NLS-1$
+    lblSessionFaultToleranceLevel.setText(Strings.FAULT_TOLERANCE_LEVEL);
 
     txtSessionFaultToleranceLevel = new Text(container, SWT.BORDER);
-    txtSessionFaultToleranceLevel.setToolTipText(
-        Messages.getString("ClusterDialog.FaultToleranceLevel"));
     GridData gdtxtSessionFaultToleranceLevel =
         new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
     gdtxtSessionFaultToleranceLevel.widthHint = 200;
@@ -230,29 +213,26 @@ public class CreateEditClusterDialog extends Dialog {
 
     Label lblLoadBalancingMode = new Label(container, SWT.NONE);
     lblLoadBalancingMode.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-    lblLoadBalancingMode.setText(
-        Messages.getString("ClusterDialog.LoadBalancingMode")); //$NON-NLS-1$
+    lblLoadBalancingMode.setText(Strings.LOAD_BALANCING_MODE);
 
     comboLoadBalancingMode = new Combo(container, SWT.READ_ONLY);
     comboLoadBalancingMode.setVisibleItemCount(2);
-    comboLoadBalancingMode.setToolTipText(Messages.getString("ClusterDialog.LoadBalancingMode"));
     GridData gdcomboLoadBalancingMode = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
     gdcomboLoadBalancingMode.widthHint = 200;
     comboLoadBalancingMode.setLayoutData(gdcomboLoadBalancingMode);
 
-    comboLoadBalancingMode.add(Messages.getString("Dialogs.PerformancePriority")); //$NON-NLS-1$
-    comboLoadBalancingMode.setData(
-        Messages.getString("Dialogs.PerformancePriority"), 0); //$NON-NLS-1$
-    comboLoadBalancingMode.add(Messages.getString("Dialogs.MemoryPriority")); //$NON-NLS-1$
-    comboLoadBalancingMode.setData(Messages.getString("Dialogs.MemoryPriority"), 1); //$NON-NLS-1$
+    comboLoadBalancingMode.add(Strings.LOAD_BALANCING_MODE_PERFORMANCEPRIORITY);
+    comboLoadBalancingMode.setData(Strings.LOAD_BALANCING_MODE_PERFORMANCEPRIORITY, 0);
+    comboLoadBalancingMode.add(Strings.LOAD_BALANCING_MODE_MEMORYPRIORITY);
+    comboLoadBalancingMode.setData(Strings.LOAD_BALANCING_MODE_MEMORYPRIORITY, 1);
     comboLoadBalancingMode.select(0);
 
-    initServerProperties();
+    initProperties();
 
     return container;
   }
 
-  private void initServerProperties() {
+  private void initProperties() {
     IClusterInfo clusterInfo;
 
     if (clusterId != null) {
@@ -263,8 +243,8 @@ public class CreateEditClusterDialog extends Dialog {
     } else {
       clusterInfo = new ClusterInfo();
 
-      txtClusterName.setText(""); //$NON-NLS-1$
-      txtComputerName.setText(""); //$NON-NLS-1$
+      txtClusterName.setText(EMPTY_STRING);
+      txtComputerName.setText(EMPTY_STRING);
     }
 
     txtIpPort.setText(Integer.toString(clusterInfo.getMainPort()));
@@ -290,17 +270,12 @@ public class CreateEditClusterDialog extends Dialog {
       txtMaxMemoryTimeLimit.setEditable(false);
       txtClusterRecyclingErrorsCountThreshold.setEditable(false);
 
-      txtMaxMemorySize.setToolTipText(
-          Messages.getString("Dialogs.DeprecatedInFifteen")); //$NON-NLS-1$
-      txtMaxMemoryTimeLimit.setToolTipText(
-          Messages.getString("Dialogs.DeprecatedInFifteen")); //$NON-NLS-1$
-      txtClusterRecyclingErrorsCountThreshold.setToolTipText(
-          Messages.getString("Dialogs.DeprecatedInFifteen")); //$NON-NLS-1$
+      txtMaxMemorySize.setToolTipText(Strings.DEPRECATED_IN_FIFTEEN);
+      txtMaxMemoryTimeLimit.setToolTipText(Strings.DEPRECATED_IN_FIFTEEN);
+      txtClusterRecyclingErrorsCountThreshold.setToolTipText(Strings.DEPRECATED_IN_FIFTEEN);
     } else {
       btnClusterRecyclingKillByMemoryWithDump.setEnabled(false);
-
-      btnClusterRecyclingKillByMemoryWithDump.setToolTipText(
-          Messages.getString("Dialogs.AppearedInFifteen")); //$NON-NLS-1$
+      btnClusterRecyclingKillByMemoryWithDump.setToolTipText(Strings.APPEARED_IN_FIFTEEN);
     }
 
     // У уже созданного кластера запрещено менять хост и порт
@@ -308,10 +283,6 @@ public class CreateEditClusterDialog extends Dialog {
       txtComputerName.setEditable(false);
       txtIpPort.setEditable(false);
     }
-  }
-
-  private void resetToProf() {
-    comboLoadBalancingMode.select(0);
   }
 
   private boolean checkVariablesFromControls() {
@@ -325,10 +296,10 @@ public class CreateEditClusterDialog extends Dialog {
 
     for (Text control : checksTextControls) {
       if (control.getText().isBlank()) {
-        control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+        control.setBackground(Helper.getPinkColor());
         existsError = true;
       } else {
-        control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+        control.setBackground(Helper.getWhiteColor());
       }
     }
 
@@ -344,9 +315,9 @@ public class CreateEditClusterDialog extends Dialog {
     for (Text control : checksIntControls) {
       try {
         Integer.parseInt(control.getText());
-        control.setBackground(SWTResourceManager.getColor(255, 255, 255));
+        control.setBackground(Helper.getWhiteColor());
       } catch (Exception e) {
-        control.setBackground(SWTResourceManager.getColor(255, 204, 204));
+        control.setBackground(Helper.getPinkColor());
         existsError = true;
       }
     }
@@ -427,12 +398,7 @@ public class CreateEditClusterDialog extends Dialog {
 
     createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 
-    Button buttonApply =
-        createButton(
-            parent,
-            IDialogConstants.PROCEED_ID,
-            Messages.getString("Dialogs.Apply"), //$NON-NLS-1$
-            false);
+    Button buttonApply = createButton(parent, IDialogConstants.PROCEED_ID, Strings.APPLY, false);
     buttonApply.setEnabled(clusterId != null);
     buttonApply.addSelectionListener(
         new SelectionAdapter() {
@@ -441,39 +407,32 @@ public class CreateEditClusterDialog extends Dialog {
             saveNewClusterProperties();
           }
         });
-    Button buttonReset =
-        createButton(
-            parent,
-            IDialogConstants.RETRY_ID,
-            Messages.getString("Dialogs.Reset"), //$NON-NLS-1$
-            false);
-    buttonReset.setText(Messages.getString("Dialogs.Reset")); //$NON-NLS-1$
+
+    Button buttonReset = createButton(parent, IDialogConstants.RETRY_ID, Strings.RESET, false);
+    buttonReset.setText(Strings.RESET);
     buttonReset.addSelectionListener(
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
-            initServerProperties();
+            initProperties();
           }
         });
+
     Button buttonResetToProf =
-        createButton(
-            parent,
-            IDialogConstants.RETRY_ID,
-            Messages.getString("Dialogs.ResetToPROF"), //$NON-NLS-1$
-            false);
+        createButton(parent, IDialogConstants.RETRY_ID, Strings.RESET_TO_PROF, false);
     buttonResetToProf.addMouseTrackListener(
         new MouseTrackAdapter() {
           @Override
           public void mouseEnter(MouseEvent e) {
-            comboLoadBalancingMode.setBackground(SWTResourceManager.getLightGreenColor());
+            comboLoadBalancingMode.setBackground(Helper.getLightGreenColor());
           }
 
           @Override
           public void mouseExit(MouseEvent e) {
-            comboLoadBalancingMode.setBackground(SWTResourceManager.getWhiteColor());
+            comboLoadBalancingMode.setBackground(Helper.getWhiteColor());
           }
         });
-    buttonResetToProf.setText(Messages.getString("Dialogs.ResetToPROF")); //$NON-NLS-1$
+    buttonResetToProf.setText(Strings.RESET_TO_PROF);
     buttonResetToProf.addSelectionListener(
         new SelectionAdapter() {
           @Override
@@ -481,5 +440,50 @@ public class CreateEditClusterDialog extends Dialog {
             resetToProf();
           }
         });
+  }
+
+  private void resetToProf() {
+    comboLoadBalancingMode.select(0);
+  }
+
+  private static class Strings {
+
+    static final String TITLE_WINDOW = getString("TitleDialog");
+    static final String CLUSTER_NAME = getString("ClusterName");
+    static final String COMPUTER_NAME = getString("ComputerName");
+    static final String IP_PORT = getString("IPPort");
+    static final String SECURITY_LEVEL = Messages.getString("Dialogs.SecurityLevel");
+    static final String SECURITY_LEVEL_DISABLE = Messages.getString("Dialogs.Disable");
+    static final String SECURITY_LEVEL_CONNECTIONONLY =
+        Messages.getString("Dialogs.ConnectionOnly");
+    static final String SECURITY_LEVEL_CONSTANTLY = Messages.getString("Dialogs.Constantly");
+    static final String WP_RESTART = getString("WorkingProcessesRestart");
+    static final String WP_RESTART_INTERVAL = getString("WorkingProcessesRestartInterval");
+    static final String WP_ALLOWED_AMOUNT_OFMEMORY =
+        getString("WorkingProcessesAllowedAmountOfMemory");
+    static final String WP_INTERVAL_EXCEEDING_ALLOWED_AMOUNT_OFMEMORY =
+        getString("WorkingProcessesIntervalExceedingAllowedAmountOfMemory");
+    static final String ACCEPTABLE_DEVIATION_OFTHENUMBER_OFSERVER_ERRORS =
+        getString("AcceptableDeviationOfTheNumberOfServerErrors");
+    static final String FORCE_SHUTDOWN_OFPROBLEMATIC_PROCESSES =
+        getString("ForceShutdownOfProblematicProcesses");
+    static final String CLUSTER_RECYCLING_KILL_BYMEMORY_WITHDUMP =
+        getString("ClusterRecyclingKillByMemoryWithDump");
+    static final String SHUTDOWN_PROCESSES_STOP_AFTER = getString("ShutDownProcessesStopAfter");
+    static final String FAULT_TOLERANCE_LEVEL = getString("FaultToleranceLevel");
+    static final String LOAD_BALANCING_MODE = getString("LoadBalancingMode");
+    static final String LOAD_BALANCING_MODE_PERFORMANCEPRIORITY =
+        getString("LoadBalancingModePerformancePriority");
+    static final String LOAD_BALANCING_MODE_MEMORYPRIORITY =
+        getString("LoadBalancingModeMemoryPriority");
+    static final String DEPRECATED_IN_FIFTEEN = Messages.getString("Dialogs.DeprecatedInFifteen");
+    static final String APPEARED_IN_FIFTEEN = Messages.getString("Dialogs.AppearedInFifteen");
+    static final String APPLY = Messages.getString("Dialogs.Apply");
+    static final String RESET = Messages.getString("Dialogs.Reset");
+    static final String RESET_TO_PROF = Messages.getString("Dialogs.ResetToPROF");
+
+    static String getString(String key) {
+      return Messages.getString("ClusterDialog." + key); //$NON-NLS-1$
+    }
   }
 }

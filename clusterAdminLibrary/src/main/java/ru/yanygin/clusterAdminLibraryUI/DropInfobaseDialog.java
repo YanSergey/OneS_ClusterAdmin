@@ -6,6 +6,7 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -15,14 +16,13 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import ru.yanygin.clusterAdminLibrary.Server;
 
-/** Dialog for drop infobase. */
+/** Диалог удаления информационной базы. */
 public class DropInfobaseDialog extends Dialog {
 
-  private UUID clusterId;
   private Server server;
-
-  private int databaseDropMode;
+  private UUID clusterId;
   private UUID infobaseId;
+  private int databaseDropMode;
 
   /**
    * Create the dialog.
@@ -36,12 +36,15 @@ public class DropInfobaseDialog extends Dialog {
     super(parentShell);
     setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
-    // super.configureShell(parentShell);
-    // parentShell.setText("Parameters of the 1C:Enterprise infobase");
-
-    this.infobaseId = infobaseId;
-    this.clusterId = clusterId;
     this.server = server;
+    this.clusterId = clusterId;
+    this.infobaseId = infobaseId;
+  }
+
+  @Override
+  protected void configureShell(Shell newShell) {
+    super.configureShell(newShell);
+    newShell.setText(Strings.TITLE_WINDOW);
   }
 
   /**
@@ -60,11 +63,11 @@ public class DropInfobaseDialog extends Dialog {
     GridData gdlblInfo = new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1);
     gdlblInfo.heightHint = 34;
     lblInfo.setLayoutData(gdlblInfo);
-    lblInfo.setText(Messages.getString("Dialogs.DropInfobaseDescription")); //$NON-NLS-1$
+    lblInfo.setText(Strings.DROP_INFOBASE_DESCRIPTION);
     new Label(container, SWT.NONE);
 
     Button btnNotDelete = new Button(container, SWT.RADIO);
-    btnNotDelete.setText(Messages.getString("Dialogs.LeaveDatabaseUnchanged")); //$NON-NLS-1$
+    btnNotDelete.setText(Strings.LEAVE_DATABASE_UNCHANGED);
     btnNotDelete.addSelectionListener(
         new SelectionAdapter() {
           @Override
@@ -75,8 +78,7 @@ public class DropInfobaseDialog extends Dialog {
     new Label(container, SWT.NONE);
 
     Button btnDeleteTheDatabase = new Button(container, SWT.RADIO);
-    btnDeleteTheDatabase.setText(
-        Messages.getString("Dialogs.DeleteTheEntireDatabase")); //$NON-NLS-1$
+    btnDeleteTheDatabase.setText(Strings.DELETE_THE_ENTIRE_DATABASE);
     btnDeleteTheDatabase.addSelectionListener(
         new SelectionAdapter() {
           @Override
@@ -87,7 +89,7 @@ public class DropInfobaseDialog extends Dialog {
     new Label(container, SWT.NONE);
 
     Button btnClearTheDatabase = new Button(container, SWT.RADIO);
-    btnClearTheDatabase.setText(Messages.getString("Dialogs.ClearTheDatabase")); //$NON-NLS-1$
+    btnClearTheDatabase.setText(Strings.CLEAR_THE_DATABASE);
     btnClearTheDatabase.addSelectionListener(
         new SelectionAdapter() {
           @Override
@@ -124,5 +126,23 @@ public class DropInfobaseDialog extends Dialog {
         });
 
     createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
+  }
+
+  private static class Strings {
+
+    static final String TITLE_WINDOW = getString("TitleDropInfobaseParameters");
+    static final String DROP_INFOBASE_DESCRIPTION = getString("DropInfobaseDescription");
+    static final String LEAVE_DATABASE_UNCHANGED = getString("LeaveDatabaseUnchanged");
+    static final String DELETE_THE_ENTIRE_DATABASE = getString("DeleteTheEntireDatabase");
+    static final String CLEAR_THE_DATABASE = getString("ClearTheDatabase");
+
+    static String getString(String key) {
+      return Messages.getString("InfobaseDialog." + key); //$NON-NLS-1$
+    }
+  }
+
+  @Override
+  protected Point getInitialSize() {
+    return new Point(500, 230);
   }
 }

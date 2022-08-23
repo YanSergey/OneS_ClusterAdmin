@@ -1,20 +1,54 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import java.awt.Desktop;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.lang.module.ModuleDescriptor.Version;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.apache.http.client.fluent.Request;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Shell;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.yanygin.clusterAdminLibrary.ColumnProperties.RowSortDirection;
+import ru.yanygin.clusterAdminLibrary.InfoBaseInfoShortExt.InfobasesSortDirection;
 
-/** Main config for applacation. */
+/** Класс с конфигурацией приложения. */
 public class Config {
-  @SerializedName("Servers")
+
+  @SerializedName("ConfigVersion")
   @Expose
-  private Map<String, Server> servers = new HashMap<>();
+  private String configVersion;
+
+  @SerializedName("CheckingUpdate")
+  @Expose
+  private boolean checkingUpdate = false;
 
   @SerializedName("ExpandServers")
   @Expose
@@ -62,31 +96,11 @@ public class Config {
 
   @SerializedName("Locale")
   @Expose
-  private String locale;
+  private String locale = null; // null = как в системе
 
-  @SerializedName("SessionColumnProperties")
+  @SerializedName("ShadeSleepingSessions")
   @Expose
-  private ColumnProperties sessionColumnProperties;
-
-  @SerializedName("ConnectionColumnProperties")
-  @Expose
-  private ColumnProperties connectionColumnProperties;
-
-  @SerializedName("LockColumnProperties")
-  @Expose
-  private ColumnProperties lockColumnProperties;
-
-  @SerializedName("WPColumnProperties")
-  @Expose
-  private ColumnProperties wpColumnProperties;
-
-  @SerializedName("WSColumnProperties")
-  @Expose
-  private ColumnProperties wsColumnProperties;
-
-  @SerializedName("ShadowSleepSessions")
-  @Expose
-  private boolean shadowSleepSessions;
+  private boolean shadeSleepingSessions;
 
   @SerializedName("HighlightNewItems")
   @Expose
@@ -100,10 +114,51 @@ public class Config {
   @Expose
   private boolean readClipboard;
 
+  @SerializedName("RowSortDirection")
+  @Expose
+  private RowSortDirection rowSortDirection = RowSortDirection.DISABLE;
+
+  @SerializedName("InfobasesSortDirection")
+  @Expose
+  private InfobasesSortDirection infobasesSortDirection = InfobasesSortDirection.DISABLE;
+
+  @SerializedName("Servers")
+  @Expose
+  private Map<String, Server> servers = new HashMap<>();
+
+  @SerializedName("SessionColumnProperties")
+  @Expose
+  private ColumnProperties sessionColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("ConnectionColumnProperties")
+  @Expose
+  private ColumnProperties connectionColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("LockColumnProperties")
+  @Expose
+  private ColumnProperties lockColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("WPColumnProperties")
+  @Expose
+  private ColumnProperties wpColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("WSColumnProperties")
+  @Expose
+  private ColumnProperties wsColumnProperties = new ColumnProperties(0);
+
   private static final Logger LOGGER =
       LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
+  private static final String DEFAULT_CONFIG_PATH = "config.json"; //$NON-NLS-1$
+  private static final String TEMP_CONFIG_PATH = "config_temp.json"; //$NON-NLS-1$
 
-  private OsType currrentOs;
+  public static Config currentConfig;
+
+  private OsType currentOs = getOperatingSystemType();
+  private Version currentVersion = readCurrentVersion();
+  private Version latestVersion;
+  private String latestVersionUrl;
+  //  private File configFile;
+  private String configPath;
 
   private enum OsType {
     WINDOWS,
@@ -112,387 +167,305 @@ public class Config {
     OTHER
   }
 
-  /**
-   * Get servers.
-   *
-   * @return the servers
-   */
-  public Map<String, Server> getServers() {
-    return servers;
-  }
-
-  /**
-   * Expand servers in tree.
-   *
-   * @return the expandServersTree
-   */
-  public boolean isExpandServersTree() {
-    return expandServersTree;
-  }
-
-  /**
-   * Set expand servers in tree.
-   *
-   * @param expandServersTree the expandServersTree to set
-   */
-  public void setExpandServersTree(boolean expandServersTree) {
-    this.expandServersTree = expandServersTree;
-  }
-
-  /**
-   * Expand clusters in tree.
-   *
-   * @return the expandClustersTree
-   */
-  public boolean isExpandClustersTree() {
-    return expandClustersTree;
-  }
-
-  /**
-   * Set expand clusters in tree.
-   *
-   * @param expandClustersTree the expandClustersTree to set
-   */
-  public void setExpandClustersTree(boolean expandClustersTree) {
-    this.expandClustersTree = expandClustersTree;
-  }
-
-  /**
-   * Expand infobases in tree.
-   *
-   * @return the expandInfobasesTree
-   */
-  public boolean isExpandInfobasesTree() {
-    return expandInfobasesTree;
-  }
-
-  /**
-   * Set expand infobases in tree.
-   *
-   * @param expandInfobasesTree the expandInfobasesTree to set
-   */
-  public void setExpandInfobasesTree(boolean expandInfobasesTree) {
-    this.expandInfobasesTree = expandInfobasesTree;
-  }
-
-  /**
-   * Show working servers in tree.
-   *
-   * @return the showWorkingServersTree
-   */
-  public boolean isShowWorkingServersTree() {
-    return showWorkingServersTree;
-  }
-
-  /**
-   * Set show working servers in tree.
-   *
-   * @param showWorkingServersTree the showWorkingServersTree to set
-   */
-  public void setShowWorkingServersTree(boolean showWorkingServersTree) {
-    this.showWorkingServersTree = showWorkingServersTree;
-  }
-
-  /**
-   * Expand working servers in tree.
-   *
-   * @return the expandWorkingServersTree
-   */
-  public boolean isExpandWorkingServersTree() {
-    return expandWorkingServersTree;
-  }
-
-  /**
-   * Set expand working servers in tree.
-   *
-   * @param expandWorkingServersTree the expandWorkingServersTree to set
-   */
-  public void setExpandWorkingServersTree(boolean expandWorkingServersTree) {
-    this.expandWorkingServersTree = expandWorkingServersTree;
-  }
-
-  /**
-   * Show working processes in tree.
-   *
-   * @return the showWorkingProcessesTree
-   */
-  public boolean isShowWorkingProcessesTree() {
-    return showWorkingProcessesTree;
-  }
-
-  /**
-   * Set show working processes in tree.
-   *
-   * @param showWorkingProcessesTree the showWorkingProcessesTree to set
-   */
-  public void setShowWorkingProcessesTree(boolean showWorkingProcessesTree) {
-    this.showWorkingProcessesTree = showWorkingProcessesTree;
-  }
-
-  /**
-   * Expand working processes in tree.
-   *
-   * @return the expandWorkingProcessesTree
-   */
-  public boolean isExpandWorkingProcessesTree() {
-    return expandWorkingProcessesTree;
-  }
-
-  /**
-   * Set expand working processes in tree.
-   *
-   * @param expandWorkingProcessesTree the expandWorkingProcessesTree to set
-   */
-  public void setExpandWorkingProcessesTree(boolean expandWorkingProcessesTree) {
-    this.expandWorkingProcessesTree = expandWorkingProcessesTree;
-  }
-
-  /**
-   * Show server description in tree.
-   *
-   * @return the showServerDescription
-   */
-  public boolean isShowServerDescription() {
-    return showServerDescription;
-  }
-
-  /**
-   * Set show server description in tree.
-   *
-   * @param showServerDescription the showServerDescription to set
-   */
-  public void setShowServerDescription(boolean showServerDescription) {
-    this.showServerDescription = showServerDescription;
-  }
-
-  /**
-   * Show server version in tree.
-   *
-   * @return the showServerVersion
-   */
-  public boolean isShowServerVersion() {
-    return showServerVersion;
-  }
-
-  /**
-   * Set show server version in tree.
-   *
-   * @param showServerVersion the showServerVersion to set
-   */
-  public void setShowServerVersion(boolean showServerVersion) {
-    this.showServerVersion = showServerVersion;
-  }
-
-  /**
-   * Show infobase description in tree.
-   *
-   * @return the showInfobaseDescription
-   */
-  public boolean isShowInfobaseDescription() {
-    return showInfobaseDescription;
-  }
-
-  /**
-   * Set show infobase description in tree.
-   *
-   * @param showInfobaseDescription the showInfobaseDescription to set
-   */
-  public void setShowInfobaseDescription(boolean showInfobaseDescription) {
-    this.showInfobaseDescription = showInfobaseDescription;
-  }
-
-  /**
-   * Show local-RAS connection info in tree.
-   *
-   * @return the showLocalRasConnectInfo
-   */
-  public boolean isShowLocalRasConnectInfo() {
-    return showLocalRasConnectInfo;
-  }
-
-  /**
-   * Set show local-RAS connection info in tree.
-   *
-   * @param showLocalRasConnectInfo the showLocalRasConnectInfo to set
-   */
-  public void setShowLocalRasConnectInfo(boolean showLocalRasConnectInfo) {
-    this.showLocalRasConnectInfo = showLocalRasConnectInfo;
-  }
-
-  /**
-   * Get locale.
-   *
-   * @return the locale
-   */
-  public String getLocale() {
-    return locale;
-  }
-
-  /**
-   * Set locale.
-   *
-   * @param locale the locale to set
-   */
-  public void setLocale(String locale) {
-    this.locale = locale;
-  }
-
-  /**
-   * Get session column properties.
-   *
-   * @return the sessionColumnProperties
-   */
-  public ColumnProperties getSessionColumnProperties() {
-    return sessionColumnProperties;
-  }
-
-  /**
-   * Get connection column properties.
-   *
-   * @return the connectionColumnProperties
-   */
-  public ColumnProperties getConnectionColumnProperties() {
-    return connectionColumnProperties;
-  }
-
-  /**
-   * Get lock column properties.
-   *
-   * @return the lockColumnProperties
-   */
-  public ColumnProperties getLockColumnProperties() {
-    return lockColumnProperties;
-  }
-
-  /**
-   * Get working processes column properties.
-   *
-   * @return the wpColumnProperties
-   */
-  public ColumnProperties getWpColumnProperties() {
-    return wpColumnProperties;
-  }
-
-  /**
-   * Get working servers column properties.
-   *
-   * @return the wsColumnProperties
-   */
-  public ColumnProperties getWsColumnProperties() {
-    return wsColumnProperties;
-  }
-
-  /**
-   * Shadow sleep sessions.
-   *
-   * @return the shadowSleepSessions
-   */
-  public boolean isShadowSleepSessions() {
-    return shadowSleepSessions;
-  }
-
-  /**
-   * Set shadow sleep sessions.
-   *
-   * @param shadowSleepSessions the shadowSleepSessions to set
-   */
-  public void setShadowSleepSessions(boolean shadowSleepSessions) {
-    this.shadowSleepSessions = shadowSleepSessions;
-  }
-
-  /**
-   * Highlight new items in lists.
-   *
-   * @return the highlightNewItems
-   */
-  public boolean isHighlightNewItems() {
-    return highlightNewItems;
-  }
-
-  /**
-   * Set highlight new items in lists.
-   *
-   * @param highlightNewItems the highlightNewItems to set
-   */
-  public void setHighlightNewItems(boolean highlightNewItems) {
-    this.highlightNewItems = highlightNewItems;
-  }
-
-  /**
-   * Highlight new items duration.
-   *
-   * @return the highlightNewItemsDuration
-   */
-  public int getHighlightNewItemsDuration() {
-    return highlightNewItemsDuration;
-  }
-
-  /**
-   * Set highlight new items duration.
-   *
-   * @param highlightNewItemsDuration the highlightNewItemsDuration to set
-   */
-  public void setHighlightNewItemsDuration(int highlightNewItemsDuration) {
-    this.highlightNewItemsDuration = highlightNewItemsDuration;
-  }
-
-  /**
-   * Read clipboard.
-   *
-   * @return the readClipboard
-   */
-  public boolean isReadClipboard() {
-    return readClipboard;
-  }
-
-  /**
-   * Set read clipboard.
-   *
-   * @param readClipboard the readClipboard to set
-   */
-  public void setReadClipboard(boolean readClipboard) {
-    this.readClipboard = readClipboard;
-  }
-
   /** Constructor for main config. */
   public Config() {
-    this.init();
+    // this.init();
+    this.configPath = DEFAULT_CONFIG_PATH;
+    currentConfig = this;
   }
+
+  /**
+   * Constructor for config.
+   *
+   * @param configPath - путь к файлу конфига
+   */
+  public Config(String configPath) {
+    this.configPath = configPath;
+    currentConfig = this;
+  }
+
+  /**
+   * Constructor for main config.
+   *
+   * @param initFields - init fields
+   */
+  //  public Config(boolean initFields) {
+  //    if (initFields) {
+  //      this.init();
+  //    }
+  //  }
 
   /** Init config. */
   public void init() {
-    getOperatingSystemType();
-
-    this.servers.forEach(
-        (key, server) -> {
-          server.init();
-        });
+    runReadUpstreamVersion();
   }
 
-  private void getOperatingSystemType() {
-    if (currrentOs == null) {
-      String osName = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
-      LOGGER.debug("Current OS is <{}>", osName); //$NON-NLS-1$
+  /** Миграция настроек из конфига предыдущей версии. */
+  public void migrateProps() {
 
-      if ((osName.indexOf("mac") >= 0) || (osName.indexOf("darwin") >= 0)) {
-        currrentOs = OsType.MACOS;
-      } else if (osName.indexOf("win") >= 0) {
-        currrentOs = OsType.WINDOWS;
-      } else if (osName.indexOf("nux") >= 0) {
-        currrentOs = OsType.LINUX;
-      } else {
-        currrentOs = OsType.OTHER;
+    if (configVersion == null) {
+      configVersion = "0.2.0";
+      servers.forEach((key, server) -> server.migrateProps(configVersion));
+      configVersion = currentVersion.toString();
+    }
+  }
+
+  private OsType getOperatingSystemType() {
+    OsType os = null;
+    String osName = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+    LOGGER.debug("Current OS is <{}>", osName); //$NON-NLS-1$
+
+    if ((osName.indexOf("mac") >= 0) || (osName.indexOf("darwin") >= 0)) {
+      os = OsType.MACOS;
+    } else if (osName.indexOf("win") >= 0) {
+      os = OsType.WINDOWS;
+    } else if (osName.indexOf("nux") >= 0) {
+      os = OsType.LINUX;
+    } else {
+      os = OsType.OTHER;
+    }
+    return os;
+  }
+
+  private Version readCurrentVersion() {
+
+    //    MavenXpp3Reader reader = new MavenXpp3Reader();
+    //    Model model;
+    //
+    //    if ((new File("pom.xml")).exists()) {
+    //      try {
+    //        model = reader.read(new FileReader("pom.xml"));
+    //        // model =
+    // reader.read(getClass().getResourceAsStream("/META-INF/maven/".concat("pom.xml")));
+    //        return Version.parse(model.getVersion());
+    //
+    //      } catch (IOException | XmlPullParserException e) {
+    //        LOGGER.debug("Error parse current version"); //$NON-NLS-1$
+    //      }
+    //    } else {
+    //      LOGGER.debug("Pom-file not exist"); //$NON-NLS-1$
+    //      String v = ClusterAdminLibraryMain.class.getPackage().getImplementationVersion();
+    //      LOGGER.debug("PackageImplementationVersion {}", v); //$NON-NLS-1$
+    //      return Version.parse(v);
+    //    }
+
+    return Version.parse("0.3.0");
+  }
+
+  private void runReadUpstreamVersion() {
+
+    if (!checkingUpdate) {
+      return;
+    }
+
+    Display.getDefault()
+        .asyncExec(
+            new Runnable() {
+
+              @Override
+              public void run() {
+                readUpstreamVersion();
+              }
+            });
+  }
+
+  /** Узнать последнюю версию из релизов GitHub. */
+  public void readUpstreamVersion() {
+
+    // final URL url = new URL("https://api.github.com/repos/YanSergey/OneS_ClusterAdmin/tags");
+    URL url;
+    HttpURLConnection conn;
+    try {
+      url = new URL("https://api.github.com/repos/YanSergey/OneS_ClusterAdmin/releases/latest");
+      conn = (HttpURLConnection) url.openConnection();
+      conn.setRequestMethod("GET");
+    } catch (IOException e) {
+      LOGGER.debug("Error getting a upstream version", e); //$NON-NLS-1$
+      checkingUpdate = false;
+      return;
+    }
+
+    final int connectionTimeout = 10000;
+
+    conn.setRequestProperty("Content-Type", "application/json");
+    conn.setConnectTimeout(connectionTimeout);
+    conn.setReadTimeout(connectionTimeout);
+
+    StringBuilder result = new StringBuilder();
+
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+      for (String line; (line = reader.readLine()) != null; ) {
+        result.append(line);
       }
+    } catch (IOException e) {
+      LOGGER.debug("Error read github response", e); //$NON-NLS-1$
+      checkingUpdate = false;
+      return;
+    }
+
+    String versionsJsonString = result.toString();
+
+    // Считываем json
+    JSONObject jo = new JSONObject(versionsJsonString);
+    String lastTagName = jo.getString("tag_name");
+    JSONArray assets = jo.getJSONArray("assets");
+
+    String currentOsString = "";
+    switch (currentOs) {
+      case WINDOWS:
+        currentOsString = "windows";
+        break;
+      case LINUX:
+        currentOsString = "linux";
+        break;
+      case MACOS:
+        currentOsString = "macos";
+        break;
+      default:
+        LOGGER.debug("Error get current OS"); //$NON-NLS-1$
+        checkingUpdate = false;
+        return;
+    }
+
+    String downloadUrl;
+    for (Object object : assets) {
+      downloadUrl = ((JSONObject) object).getString("browser_download_url");
+      if (downloadUrl.contains(currentOsString)) {
+        latestVersionUrl = downloadUrl;
+        break;
+      }
+    }
+    // currentVersion.compareTo(Version.parse(lastTagName)) = 1
+    //    return Version.parse(lastTagName);
+    latestVersion = Version.parse("0.4.0"); // TODO del
+  }
+
+  /**
+   * Запуск скачивания нового релиза.
+   *
+   * @param parentShell - parent shell
+   */
+  public void runDownloadRelease(Shell parentShell) {
+    Display.getDefault()
+        .asyncExec(
+            new Runnable() {
+
+              @Override
+              public void run() {
+                String fname = selectFileToSave(parentShell);
+                if (fname == null) {
+                  return;
+                }
+
+                if (downloadReleaseToFile(fname)) {
+                  showDownloadedFile(fname);
+                }
+              }
+            });
+  }
+
+  private String selectFileToSave(Shell parentShell) {
+
+    String[] filterNames = {"Исполняемые файлы Java (*.jar)"};
+    String[] filterExt = {"*.jar"};
+
+    FileDialog dialog = new FileDialog(parentShell, SWT.SAVE);
+    dialog.setFileName(new File(latestVersionUrl).getName());
+    dialog.setText("Укажите расположение и имя файла");
+    dialog.setFilterNames(filterNames);
+    dialog.setFilterExtensions(filterExt);
+
+    return dialog.open();
+  }
+
+  private boolean downloadReleaseToFile(String fname) {
+    // String link = downloadLatestVersionUrl;
+    String link = "https://speedtest.selectel.ru/10MB"; // TODO это для теста, удалить!
+
+    try {
+      Request.Get(link).execute().saveContent(new File(fname));
+    } catch (IOException e) {
+      e.printStackTrace();
+      return false;
+    }
+
+    return true;
+  }
+
+  private void showDownloadedFile(String fname) {
+    if (Config.currentConfig.isWindows()) {
+
+      final String command = "explorer.exe /select,\"" + new File(fname).getAbsolutePath() + "\"";
+      try {
+        Runtime.getRuntime().exec(command);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+    } else {
+
+      Desktop desktop = Desktop.getDesktop();
+      desktop.browseFileDirectory(new File(fname));
     }
   }
 
   /**
-   * Add new servers in main config.
+   * Создание нового сервера.
    *
-   * @param servers - list of servers
-   * @return list of servers
+   * @return новый сервер
    */
-  public List<String> addNewServers(List<String> servers) {
+  public Server createNewServer() {
+    Server newServer = null;
+
+    if (isReadClipboard()) {
+      Clipboard clipboard = new Clipboard(Display.getDefault());
+      String clip = (String) clipboard.getContents(TextTransfer.getInstance());
+      clipboard.dispose();
+
+      if (clip != null && clip.startsWith("Srvr=")) { //$NON-NLS-1$
+        String[] srvrPart = clip.split(";"); //$NON-NLS-1$
+        String srvr = srvrPart[0].substring(6, srvrPart[0].length() - 1);
+        newServer = new Server(srvr);
+      } else {
+        newServer = new Server("Server:1541"); //$NON-NLS-1$
+      }
+    } else {
+      newServer = new Server("Server:1541"); //$NON-NLS-1$
+    }
+    // servers.put(newServer.getServerKey(), newServer);
+    // TODO по идее еще рано добавлять в список серверов эту заготовку
+    return newServer;
+  }
+
+  public void addNewServer(Server server) {
+    servers.put(server.getServerKey(), server);
+    saveConfig();
+  }
+
+  public void removeServer(Server server) {
+    servers.remove(server.getServerKey(), server);
+    saveConfig();
+  }
+
+  public void close() {
+
+    saveConfig();
+
+    servers.forEach(
+        (serverKey, server) -> {
+          if (server.isConnected()) {
+            server.disconnectFromAgent();
+          }
+        });
+  }
+
+  /**
+   * Добавление новых серверов в конфиг.
+   *
+   * @param newServers - список новых серверов
+   * @return список серверов, которые были реально добавлены
+   */
+  public List<String> addNewServers(List<String> newServers) {
     // Пакетное добавление серверов в список, предполагается для механизма импорта из списка
     // информационных баз
 
@@ -503,10 +476,10 @@ public class Config {
     // менеджера, к которому подключаемся
     // если порт менеджера не задан - ставим стандартный 1541
     // переделать
-    for (String serverName : servers) {
-      if (!this.servers.containsKey(serverName)) {
+    for (String serverName : newServers) {
+      if (!servers.containsKey(serverName)) {
         Server serverConfig = new Server(serverName);
-        this.servers.put(serverName, serverConfig);
+        servers.put(serverName, serverConfig);
 
         addedServers.add(serverName);
       }
@@ -515,205 +488,576 @@ public class Config {
     return addedServers;
   }
 
-  /** Connect to all servers in silent mode. */
+  /** Подключиться ко всем серверам в тихом режиме. */
   public void connectAllServers() {
     servers.forEach((serverKey, server) -> server.connectToServer(false, true));
   }
 
-  /** Check connection to all servers in silent mode. */
+  /** Проверить доступность всех серверов в тихом режиме. */
   public void checkConnectionAllServers() {
     servers.forEach((serverKey, server) -> server.connectToServer(true, true));
   }
 
   /**
-   * Is Windows.
+   * Проверять обновление при запуске.
    *
-   * @return true is Windows
+   * @return текущее значение
+   */
+  public boolean checkingUpdate() {
+    return checkingUpdate;
+  }
+
+  /**
+   * Установка проверки обновления при запуске.
+   *
+   * @param checkingUpdate - новое значение
+   */
+  public void setCheckingUpdate(boolean checkingUpdate) {
+    this.checkingUpdate = checkingUpdate;
+  }
+
+  /**
+   * Получает список зарегистрированных серверов.
+   *
+   * @return список серверов
+   */
+  public Map<String, Server> getServers() {
+    return servers;
+  }
+
+  /**
+   * При подключении разворачивать узел сервера в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandServersTree() {
+    return expandServersTree;
+  }
+
+  /**
+   * Установить разворачивание узла сервера в дереве при подключении.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandServersTree(boolean expand) {
+    this.expandServersTree = expand;
+  }
+
+  /**
+   * При подключении разворачивать узел кластера в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandClustersTree() {
+    return expandClustersTree;
+  }
+
+  /**
+   * Установить разворачивание узла кластеров в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandClustersTree(boolean expand) {
+    this.expandClustersTree = expand;
+  }
+
+  /**
+   * При подключении разворачивать узел инфобаз в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandInfobasesTree() {
+    return expandInfobasesTree;
+  }
+
+  /**
+   * Установить разворачивание узла инфобаз в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandInfobasesTree(boolean expand) {
+    this.expandInfobasesTree = expand;
+  }
+
+  /**
+   * Показывать узел рабочих серверов в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowWorkingServersTree() {
+    return showWorkingServersTree;
+  }
+
+  /**
+   * Установить показ узла рабочих серверов в дереве.
+   *
+   * @param show - значение показывать/не показывать
+   */
+  public void setShowWorkingServersTree(boolean show) {
+    this.showWorkingServersTree = show;
+  }
+
+  /**
+   * При подключении разворачивать узел рабочих серверов в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandWorkingServersTree() {
+    return expandWorkingServersTree;
+  }
+
+  /**
+   * Установить разворачивание узла рабочих серверов в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandWorkingServersTree(boolean expand) {
+    this.expandWorkingServersTree = expand;
+  }
+
+  /**
+   * Показывать узел рабочих процессов в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowWorkingProcessesTree() {
+    return showWorkingProcessesTree;
+  }
+
+  /**
+   * Установить показ узла рабочих процессов в дереве.
+   *
+   * @param show - значение показывать/не показывать
+   */
+  public void setShowWorkingProcessesTree(boolean show) {
+    this.showWorkingProcessesTree = show;
+  }
+
+  /**
+   * При подключении разворачивать узел рабочих процессов в дереве.
+   *
+   * @return the значение разворачивать/не разворачивать
+   */
+  public boolean isExpandWorkingProcessesTree() {
+    return expandWorkingProcessesTree;
+  }
+
+  /**
+   * Установить разворачивание узла рабочих процессов в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandWorkingProcessesTree(boolean expand) {
+    this.expandWorkingProcessesTree = expand;
+  }
+
+  /**
+   * Показывать описание сервера в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowServerDescription() {
+    return showServerDescription;
+  }
+
+  /**
+   * Установить показ описания сервера в дереве.
+   *
+   * @param show значение
+   */
+  public void setShowServerDescription(boolean show) {
+    this.showServerDescription = show;
+  }
+
+  /**
+   * Показывать версию сервера в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowServerVersion() {
+    return showServerVersion;
+  }
+
+  /**
+   * Установить показ версии сервера в дереве.
+   *
+   * @param show значение
+   */
+  public void setShowServerVersion(boolean show) {
+    this.showServerVersion = show;
+  }
+
+  /**
+   * Показывать описание инфобазы в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowInfobaseDescription() {
+    return showInfobaseDescription;
+  }
+
+  /**
+   * Установить показ описания инфобазы в дереве.
+   *
+   * @param show значение
+   */
+  public void setShowInfobaseDescription(boolean show) {
+    this.showInfobaseDescription = show;
+  }
+
+  /**
+   * Показывать информацию в дереве, что сервер подключен через local-RAS.
+   *
+   * @return значение
+   */
+  public boolean isShowLocalRasConnectInfo() {
+    return showLocalRasConnectInfo;
+  }
+
+  /**
+   * Установить показ информации в дереве, что сервер подключен через local-RAS.
+   *
+   * @param show значение
+   */
+  public void setShowLocalRasConnectInfo(boolean show) {
+    this.showLocalRasConnectInfo = show;
+  }
+
+  /**
+   * Получить текущий язык приложения.
+   *
+   * @return текущий язык приложения
+   */
+  public String getLocale() {
+    return locale;
+  }
+
+  /**
+   * Установить текущий язык приложения.
+   *
+   * @param locale - новый язык приложения
+   */
+  public void setLocale(String locale) {
+    this.locale = locale;
+  }
+
+  /**
+   * Затенять спящие сеансы.
+   *
+   * @return значение настройки
+   */
+  public boolean isShadeSleepingSessions() {
+    return shadeSleepingSessions;
+  }
+
+  /**
+   * Устанавливает настройку "Затенять спящие сеансы".
+   *
+   * @param shade - новое значение настройки
+   */
+  public void setShadowSleepSessions(boolean shade) {
+    this.shadeSleepingSessions = shade;
+  }
+
+  /**
+   * Подсвечивать новые строки в списках.
+   *
+   * @return значение настройки
+   */
+  public boolean isHighlightNewItems() {
+    return highlightNewItems;
+  }
+
+  /**
+   * Устанавливает настройку "Подсвечивать новые строки в списках".
+   *
+   * @param highlight - новое значение настройки
+   */
+  public void setHighlightNewItems(boolean highlight) {
+    this.highlightNewItems = highlight;
+  }
+
+  /**
+   * Получает длительность подсвечивания новых строк в списках.
+   *
+   * @return длительность подсветки
+   */
+  public int getHighlightNewItemsDuration() {
+    return highlightNewItemsDuration;
+  }
+
+  /**
+   * Устанавливает длительность подсвечивания новых строк в списках.
+   *
+   * @param duration - новая длительность подсветки
+   */
+  public void setHighlightNewItemsDuration(int duration) {
+    this.highlightNewItemsDuration = duration;
+  }
+
+  /**
+   * Читать бефер обмена.
+   *
+   * @return значение настройки
+   */
+  public boolean isReadClipboard() {
+    return readClipboard;
+  }
+
+  /**
+   * Установка настройки "Читать бефер обмена".
+   *
+   * @param read - новое значение настройки
+   */
+  public void setReadClipboard(boolean read) {
+    this.readClipboard = read;
+  }
+
+  /**
+   * Получает настройку "Направление сортировки строк по-умолчанию".
+   *
+   * @return значение настройки
+   */
+  public RowSortDirection getRowSortDirection() {
+    return rowSortDirection;
+  }
+
+  /**
+   * Устанавливает настройку "Направление сортировки строк по-умолчанию".
+   *
+   * @param sortDirection - новое значение настройки
+   */
+  public void setRowSortDirection(RowSortDirection sortDirection) {
+    this.rowSortDirection = sortDirection;
+  }
+
+  /**
+   * Получает настройку "Направление сортировки инфобаз".
+   *
+   * @return значение настройки
+   */
+  public InfobasesSortDirection getInfobasesSortDirection() {
+    return infobasesSortDirection;
+  }
+
+  /**
+   * Устанавливает настройку "Направление сортировки инфобаз".
+   *
+   * @param sortDirection - новое значение настройки
+   */
+  public void setInfobasesSortDirection(InfobasesSortDirection sortDirection) {
+    this.infobasesSortDirection = sortDirection;
+  }
+
+  /**
+   * Получение свойства колонок списков.
+   *
+   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @return ColumnProperties - свойства колонок списка
+   */
+  public ColumnProperties getColumnsProperties(Class<? extends BaseInfoExtended> clazz) {
+    if (clazz == SessionInfoExtended.class) {
+      return sessionColumnProperties;
+    } else if (clazz == ConnectionInfoExtended.class) {
+      return connectionColumnProperties;
+    } else if (clazz == LockInfoExtended.class) {
+      return lockColumnProperties;
+    } else if (clazz == WorkingProcessInfoExtended.class) {
+      return wpColumnProperties;
+    } else if (clazz == WorkingServerInfoExtended.class) {
+      return wsColumnProperties;
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Установка порядка колонок списков по имени класса.
+   *
+   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @param columnOrder - новый порядок колонок
+   */
+  public void setColumnsOrder(Class<? extends BaseInfoExtended> clazz, int[] columnOrder) {
+    getColumnsProperties(clazz).setOrder(columnOrder);
+  }
+
+  /**
+   * Установка ширины колонок списков по имени класса.
+   *
+   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @param index - индекс колонки
+   * @param width - ширина колонки
+   */
+  public void setColumnsWidth(Class<? extends BaseInfoExtended> clazz, int index, int width) {
+    getColumnsProperties(clazz).setWidth(index, width);
+  }
+
+  /**
+   * Это ОС Windows.
+   *
+   * @return true если Windows
    */
   public boolean isWindows() {
-    return currrentOs == OsType.WINDOWS;
+    return currentOs == OsType.WINDOWS;
   }
 
   /**
-   * Is Linux.
+   * Это ОС Linux.
    *
-   * @return true is Linux
+   * @return true если Linux
    */
   public boolean isLinux() {
-    return currrentOs == OsType.LINUX;
+    return currentOs == OsType.LINUX;
   }
 
   /**
-   * Is MacOs.
+   * Это ОС MacOs.
    *
-   * @return true is MacOs
+   * @return true если MacOs
    */
   public boolean isMacOs() {
-    return currrentOs == OsType.MACOS;
+    return currentOs == OsType.MACOS;
   }
 
   /**
-   * Set sessions column order.
+   * Возвращает текущую версию приложения.
    *
-   * @param columnOrder - new column order
+   * @return Version
    */
-  public void setSessionsColumnOrder(int[] columnOrder) {
-    sessionColumnProperties.setOrder(columnOrder);
+  public Version getCurrentVersion() {
+    return currentVersion;
   }
 
   /**
-   * Set connection column order.
+   * Возвращает последнюю версию приложения с релизов GitHub.
    *
-   * @param columnOrder - new column order
+   * @return Version или null, если запрос не выполнялся или завершился ошибкой
    */
-  public void setConnectionsColumnOrder(int[] columnOrder) {
-    connectionColumnProperties.setOrder(columnOrder);
+  public Version getLatestVersion() {
+    return latestVersion;
   }
 
   /**
-   * Set lock column order.
+   * Возвращает путь к файлу конфига.
    *
-   * @param columnOrder - new column order
+   * @return строка с путем к файлу конфига
    */
-  public void setLocksColumnOrder(int[] columnOrder) {
-    lockColumnProperties.setOrder(columnOrder);
+  public String getConfigPath() {
+    return configPath;
   }
 
   /**
-   * Set working processes column order.
+   * Устанавливает путь к файлу конфига.
    *
-   * @param columnOrder - new column order
+   * @param configPath - строка с путем к файлу конфига
    */
-  public void setWorkingProcessesColumnOrder(int[] columnOrder) {
-    wpColumnProperties.setOrder(columnOrder);
+  public void setConfigPath(String configPath) {
+    this.configPath = configPath;
   }
 
   /**
-   * Set working servers column order.
+   * Читает конфиг из файла по-умолчанию.
    *
-   * @param columnOrder - new column order
+   * @return ссылка на прочитанный конфиг
    */
-  public void setWorkingServersColumnOrder(int[] columnOrder) {
-    wsColumnProperties.setOrder(columnOrder);
+  public static Config readConfig() {
+    return readConfig(DEFAULT_CONFIG_PATH);
   }
 
   /**
-   * Init sessions column count.
+   * Читает конфиг из определенного файла.
    *
-   * @param columnCount - new column count
+   * @param configPath - имя конфиг файла
+   * @return объект конфига
    */
-  public void initSessionsColumnCount(int columnCount) {
-
-    if (sessionColumnProperties == null) {
-      sessionColumnProperties = new ColumnProperties(columnCount);
-    } else {
-      sessionColumnProperties.updateColumnProperties(columnCount);
+  public static Config readConfig(String configPath) {
+    if (configPath == null || configPath.isBlank()) {
+      LOGGER.debug("Config path is empty, set config path in root folder"); //$NON-NLS-1$
+      configPath = DEFAULT_CONFIG_PATH;
     }
-  }
+    LOGGER.info("Start read config from file <{}>", configPath); //$NON-NLS-1$
 
-  /**
-   * Init connection column count.
-   *
-   * @param columnCount - new column count
-   */
-  public void initConnectionsColumnCount(int columnCount) {
-
-    if (connectionColumnProperties == null) {
-      connectionColumnProperties = new ColumnProperties(columnCount);
-    } else {
-      connectionColumnProperties.updateColumnProperties(columnCount);
+    File configFile = new File(configPath);
+    if (!configFile.exists()) {
+      LOGGER.debug(
+          "Config file not exists, create new config in folder <{}>", configPath); //$NON-NLS-1$
+      return new Config(configPath);
     }
-  }
 
-  /**
-   * Init lock column count.
-   *
-   * @param columnCount - new column count
-   */
-  public void initLocksColumnCount(int columnCount) {
+    JsonReader jsonReader = null;
 
-    if (lockColumnProperties == null) {
-      lockColumnProperties = new ColumnProperties(columnCount);
-    } else {
-      lockColumnProperties.updateColumnProperties(columnCount);
+    try {
+      jsonReader =
+          new JsonReader(
+              new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
+    } catch (FileNotFoundException excp) {
+      LOGGER.debug("Config file read error:", excp); //$NON-NLS-1$
+      LOGGER.debug("Create temp config in root folder"); //$NON-NLS-1$
+      // configFile = new File(TEMP_CONFIG_PATH);
+      return new Config(TEMP_CONFIG_PATH);
     }
-  }
+    Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
 
-  /**
-   * Init working processes column count.
-   *
-   * @param columnCount - new column count
-   */
-  public void initWorkingProcessesColumnCount(int columnCount) {
-
-    if (wpColumnProperties == null) {
-      wpColumnProperties = new ColumnProperties(columnCount);
-    } else {
-      wpColumnProperties.updateColumnProperties(columnCount);
+    Config config = null;
+    try {
+      config = gson.fromJson(jsonReader, Config.class);
+    } catch (Exception excp) {
+      LOGGER.debug("error convert config from json:", excp); //$NON-NLS-1$
+      LOGGER.debug("Create temp config in root folder"); //$NON-NLS-1$
+      // configFile = new File(TEMP_CONFIG_PATH);
+      return new Config(TEMP_CONFIG_PATH);
     }
-  }
 
-  /**
-   * Init working servers column count.
-   *
-   * @param columnCount - new column count
-   */
-  public void initWorkingServersColumnCount(int columnCount) {
-
-    if (wsColumnProperties == null) {
-      wsColumnProperties = new ColumnProperties(columnCount);
+    if (config == null) {
+      LOGGER.debug("the config is null after reading the json"); //$NON-NLS-1$
+      LOGGER.debug("Create temp config in root folder"); //$NON-NLS-1$
+      // configFile = new File(TEMP_CONFIG_PATH);
+      config = new Config(TEMP_CONFIG_PATH);
     } else {
-      wsColumnProperties.updateColumnProperties(columnCount);
+
+      config.setConfigPath(configPath);
+      config.migrateProps();
+      config.init();
+      if (config.getLocale() != null) {
+        LOGGER.debug("Set locale is <{}>", config.getLocale()); //$NON-NLS-1$
+        Locale locale = Locale.forLanguageTag(config.getLocale());
+        java.util.Locale.setDefault(locale);
+        Messages.reloadBundle(locale); // TODO не совсем понятно как работает
+      }
     }
+    LOGGER.info("Config file read successfully"); //$NON-NLS-1$
+    return config;
   }
 
-  /**
-   * Set sessions column width.
-   *
-   * @param index - index of column
-   * @param width - column width
-   */
-  public void setSessionsColumnWidth(int index, int width) {
-    sessionColumnProperties.setWidth(index, width);
-  }
+  /** Сохранение конфига в файл. */
+  public void saveConfig() {
 
-  /**
-   * Set connection column width.
-   *
-   * @param index - index of column
-   * @param width - column width
-   */
-  public void setConnectionsColumnWidth(int index, int width) {
-    connectionColumnProperties.setWidth(index, width);
-  }
+    LOGGER.info("Start save config to file <{}>", configPath); //$NON-NLS-1$
 
-  /**
-   * Set lock column width.
-   *
-   * @param index - index of column
-   * @param width - column width
-   */
-  public void setLocksColumnWidth(int index, int width) {
-    lockColumnProperties.setWidth(index, width);
-  }
+    // configFile = new File(configPath);
 
-  /**
-   * Set working processes column width.
-   *
-   * @param index - index of column
-   * @param width - column width
-   */
-  public void setWorkingProcessesColumnWidth(int index, int width) {
-    wpColumnProperties.setWidth(index, width);
-  }
+    JsonWriter jsonWriter;
+    try {
+      jsonWriter =
+          new JsonWriter(
+              new OutputStreamWriter(new FileOutputStream(configPath), StandardCharsets.UTF_8));
+    } catch (FileNotFoundException excp) {
+      LOGGER.error("Config file save error:", excp); //$NON-NLS-1$
+      return;
+    }
+    Gson gson =
+        new GsonBuilder().excludeFieldsWithoutExposeAnnotation().setPrettyPrinting().create();
+    try {
+      gson.toJson(this, this.getClass(), jsonWriter);
+    } catch (JsonIOException excp) {
+      LOGGER.error("Config file save error:", excp); //$NON-NLS-1$
+    }
 
-  /**
-   * Set working servers column width.
-   *
-   * @param index - index of column
-   * @param width - column width
-   */
-  public void setWorkingServersColumnWidth(int index, int width) {
-    wsColumnProperties.setWidth(index, width);
+    try {
+      jsonWriter.close();
+    } catch (IOException excp) {
+      LOGGER.error("Config file save error:", excp); //$NON-NLS-1$
+    }
+    LOGGER.info("Config file write successfully"); //$NON-NLS-1$
   }
 }
