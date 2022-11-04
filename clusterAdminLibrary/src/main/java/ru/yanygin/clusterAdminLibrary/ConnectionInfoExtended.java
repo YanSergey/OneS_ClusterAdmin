@@ -1,97 +1,144 @@
 package ru.yanygin.clusterAdminLibrary;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import com._1c.v8.ibis.admin.IInfoBaseConnectionShort;
 import com._1c.v8.ibis.admin.IWorkingProcessInfo;
+import java.util.UUID;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.widgets.TabItem;
+import org.eclipse.swt.widgets.Table;
+import ru.yanygin.clusterAdminLibrary.CellValue.CELL_VALUE_TYPE;
 
-public class ConnectionInfoExtended implements IInfoExtended {
-	
-	private static final String TITLE_INFOBASE = Messages.getString("SessionInfo.Infobase"); //$NON-NLS-1$
-	private static final String TITLE_CONNECTION = Messages.getString("ConnectionInfo.Connection"); //$NON-NLS-1$
-	private static final String TITLE_SESSION = Messages.getString("ConnectionInfo.Session"); //$NON-NLS-1$
-	private static final String TITLE_COMPUTER = Messages.getString("SessionInfo.Computer"); //$NON-NLS-1$
-	private static final String TITLE_APPLICATION = Messages.getString("SessionInfo.Application"); //$NON-NLS-1$
-	private static final String TITLE_SERVER = Messages.getString("SessionInfo.Server"); //$NON-NLS-1$
-	private static final String TITLE_RP_HOST_PORT = Messages.getString("ConnectionInfo.RpHostPort"); //$NON-NLS-1$
-	private static final String TITLE_CONNECTED_AT = Messages.getString("ConnectionInfo.ConnectedAt"); //$NON-NLS-1$
-//	private static final String TITLE_INFOBASE_CONNECTION_ID = Messages.getString("ConnectionInfo.InfobaseConnectionID"); //$NON-NLS-1$
-	
-	Server server;
-	UUID clusterId;
-	UUID infobaseId;
-	IInfoBaseConnectionShort connectionInfo;
-	List<IWorkingProcessInfo> workingProcesses;
-	
-	Map<String, String> columnsMap = new LinkedHashMap<>();
-	
-	public ConnectionInfoExtended(Server server, UUID clusterId, UUID infobaseId,
-			IInfoBaseConnectionShort connectionInfo, List<IWorkingProcessInfo> workingProcesses,
-			Map<String, String> columnsMap) {
-		
-		this.server = server;
-		this.clusterId = clusterId;
-		this.infobaseId = infobaseId;
-		this.connectionInfo = connectionInfo;
-		this.workingProcesses = workingProcesses;
-		this.columnsMap = columnsMap;
-		
-	}
-	
-	public static void initColumnsName(Map<String, String> connectionColumnsMap) {
-		
-		connectionColumnsMap.put(TITLE_INFOBASE, ""); //$NON-NLS-1$
-		connectionColumnsMap.put(TITLE_CONNECTION, ""); //$NON-NLS-1$
-		connectionColumnsMap.put(TITLE_SESSION, ""); //$NON-NLS-1$
-		connectionColumnsMap.put(TITLE_COMPUTER, ""); //$NON-NLS-1$
-		connectionColumnsMap.put(TITLE_APPLICATION, ""); //$NON-NLS-1$
-		connectionColumnsMap.put(TITLE_SERVER, ""); //$NON-NLS-1$
-		connectionColumnsMap.put(TITLE_RP_HOST_PORT, ""); //$NON-NLS-1$
-		connectionColumnsMap.put(TITLE_CONNECTED_AT, ""); //$NON-NLS-1$
-//		connectionColumnsMap.put(TITLE_INFOBASE_CONNECTION_ID, ""); //$NON-NLS-1$
-		
-		ClusterProvider.getCommonConfig().initConnectionsColumnCount(connectionColumnsMap.size());
-		
-	}
-	
-	public String[] getExtendedInfo() {
-		
-		String infobaseName = ""; //$NON-NLS-1$
-		if (infobaseId == null && !connectionInfo.getInfoBaseId().equals(emptyUuid)) {
-			infobaseId = connectionInfo.getInfoBaseId();
-			infobaseName = server.getInfoBaseName(clusterId, infobaseId);
-		}
-		
-		String[] currentWorkingProcessInfo = getWorkingProcessInfo(connectionInfo.getWorkingProcessId());
-		
-		Map<String, String> session = new LinkedHashMap<>();
-		session.putAll(columnsMap);
-		
-		session.put(TITLE_INFOBASE, infobaseName);
-		session.put(TITLE_CONNECTION, Integer.toString(connectionInfo.getConnId()));
-		session.put(TITLE_SESSION, Integer.toString(connectionInfo.getSessionNumber()));
-		session.put(TITLE_COMPUTER, connectionInfo.getHost());
-		session.put(TITLE_APPLICATION, server.getApplicationName(connectionInfo.getApplication()));
-		session.put(TITLE_SERVER, currentWorkingProcessInfo[0]); // $NON-NLS-1$
-		session.put(TITLE_RP_HOST_PORT, currentWorkingProcessInfo[1]);
-		session.put(TITLE_CONNECTED_AT, dateToString(connectionInfo.getConnectedAt()));
-//		session.put(TITLE_INFOBASE_CONNECTION_ID,	convertUuidToString(connectionInfo.getInfoBaseConnectionId()));
-		
-		return session.values().toArray(new String[0]);
-		
-	}
-	
-	private String[] getWorkingProcessInfo(UUID workingProcessId) {
-		
-		for (IWorkingProcessInfo workingProcess : workingProcesses) {
-			if (workingProcess.getWorkingProcessId().equals(workingProcessId)) {
-				return new String[] { workingProcess.getHostName(), Integer.toString(workingProcess.getMainPort()) };
-			}
-		}
-		return new String[] { "", "" };
-	}
-	
+/** Расширенная информация для соединения. */
+public class ConnectionInfoExtended extends BaseInfoExtended {
+
+  private static final String TITLE_INFOBASE = "SessionInfo.Infobase"; //$NON-NLS-1$
+  private static final String TITLE_CONNECTION = "ConnectionInfo.Connection"; //$NON-NLS-1$
+  private static final String TITLE_SESSION = "ConnectionInfo.Session"; //$NON-NLS-1$
+  private static final String TITLE_COMPUTER = "SessionInfo.Computer"; //$NON-NLS-1$
+  private static final String TITLE_APPLICATION = "SessionInfo.Application"; //$NON-NLS-1$
+  private static final String TITLE_SERVER = "SessionInfo.Server"; //$NON-NLS-1$
+  private static final String TITLE_RP_HOST_PORT = "ConnectionInfo.RpHostPort"; //$NON-NLS-1$
+  private static final String TITLE_CONNECTED_AT = "ConnectionInfo.ConnectedAt"; //$NON-NLS-1$
+
+  private static Config commonConfig = Config.currentConfig;
+  private static ColumnProperties columnProperties =
+      commonConfig.getColumnsProperties(ConnectionInfoExtended.class);
+
+  private static final String DEFAULT_ICON_FILENAME = "connection.png";
+  private static Image defaultIcon;
+
+  private static final String TAB_TEXT_TEMPLATE =
+      Messages.getString("TabText.ConnectionsCount"); //$NON-NLS-1$
+
+  private static TabItem currentTab;
+  private static int itemCount;
+
+  private IInfoBaseConnectionShort connectionInfo;
+
+  /**
+   * Создание расширенной информации для соединения.
+   *
+   * @param server - server
+   * @param clusterId - cluster ID
+   * @param connectionInfo - connection info
+   */
+  public ConnectionInfoExtended(
+      Server server, UUID clusterId, IInfoBaseConnectionShort connectionInfo) {
+
+    this.server = server;
+    this.clusterId = clusterId;
+    this.connectionInfo = connectionInfo;
+    this.currentIcon = defaultIcon;
+
+    computeExtendedInfoData();
+  }
+
+  protected void computeExtendedInfoData() {
+
+    String infobaseName = ""; //$NON-NLS-1$
+    String wpHostName = ""; //$NON-NLS-1$
+    String wpPort = ""; //$NON-NLS-1$
+
+    if (!connectionInfo.getInfoBaseId().equals(Helper.EMPTY_UUID)) {
+      infobaseName = server.getInfoBaseName(clusterId, connectionInfo.getInfoBaseId());
+    }
+
+    IWorkingProcessInfo workingProcess =
+        server.getWorkingProcessInfo(clusterId, connectionInfo.getWorkingProcessId());
+
+    if (workingProcess != null) {
+      wpHostName = workingProcess.getHostName();
+      wpPort = Integer.toString(workingProcess.getMainPort());
+    }
+
+    columnProperties.prepareDataMap(data);
+
+    putData(TITLE_INFOBASE, infobaseName, CELL_VALUE_TYPE.TEXT);
+    putData(TITLE_CONNECTION, connectionInfo.getConnId(), CELL_VALUE_TYPE.INT);
+    putData(TITLE_SESSION, connectionInfo.getSessionNumber(), CELL_VALUE_TYPE.INT);
+    putData(TITLE_COMPUTER, connectionInfo.getHost(), CELL_VALUE_TYPE.TEXT);
+    putData(TITLE_APPLICATION, getApplicationName(), CELL_VALUE_TYPE.TEXT);
+    putData(TITLE_SERVER, wpHostName, CELL_VALUE_TYPE.TEXT);
+    putData(TITLE_RP_HOST_PORT, wpPort, CELL_VALUE_TYPE.TEXT);
+    putData(TITLE_CONNECTED_AT, connectionInfo.getConnectedAt(), CELL_VALUE_TYPE.DATE);
+
+  }
+
+  @Override
+  public void addToTable(Table table, int index) {
+    createTableItem(table, index, connectionInfo.getConnectedAt());
+  }
+
+  /**
+   * Получение ConnectionInfo.
+   *
+   * @return the ConnectionInfo
+   */
+  public IInfoBaseConnectionShort getConnectionInfo() {
+    return connectionInfo;
+  }
+
+  private String getApplicationName() {
+    return server.getApplicationName(connectionInfo.getApplication());
+  }
+
+  /** Инициализация имен колонок. */
+  protected static void initColumnsName() {
+
+    columnProperties.addColumnsInMap(
+        TITLE_INFOBASE,
+        TITLE_CONNECTION,
+        TITLE_SESSION,
+        TITLE_COMPUTER,
+        TITLE_APPLICATION,
+        TITLE_SERVER,
+        TITLE_RP_HOST_PORT,
+        TITLE_CONNECTED_AT);
+
+    defaultIcon = Helper.getImage(DEFAULT_ICON_FILENAME);
+  }
+
+  /**
+   * Обновление заголовка вкладки.
+   *
+   * @param count - количество элементов
+   */
+  protected static void updateTabText(int count) {
+    itemCount = count;
+    currentTab.setText(String.format(TAB_TEXT_TEMPLATE, itemCount));
+  }
+
+  /** Сброс заголовка вкладки на неизвестное количество элементов. */
+  protected static void resetTabTextCount() {
+    currentTab.setText(String.format(TAB_TEXT_TEMPLATE, itemCount + "*"));
+  }
+
+  /**
+   * Установка связи с вкладкой TabItem.
+   *
+   * @param tabitem вкладка Tabitem
+   */
+  protected static void linkTabItem(TabItem tabitem) {
+    currentTab = tabitem;
+  }
 }

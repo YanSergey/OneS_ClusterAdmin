@@ -1,13 +1,12 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
 import java.util.Locale;
-
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -17,225 +16,344 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-
-import ru.yanygin.clusterAdminLibrary.ClusterProvider;
+import ru.yanygin.clusterAdminLibrary.ColumnProperties.RowSortDirection;
 import ru.yanygin.clusterAdminLibrary.Config;
 
+/** Диалог редактирования настроек сервера. */
 public class SettingsDialog extends Dialog {
-	
-	private Config config;
-	private Button btnShowWorkingServers;
-	private Button btnShowWorkingProcesses;
-	private Button btnExpandServers;
-	private Button btnExpandClusters;
-	private Button btnExpandInfobases;
-	private Button btnExpandWorkingServers;
-	private Button btnExpandWorkingProcesses;
-	private Button btnShowServerVersion;
-	private Button btnShowServerDescription;
-	private Button btnShowInfobaseDescription;
-	private Button btnShowLocalRasConnectInfo;
-	private Button btnLocaleSystem;
-	private Button btnLocaleEnglish;
-	private Button btnLocaleRussian;
-	private Text txtHighlightDuration;
-	private Button btnHighlightNewItems;
-	private Button btnShadowSleepSessions;
-	private Button btnReadClipboard;
-	
-	/**
-	 * Create the dialog.
-	 * @param parentShell
-	 * @param serverParams 
-	 */
-	public SettingsDialog(Shell parentShell) {
-		super(parentShell);
-		setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
-//		super.configureShell(parentShell);
-//		parentShell.setText("Parameters of the 1C:Enterprise infobase");
-	    
-		this.config	= ClusterProvider.getCommonConfig();		
-	}
+  private Config config;
 
-	/**
-	 * Create contents of the dialog.
-	 * @param parent
-	 */
-	@Override
-	protected Control createDialogArea(Composite parent) {
+  private Text txtHighlightDuration;
 
-		Composite container = (Composite) super.createDialogArea(parent);
-		GridLayout gridLayout = (GridLayout) container.getLayout();
-		gridLayout.numColumns = 3;
-		
-		Group grpShowNodesIn = new Group(container, SWT.NONE);
-		grpShowNodesIn.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
-		grpShowNodesIn.setText(Messages.getString("SettingsDialog.ShowNodesInTree")); //$NON-NLS-1$
-		grpShowNodesIn.setLayout(new GridLayout(1, false));
-		
-		btnShowWorkingServers = new Button(grpShowNodesIn, SWT.CHECK);
-		btnShowWorkingServers.setText(Messages.getString("SettingsDialog.ShowWorkingServers")); //$NON-NLS-1$
-		
-		btnShowWorkingProcesses = new Button(grpShowNodesIn, SWT.CHECK);
-		btnShowWorkingProcesses.setText(Messages.getString("SettingsDialog.ShowWorkingProcesses")); //$NON-NLS-1$
-		
-		Group grpExpandNodes = new Group(container, SWT.NONE);
-		grpExpandNodes.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
-		grpExpandNodes.setText(Messages.getString("SettingsDialog.ExpandNodesInTree")); //$NON-NLS-1$
-		grpExpandNodes.setLayout(new GridLayout(1, false));
-		
-		btnExpandServers = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandServers.setText(Messages.getString("SettingsDialog.ExpandServers")); //$NON-NLS-1$
-		
-		btnExpandClusters = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandClusters.setText(Messages.getString("SettingsDialog.ExpandClusters")); //$NON-NLS-1$
-		
-		btnExpandInfobases = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandInfobases.setText(Messages.getString("SettingsDialog.ExpandInfobases")); //$NON-NLS-1$
-		
-		btnExpandWorkingServers = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandWorkingServers.setText(Messages.getString("SettingsDialog.ExpandWorkingServers")); //$NON-NLS-1$
-		
-		btnExpandWorkingProcesses = new Button(grpExpandNodes, SWT.CHECK);
-		btnExpandWorkingProcesses.setText(Messages.getString("SettingsDialog.ExpandWorkingProcesses")); //$NON-NLS-1$
-		
-		Group grpShowInfo = new Group(container, SWT.NONE);
-		grpShowInfo.setText(Messages.getString("SettingsDialog.ShowInfo")); //$NON-NLS-1$
-		grpShowInfo.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
-		grpShowInfo.setLayout(new GridLayout(1, false));
-		
-		btnShowServerVersion = new Button(grpShowInfo, SWT.CHECK);
-		btnShowServerVersion.setText(Messages.getString("SettingsDialog.ShowServerVersion")); //$NON-NLS-1$
-		
-		btnShowServerDescription = new Button(grpShowInfo, SWT.CHECK);
-		btnShowServerDescription.setText(Messages.getString("SettingsDialog.ShowServerDescription")); //$NON-NLS-1$
-		
-		btnShowInfobaseDescription = new Button(grpShowInfo, SWT.CHECK);
-		btnShowInfobaseDescription.setText(Messages.getString("SettingsDialog.ShowInfobaseDescription")); //$NON-NLS-1$
-		
-		btnShowLocalRasConnectInfo = new Button(grpShowInfo, SWT.CHECK);
-		btnShowLocalRasConnectInfo.setText(Messages.getString("SettingsDialog.ShowLocalRASConnectInfo"));
-		
-		Group grpLocale = new Group(container, SWT.NONE);
-		grpLocale.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
-		grpLocale.setText(Messages.getString("SettingsDialog.Locale")); //$NON-NLS-1$
-		grpLocale.setLayout(new GridLayout(1, false));
-		
-		btnLocaleSystem = new Button(grpLocale, SWT.RADIO);
-		btnLocaleSystem.setText(Messages.getString("SettingsDialog.System")); //$NON-NLS-1$
-		
-		btnLocaleEnglish = new Button(grpLocale, SWT.RADIO);
-		btnLocaleEnglish.setText(Messages.getString("SettingsDialog.English")); //$NON-NLS-1$
-		
-		btnLocaleRussian = new Button(grpLocale, SWT.RADIO);
-		btnLocaleRussian.setText(Messages.getString("SettingsDialog.Russian")); //$NON-NLS-1$
-		
-		Group grpHighlight = new Group(container, SWT.NONE);
-		grpHighlight.setText(Messages.getString("SettingsDialog.Highlight")); //$NON-NLS-1$
-		grpHighlight.setLayout(new GridLayout(2, false));
-		
-		btnHighlightNewItems = new Button(grpHighlight, SWT.CHECK);
-		btnHighlightNewItems.setText(Messages.getString("SettingsDialog.HighlightNewItems")); //$NON-NLS-1$
-		new Label(grpHighlight, SWT.NONE);
-		
-		Label lblHighlightDuration = new Label(grpHighlight, SWT.NONE);
-		lblHighlightDuration.setBounds(0, 0, 55, 15);
-		lblHighlightDuration.setText(Messages.getString("SettingsDialog.HighlightDuration"));
-		
-		txtHighlightDuration = new Text(grpHighlight, SWT.BORDER);
-		GridData gdtxtHighlightDuration = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gdtxtHighlightDuration.widthHint = 20;
-		txtHighlightDuration.setLayoutData(gdtxtHighlightDuration);
-		txtHighlightDuration.setBounds(0, 0, 76, 21);
-		
-		btnShadowSleepSessions = new Button(grpHighlight, SWT.CHECK);
-		btnShadowSleepSessions.setText(Messages.getString("SettingsDialog.ShadowSleepSessions")); //$NON-NLS-1$
-		new Label(grpHighlight, SWT.NONE);
-		
-		btnReadClipboard = new Button(container, SWT.CHECK);
-		btnReadClipboard.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1));
-		btnReadClipboard.setText(Messages.getString("SettingsDialog.ReadClipboard"));
-		
-		initProperties();
-		
-		return container;
-	}
+  private Button btnShowWorkingServers;
+  private Button btnShowWorkingProcesses;
+  private Button btnExpandServers;
+  private Button btnExpandClusters;
+  private Button btnExpandInfobases;
+  private Button btnExpandWorkingServers;
+  private Button btnExpandWorkingProcesses;
+  private Button btnShowServerVersion;
+  private Button btnShowServerDescription;
+  private Button btnShowInfobaseDescription;
+  private Button btnShowLocalRasConnectInfo;
+  private Button btnLocaleSystem;
+  private Button btnLocaleEnglish;
+  private Button btnLocaleRussian;
+  private Button btnHighlightNewItems;
+  private Button btnShadowSleepSessions;
+  private Button btnReadClipboard;
+  private Button btnCheckUpdate;
+  private Button btnRowSortAsPrevious;
+  private Button btnRowSortAsc;
+  private Button btnRowSortDesc;
 
-	private void initProperties() {
-		
-		btnShowWorkingServers.setSelection(config.showWorkingServersTree);
-		btnShowWorkingProcesses.setSelection(config.showWorkingProcessesTree);
-		
-		btnExpandServers.setSelection(config.expandServersTree);
-		btnExpandClusters.setSelection(config.expandClustersTree);
-		btnExpandInfobases.setSelection(config.expandInfobasesTree);
-		btnExpandWorkingServers.setSelection(config.expandWorkingServersTree);
-		btnExpandWorkingProcesses.setSelection(config.expandWorkingProcessesTree);
-		
-		btnShowServerVersion.setSelection(config.showServerVersion);
-		btnShowServerDescription.setSelection(config.showServerDescription);
-		btnShowInfobaseDescription.setSelection(config.showInfobaseDescription);
-		btnShowLocalRasConnectInfo.setSelection(config.showLocalRasConnectInfo);
-		
-		btnHighlightNewItems.setSelection(config.highlightNewItems);
-		txtHighlightDuration.setText(Integer.toString(config.highlightNewItemsDuration));
-		btnShadowSleepSessions.setSelection(config.shadowSleepSessions);
-		btnReadClipboard.setSelection(config.readClipboard);
-		
-		if (config.locale == null) {
-			btnLocaleSystem.setSelection(true);
-		} else {
-			btnLocaleEnglish.setSelection(config.locale.equals(Locale.ENGLISH.toLanguageTag()));
-			btnLocaleRussian.setSelection(config.locale.equals("ru-RU")); //$NON-NLS-1$
-		}
-	}
+  private static final String LOCALE_RU = "ru-RU"; //$NON-NLS-1$
 
-	private void saveProperties() {
-		
-		config.showWorkingServersTree = btnShowWorkingServers.getSelection();
-		config.showWorkingProcessesTree = btnShowWorkingProcesses.getSelection();
-		
-		config.expandServersTree = btnExpandServers.getSelection();
-		config.expandClustersTree = btnExpandClusters.getSelection();
-		config.expandInfobasesTree = btnExpandInfobases.getSelection();
-		config.expandWorkingServersTree = btnExpandWorkingServers.getSelection();
-		config.expandWorkingProcessesTree = btnExpandWorkingProcesses.getSelection();
-		
-		config.showServerVersion = btnShowServerVersion.getSelection();
-		config.showServerDescription = btnShowServerDescription.getSelection();
-		config.showInfobaseDescription = btnShowInfobaseDescription.getSelection();
-		config.showLocalRasConnectInfo = btnShowLocalRasConnectInfo.getSelection();
+  /**
+   * Создание диалога настроек сервера.
+   *
+   * @param parentShell - parent shell
+   */
+  public SettingsDialog(Shell parentShell) {
+    super(parentShell);
+    setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
-		config.highlightNewItems = btnHighlightNewItems.getSelection();
-		config.highlightNewItemsDuration = Integer.parseInt(txtHighlightDuration.getText());
-		config.shadowSleepSessions = btnShadowSleepSessions.getSelection();
-		config.readClipboard = btnReadClipboard.getSelection();
-		
-		if (btnLocaleSystem.getSelection())
-			config.locale = null;
-		else if (btnLocaleEnglish.getSelection())
-			config.locale = Locale.ENGLISH.toLanguageTag();
-		else if (btnLocaleRussian.getSelection())
-			config.locale = "ru-RU"; //$NON-NLS-1$
-	}
-	
-	/**
-	 * Create contents of the button bar.
-	 * @param parent
-	 */
-	@Override
-	protected void createButtonsForButtonBar(Composite parent) {
-		Button button = createButton(parent, IDialogConstants.FINISH_ID, IDialogConstants.OK_LABEL, true);
-		button.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				saveProperties();
-				close();
-			}
-		});
-		
-		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-	}
+    this.config = Config.currentConfig;
+  }
 
+  @Override
+  protected void configureShell(Shell newShell) {
+    super.configureShell(newShell);
+    newShell.setText(Strings.TITLE_WINDOW);
+  }
+  
+  /**
+   * Create contents of the dialog.
+   *
+   * @param parent - parent control
+   */
+  @Override
+  protected Control createDialogArea(Composite parent) {
+
+    Composite container = (Composite) super.createDialogArea(parent);
+    GridLayout gridLayout = (GridLayout) container.getLayout();
+    gridLayout.numColumns = 3;
+
+    Group grpShowNodesIn = new Group(container, SWT.NONE);
+    grpShowNodesIn.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpShowNodesIn.setText(Strings.SHOW_NODES_IN_TREE);
+    grpShowNodesIn.setLayout(new GridLayout(1, false));
+
+    btnShowWorkingServers = new Button(grpShowNodesIn, SWT.CHECK);
+    btnShowWorkingServers.setText(Strings.SHOW_WORKING_SERVERS);
+
+    btnShowWorkingProcesses = new Button(grpShowNodesIn, SWT.CHECK);
+    btnShowWorkingProcesses.setText(Strings.SHOW_WORKING_PROCESSES);
+
+    Group grpExpandNodes = new Group(container, SWT.NONE);
+    grpExpandNodes.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpExpandNodes.setText(Strings.EXPAND_NODES_IN_TREE);
+    grpExpandNodes.setLayout(new GridLayout(1, false));
+
+    btnExpandServers = new Button(grpExpandNodes, SWT.CHECK);
+    btnExpandServers.setText(Strings.EXPAND_SERVERS);
+
+    btnExpandClusters = new Button(grpExpandNodes, SWT.CHECK);
+    btnExpandClusters.setText(Strings.EXPAND_CLUSTERS);
+
+    btnExpandInfobases = new Button(grpExpandNodes, SWT.CHECK);
+    btnExpandInfobases.setText(Strings.EXPAND_INFOBASES);
+
+    btnExpandWorkingServers = new Button(grpExpandNodes, SWT.CHECK);
+    btnExpandWorkingServers.setText(Strings.EXPAND_WORKING_SERVERS);
+
+    btnExpandWorkingProcesses = new Button(grpExpandNodes, SWT.CHECK);
+    btnExpandWorkingProcesses.setText(Strings.EXPAND_WORKING_PROCESSES);
+
+    Group grpShowInfo = new Group(container, SWT.NONE);
+    grpShowInfo.setText(Strings.SHOW_INFO);
+    grpShowInfo.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpShowInfo.setLayout(new GridLayout(1, false));
+
+    btnShowServerVersion = new Button(grpShowInfo, SWT.CHECK);
+    btnShowServerVersion.setText(Strings.SHOW_SERVER_VERSION);
+
+    btnShowServerDescription = new Button(grpShowInfo, SWT.CHECK);
+    btnShowServerDescription.setText(Strings.SHOW_SERVER_DESCRIPTION);
+
+    btnShowInfobaseDescription = new Button(grpShowInfo, SWT.CHECK);
+    btnShowInfobaseDescription.setText(Strings.SHOW_INFOBASE_DESCRIPTION);
+
+    btnShowLocalRasConnectInfo = new Button(grpShowInfo, SWT.CHECK);
+    btnShowLocalRasConnectInfo.setText(Strings.SHOW_LOCAL_RAS_CONNECTINFO);
+
+    Group grpLocale = new Group(container, SWT.NONE);
+    grpLocale.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpLocale.setText(Strings.LOCALE);
+    grpLocale.setLayout(new GridLayout(1, false));
+
+    btnLocaleSystem = new Button(grpLocale, SWT.RADIO);
+    btnLocaleSystem.setText(Strings.LOCALE_SYSTEM);
+
+    btnLocaleEnglish = new Button(grpLocale, SWT.RADIO);
+    btnLocaleEnglish.setText(Strings.LOCALE_ENGLISH);
+
+    btnLocaleRussian = new Button(grpLocale, SWT.RADIO);
+    btnLocaleRussian.setText(Strings.LOCALE_RUSSIAN);
+
+    Group grpHighlight = new Group(container, SWT.NONE);
+    grpHighlight.setText(Strings.HIGHLIGHT);
+    grpHighlight.setLayout(new GridLayout(2, false));
+
+    btnHighlightNewItems = new Button(grpHighlight, SWT.CHECK);
+    btnHighlightNewItems.setText(Strings.HIGHLIGHT_NEW_ITEMS);
+
+    Label lblHighlightNewItemsColor = new Label(grpHighlight, SWT.BORDER);
+    lblHighlightNewItemsColor.setBackground(new Color(0, 200, 0));
+    GridData gdLblHighlightNewItemsColor = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdLblHighlightNewItemsColor.heightHint = 14;
+    gdLblHighlightNewItemsColor.widthHint = 14;
+    lblHighlightNewItemsColor.setLayoutData(gdLblHighlightNewItemsColor);
+
+    Label lblHighlightDuration = new Label(grpHighlight, SWT.NONE);
+    lblHighlightDuration.setBounds(0, 0, 55, 15);
+    lblHighlightDuration.setText(Strings.HIGHLIGHT_DURATION);
+
+    txtHighlightDuration = new Text(grpHighlight, SWT.BORDER);
+    GridData gdtxtHighlightDuration = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdtxtHighlightDuration.widthHint = 20;
+    txtHighlightDuration.setLayoutData(gdtxtHighlightDuration);
+    txtHighlightDuration.setBounds(0, 0, 76, 21);
+
+    btnShadowSleepSessions = new Button(grpHighlight, SWT.CHECK);
+    btnShadowSleepSessions.setText(Strings.SHADOW_SLEEP_SESSIONS);
+
+    Label lblShadowSleepSessionsColor = new Label(grpHighlight, SWT.BORDER);
+    lblShadowSleepSessionsColor.setBackground(new Color(160, 160, 160));
+    GridData gdLblShadowSleepSessionsColor = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdLblShadowSleepSessionsColor.heightHint = 14;
+    gdLblShadowSleepSessionsColor.widthHint = 14;
+    lblShadowSleepSessionsColor.setLayoutData(gdLblShadowSleepSessionsColor);
+
+    Label lblWatchSessions = new Label(grpHighlight, SWT.NONE);
+    lblWatchSessions.setText(Strings.WATCH_SESSIONS);
+
+    Label lblWatchSessionsColor = new Label(grpHighlight, SWT.BORDER);
+    lblWatchSessionsColor.setBackground(new Color(0, 128, 255));
+    GridData gdLblWatchSessionsColor = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdLblWatchSessionsColor.heightHint = 14;
+    gdLblWatchSessionsColor.widthHint = 14;
+    lblWatchSessionsColor.setLayoutData(gdLblWatchSessionsColor);
+
+    Group grpRowSortDirection = new Group(container, SWT.NONE);
+    grpRowSortDirection.setText(Strings.ROW_SORT_DIRECTION);
+    grpRowSortDirection.setLayout(new GridLayout(1, false));
+
+    btnRowSortAsPrevious = new Button(grpRowSortDirection, SWT.RADIO);
+    btnRowSortAsPrevious.setText(Strings.ROW_SORT_DIRECTION_AS_PREVIOUS);
+
+    btnRowSortAsc = new Button(grpRowSortDirection, SWT.RADIO);
+    btnRowSortAsc.setText(Strings.ROW_SORT_DIRECTION_ASCENDING);
+
+    btnRowSortDesc = new Button(grpRowSortDirection, SWT.RADIO);
+    btnRowSortDesc.setText(Strings.ROW_SORT_DIRECTION_DESCENDING);
+
+    btnReadClipboard = new Button(container, SWT.CHECK);
+    btnReadClipboard.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1));
+    btnReadClipboard.setText(Strings.READ_CLIPBOARD);
+
+    btnCheckUpdate = new Button(container, SWT.CHECK);
+    btnCheckUpdate.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1));
+    btnCheckUpdate.setText(Strings.CHECK_UPDATE);
+
+    new Label(container, SWT.NONE);
+
+    initProperties();
+
+    return container;
+  }
+
+  private void initProperties() {
+
+    btnShowWorkingServers.setSelection(config.isShowWorkingServersTree());
+    btnShowWorkingProcesses.setSelection(config.isShowWorkingProcessesTree());
+
+    btnExpandServers.setSelection(config.isExpandServersTree());
+    btnExpandClusters.setSelection(config.isExpandClustersTree());
+    btnExpandInfobases.setSelection(config.isExpandInfobasesTree());
+    btnExpandWorkingServers.setSelection(config.isExpandWorkingServersTree());
+    btnExpandWorkingProcesses.setSelection(config.isExpandWorkingProcessesTree());
+
+    btnShowServerVersion.setSelection(config.isShowServerVersion());
+    btnShowServerDescription.setSelection(config.isShowServerDescription());
+    btnShowInfobaseDescription.setSelection(config.isShowInfobaseDescription());
+    btnShowLocalRasConnectInfo.setSelection(config.isShowLocalRasConnectInfo());
+
+    btnHighlightNewItems.setSelection(config.isHighlightNewItems());
+    txtHighlightDuration.setText(Integer.toString(config.getHighlightNewItemsDuration()));
+    btnShadowSleepSessions.setSelection(config.isShadeSleepingSessions());
+    btnReadClipboard.setSelection(config.isReadClipboard());
+    btnCheckUpdate.setSelection(config.checkingUpdate());
+
+    if (config.getLocale() == null) {
+      btnLocaleSystem.setSelection(true);
+    } else {
+      btnLocaleEnglish.setSelection(config.getLocale().equals(Locale.ENGLISH.toLanguageTag()));
+      btnLocaleRussian.setSelection(config.getLocale().equals(LOCALE_RU));
+    }
+
+    final RowSortDirection rowSortDirection = config.getRowSortDirection();
+    btnRowSortAsPrevious.setSelection(rowSortDirection == RowSortDirection.DISABLE);
+    btnRowSortAsc.setSelection(rowSortDirection == RowSortDirection.ASC);
+    btnRowSortDesc.setSelection(rowSortDirection == RowSortDirection.DESC);
+  }
+
+  private void saveProperties() {
+
+    config.setShowWorkingServersTree(btnShowWorkingServers.getSelection());
+    config.setShowWorkingProcessesTree(btnShowWorkingProcesses.getSelection());
+
+    config.setExpandServersTree(btnExpandServers.getSelection());
+    config.setExpandClustersTree(btnExpandClusters.getSelection());
+    config.setExpandInfobasesTree(btnExpandInfobases.getSelection());
+    config.setExpandWorkingServersTree(btnExpandWorkingServers.getSelection());
+    config.setExpandWorkingProcessesTree(btnExpandWorkingProcesses.getSelection());
+
+    config.setShowServerVersion(btnShowServerVersion.getSelection());
+    config.setShowServerDescription(btnShowServerDescription.getSelection());
+    config.setShowInfobaseDescription(btnShowInfobaseDescription.getSelection());
+    config.setShowLocalRasConnectInfo(btnShowLocalRasConnectInfo.getSelection());
+
+    config.setHighlightNewItems(btnHighlightNewItems.getSelection());
+    config.setHighlightNewItemsDuration(Integer.parseInt(txtHighlightDuration.getText()));
+    config.setShadowSleepSessions(btnShadowSleepSessions.getSelection());
+    config.setReadClipboard(btnReadClipboard.getSelection());
+    config.setCheckingUpdate(btnCheckUpdate.getSelection());
+
+    if (btnLocaleSystem.getSelection()) {
+      config.setLocale(null);
+    } else if (btnLocaleEnglish.getSelection()) {
+      config.setLocale(Locale.ENGLISH.toLanguageTag());
+    } else if (btnLocaleRussian.getSelection()) {
+      config.setLocale(LOCALE_RU);
+    }
+
+    if (btnRowSortAsPrevious.getSelection()) {
+      config.setRowSortDirection(RowSortDirection.DISABLE);
+    } else if (btnRowSortAsc.getSelection()) {
+      config.setRowSortDirection(RowSortDirection.ASC);
+    } else if (btnRowSortDesc.getSelection()) {
+      config.setRowSortDirection(RowSortDirection.DESC);
+    } else {
+      config.setRowSortDirection(RowSortDirection.DISABLE);
+    }
+
+  }
+
+  /**
+   * Create contents of the button bar.
+   *
+   * @param parent - parent composite
+   */
+  @Override
+  protected void createButtonsForButtonBar(Composite parent) {
+    Button button =
+        createButton(parent, IDialogConstants.FINISH_ID, IDialogConstants.OK_LABEL, true);
+    button.addSelectionListener(
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent e) {
+            saveProperties();
+            close();
+          }
+        });
+
+    createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
+  }
+
+  private static class Strings {
+
+    static final String TITLE_WINDOW = getString("TitleDialog");
+
+    static final String SHOW_NODES_IN_TREE = getString("ShowNodesInTree");
+    static final String SHOW_WORKING_SERVERS = getString("ShowWorkingServers");
+    static final String SHOW_WORKING_PROCESSES = getString("ShowWorkingProcesses");
+
+    static final String EXPAND_NODES_IN_TREE = getString("ExpandNodesInTree");
+    static final String EXPAND_SERVERS = getString("ExpandServers");
+    static final String EXPAND_CLUSTERS = getString("ExpandClusters");
+    static final String EXPAND_INFOBASES = getString("ExpandInfobases");
+    static final String EXPAND_WORKING_SERVERS = getString("ExpandWorkingServers");
+    static final String EXPAND_WORKING_PROCESSES = getString("ExpandWorkingProcesses");
+
+    static final String SHOW_INFO = getString("ShowInfo");
+    static final String SHOW_SERVER_VERSION = getString("ShowServerVersion");
+    static final String SHOW_SERVER_DESCRIPTION = getString("ShowServerDescription");
+    static final String SHOW_INFOBASE_DESCRIPTION = getString("ShowInfobaseDescription");
+    static final String SHOW_LOCAL_RAS_CONNECTINFO = getString("ShowLocalRASConnectInfo");
+
+    static final String LOCALE = getString("Locale");
+    static final String LOCALE_SYSTEM = getString("LocaleSystem");
+    static final String LOCALE_ENGLISH = getString("LocaleEnglish");
+    static final String LOCALE_RUSSIAN = getString("LocaleRussian");
+
+    static final String HIGHLIGHT = getString("Highlight");
+    static final String HIGHLIGHT_NEW_ITEMS = getString("HighlightNewItems");
+    static final String HIGHLIGHT_DURATION = getString("HighlightDuration");
+    static final String SHADOW_SLEEP_SESSIONS = getString("ShadowSleepSessions");
+    static final String WATCH_SESSIONS = getString("WatchSessions");
+
+    static final String ROW_SORT_DIRECTION = getString("RowSortDirection");
+    static final String ROW_SORT_DIRECTION_AS_PREVIOUS = getString("RowSortDirectionAsPrevious");
+    static final String ROW_SORT_DIRECTION_ASCENDING = getString("RowSortDirectionAscending");
+    static final String ROW_SORT_DIRECTION_DESCENDING = getString("RowSortDirectionDescending");
+
+    static final String READ_CLIPBOARD = getString("ReadClipboard");
+    static final String CHECK_UPDATE = getString("CheckUpdate");
+
+    static String getString(String key) {
+      return Messages.getString("SettingsDialog." + key); //$NON-NLS-1$
+    }
+  }
 }

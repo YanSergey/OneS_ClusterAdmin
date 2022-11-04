@@ -1,264 +1,1058 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import java.awt.Desktop;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.lang.module.ModuleDescriptor.Version;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
+import org.apache.http.client.fluent.Request;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Shell;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.yanygin.clusterAdminLibrary.ColumnProperties.RowSortDirection;
+import ru.yanygin.clusterAdminLibrary.InfoBaseInfoShortExt.InfobasesSortDirection;
 
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
-
+/** Класс с конфигурацией приложения. */
 public class Config {
-	@SerializedName("Servers")
-	@Expose
-	public Map<String, Server> servers = new HashMap<>();
-	
-	@SerializedName("ExpandServers")
-	@Expose
-	public boolean expandServersTree;
-	
-	@SerializedName("ExpandClustersTree")
-	@Expose
-	public boolean expandClustersTree;
-	
-	@SerializedName("ExpandInfobasesTree")
-	@Expose
-	public boolean expandInfobasesTree;
-	
-	@SerializedName("ShowWorkingServersTree")
-	@Expose
-	public boolean showWorkingServersTree;
-	
-	@SerializedName("ExpandWorkingServersTree")
-	@Expose
-	public boolean expandWorkingServersTree;
-	
-	@SerializedName("ShowWorkingProcessesTree")
-	@Expose
-	public boolean showWorkingProcessesTree;
-	
-	@SerializedName("ExpandWorkingProcessesTree")
-	@Expose
-	public boolean expandWorkingProcessesTree;
-	
-	@SerializedName("ShowServerDescription")
-	@Expose
-	public boolean showServerDescription;
-	
-	@SerializedName("ShowServerVersion")
-	@Expose
-	public boolean showServerVersion;
-	
-	@SerializedName("ShowInfobaseDescription")
-	@Expose
-	public boolean showInfobaseDescription;
-	
-	@SerializedName("ShowLocalRasConnectInfo")
-	@Expose
-	public boolean showLocalRasConnectInfo;
-	
-	@SerializedName("Locale")
-	@Expose
-	public String locale;
-	
-	@SerializedName("SessionColumnProperties")
-	@Expose
-	public ColumnProperties sessionColumnProperties;
-	
-	@SerializedName("ConnectionColumnProperties")
-	@Expose
-	public ColumnProperties connectionColumnProperties;
-	
-	@SerializedName("LockColumnProperties")
-	@Expose
-	public ColumnProperties lockColumnProperties;
-	
-	@SerializedName("WPColumnProperties")
-	@Expose
-	public ColumnProperties wpColumnProperties;
-	
-	@SerializedName("WSColumnProperties")
-	@Expose
-	public ColumnProperties wsColumnProperties;
-	
-	@SerializedName("ShadowSleepSessions")
-	@Expose
-	public boolean shadowSleepSessions;
-	
-	@SerializedName("HighlightNewItems")
-	@Expose
-	public boolean highlightNewItems;
-	
-	@SerializedName("HighlightNewItemsDuration")
-	@Expose
-	public int highlightNewItemsDuration;
-	@SerializedName("ReadClipboard")
-	@Expose
-	public boolean readClipboard;
 
-	
-	private static Logger LOGGER = LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
-	
-	private OSType currrentOS;
-	
-	private enum OSType {
-		WINDOWS, MACOS, LINUX, OTHER
-	}
-	
-	public Config() {
-		this.init();
-	}
-	
-	public void init() {
-		getOperatingSystemType();
-		
-		this.servers.forEach((key, server) -> {
-			server.init();
-		});
-	}
-	
-	private void getOperatingSystemType() {
-		if (currrentOS == null) {
-			String osName = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
-			LOGGER.debug("Current OS is <{}>", osName); //$NON-NLS-1$
+  @SerializedName("ConfigVersion")
+  @Expose
+  private String configVersion;
 
-			if ((osName.indexOf("mac") >= 0) || (osName.indexOf("darwin") >= 0)) {
-				currrentOS = OSType.MACOS;
-			} else if (osName.indexOf("win") >= 0) {
-				currrentOS = OSType.WINDOWS;
-			} else if (osName.indexOf("nux") >= 0) {
-				currrentOS = OSType.LINUX;
-			} else {
-				currrentOS = OSType.OTHER;
-			}
-		}
-	}
-	
-	public List<String> addNewServers(List<String> servers) {
-		// Пакетное добавление серверов в список, предполагается для механизма импорта из списка информационных баз
+  @SerializedName("CheckingUpdate")
+  @Expose
+  private boolean checkingUpdate = false;
 
-		List<String> addedServers = new ArrayList<>();
+  @SerializedName("ExpandServers")
+  @Expose
+  private boolean expandServersTree;
 
-		// Имя сервера, которое приходит сюда не равно Представлению сервера, выводимому в списке
-		// Имя сервера. оно же Key в map и json, строка вида Server:1541, с обязательным указанием порта менеджера, к которому подключаемся
-		// если порт менеджера не задан - ставим стандартный 1541
-		// переделать
-		for (String serverName : servers) {
-			if (!this.servers.containsKey(serverName)) {
-				Server serverConfig = new Server(serverName);
-				this.servers.put(serverName, serverConfig);
+  @SerializedName("ExpandClustersTree")
+  @Expose
+  private boolean expandClustersTree;
 
-				addedServers.add(serverName);
-			}
-		}
+  @SerializedName("ExpandInfobasesTree")
+  @Expose
+  private boolean expandInfobasesTree;
 
-		return addedServers;
-	}
-	
-	public void connectAllServers() {
-		servers.forEach((serverKey, server) -> server.connectToServer(false, true));
-	}
-	
-	public void checkConnectionAllServers() {
-		servers.forEach((serverKey, server) -> server.connectToServer(true, true));
-	}
-	
-	public boolean isWindows() {
-		return currrentOS == OSType.WINDOWS;
-	}
-	
-	public boolean isLinux() {
-		return currrentOS == OSType.LINUX;
-	}
-	
-	public boolean isMacOS() {
-		return currrentOS == OSType.MACOS;
-	}
-	
-	public void setSessionsColumnOrder(int[] columnOrder) {
-		sessionColumnProperties.order = columnOrder;
-	}
+  @SerializedName("ShowWorkingServersTree")
+  @Expose
+  private boolean showWorkingServersTree;
 
-	public void setConnectionsColumnOrder(int[] columnOrder) {
-		connectionColumnProperties.order = columnOrder;
-	}
+  @SerializedName("ExpandWorkingServersTree")
+  @Expose
+  private boolean expandWorkingServersTree;
 
-	public void setLocksColumnOrder(int[] columnOrder) {
-		lockColumnProperties.order = columnOrder;
-	}
+  @SerializedName("ShowWorkingProcessesTree")
+  @Expose
+  private boolean showWorkingProcessesTree;
 
-	public void setWorkingProcessesColumnOrder(int[] columnOrder) {
-		wpColumnProperties.order = columnOrder;
-	}
+  @SerializedName("ExpandWorkingProcessesTree")
+  @Expose
+  private boolean expandWorkingProcessesTree;
 
-	public void setWorkingServersColumnOrder(int[] columnOrder) {
-		wsColumnProperties.order = columnOrder;
-	}
-	
-	public void initSessionsColumnCount(int columnCount) {
-		
-		if (sessionColumnProperties == null) 
-			sessionColumnProperties = new ColumnProperties(columnCount);
-		else
-			sessionColumnProperties.updateColumnProperties(columnCount);
-	}
-	
-	public void initConnectionsColumnCount(int columnCount) {
-		
-		if (connectionColumnProperties == null) 
-			connectionColumnProperties = new ColumnProperties(columnCount);
-		else
-			connectionColumnProperties.updateColumnProperties(columnCount);
-	}
-	
-	public void initLocksColumnCount(int columnCount) {
-		
-		if (lockColumnProperties == null) 
-			lockColumnProperties = new ColumnProperties(columnCount);
-		else
-			lockColumnProperties.updateColumnProperties(columnCount);
-	}
-	
-	public void initWorkingProcessesColumnCount(int columnCount) {
-		
-		if (wpColumnProperties == null) 
-			wpColumnProperties = new ColumnProperties(columnCount);
-		else
-			wpColumnProperties.updateColumnProperties(columnCount);
-	}
-	
-	public void initWorkingServersColumnCount(int columnCount) {
-		
-		if (wsColumnProperties == null) 
-			wsColumnProperties = new ColumnProperties(columnCount);
-		else
-			wsColumnProperties.updateColumnProperties(columnCount);
-	}
-	
-	public void setSessionsColumnWidth(int index, int width) {
-		sessionColumnProperties.width[index] = width;
-	}
+  @SerializedName("ShowServerDescription")
+  @Expose
+  private boolean showServerDescription;
 
-	public void setConnectionsColumnWidth(int index, int width) {
-		connectionColumnProperties.width[index] = width;
-	}
+  @SerializedName("ShowServerVersion")
+  @Expose
+  private boolean showServerVersion;
 
-	public void setLocksColumnWidth(int index, int width) {
-		lockColumnProperties.width[index] = width;
-	}
+  @SerializedName("ShowInfobaseDescription")
+  @Expose
+  private boolean showInfobaseDescription;
 
-	public void setWorkingProcessesColumnWidth(int index, int width) {
-		wpColumnProperties.width[index] = width;
-	}
+  @SerializedName("ShowLocalRasConnectInfo")
+  @Expose
+  private boolean showLocalRasConnectInfo;
 
-	public void setWorkingServersColumnWidth(int index, int width) {
-		wsColumnProperties.width[index] = width;
-	}
-	
+  @SerializedName("Locale")
+  @Expose
+  private String locale = null; // null = как в системе
+
+  @SerializedName("ShadeSleepingSessions")
+  @Expose
+  private boolean shadeSleepingSessions;
+
+  @SerializedName("HighlightNewItems")
+  @Expose
+  private boolean highlightNewItems;
+
+  @SerializedName("HighlightNewItemsDuration")
+  @Expose
+  private int highlightNewItemsDuration;
+
+  @SerializedName("ReadClipboard")
+  @Expose
+  private boolean readClipboard;
+
+  @SerializedName("RowSortDirection")
+  @Expose
+  private RowSortDirection rowSortDirection = RowSortDirection.DISABLE;
+
+  @SerializedName("InfobasesSortDirection")
+  @Expose
+  private InfobasesSortDirection infobasesSortDirection = InfobasesSortDirection.DISABLE;
+
+  @SerializedName("Servers")
+  @Expose
+  private Map<String, Server> servers = new HashMap<>();
+
+  @SerializedName("SessionColumnProperties")
+  @Expose
+  private ColumnProperties sessionColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("ConnectionColumnProperties")
+  @Expose
+  private ColumnProperties connectionColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("LockColumnProperties")
+  @Expose
+  private ColumnProperties lockColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("WPColumnProperties")
+  @Expose
+  private ColumnProperties wpColumnProperties = new ColumnProperties(0);
+
+  @SerializedName("WSColumnProperties")
+  @Expose
+  private ColumnProperties wsColumnProperties = new ColumnProperties(0);
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
+  private static final String DEFAULT_CONFIG_PATH = "config.json"; //$NON-NLS-1$
+  private static final String TEMP_CONFIG_PATH = "config_temp.json"; //$NON-NLS-1$
+
+  public static Config currentConfig;
+
+  private OsType currentOs = getOperatingSystemType();
+  private Version currentVersion = readCurrentVersion();
+  private Version latestVersion;
+  private String latestVersionUrl;
+  //  private File configFile;
+  private String configPath;
+
+  private enum OsType {
+    WINDOWS,
+    MACOS,
+    LINUX,
+    OTHER
+  }
+
+  /** Constructor for main config. */
+  public Config() {
+    // this.init();
+    this.configPath = DEFAULT_CONFIG_PATH;
+    currentConfig = this;
+  }
+
+  /**
+   * Constructor for config.
+   *
+   * @param configPath - путь к файлу конфига
+   */
+  public Config(String configPath) {
+    this.configPath = configPath;
+    currentConfig = this;
+  }
+
+  /**
+   * Constructor for main config.
+   *
+   * @param initFields - init fields
+   */
+  //  public Config(boolean initFields) {
+  //    if (initFields) {
+  //      this.init();
+  //    }
+  //  }
+
+  /** Init config. */
+  public void init() {
+    runReadUpstreamVersion();
+  }
+
+  /** Миграция настроек из конфига предыдущей версии. */
+  public void migrateProps() {
+
+    if (configVersion == null) {
+      configVersion = "0.2.0";
+      servers.forEach((key, server) -> server.migrateProps(configVersion));
+      configVersion = currentVersion.toString();
+    }
+  }
+
+  private OsType getOperatingSystemType() {
+    OsType os = null;
+    String osName = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+    LOGGER.debug("Current OS is <{}>", osName); //$NON-NLS-1$
+
+    if ((osName.indexOf("mac") >= 0) || (osName.indexOf("darwin") >= 0)) {
+      os = OsType.MACOS;
+    } else if (osName.indexOf("win") >= 0) {
+      os = OsType.WINDOWS;
+    } else if (osName.indexOf("nux") >= 0) {
+      os = OsType.LINUX;
+    } else {
+      os = OsType.OTHER;
+    }
+    return os;
+  }
+
+  private Version readCurrentVersion() {
+
+    //    MavenXpp3Reader reader = new MavenXpp3Reader();
+    //    Model model;
+    //
+    //    if ((new File("pom.xml")).exists()) {
+    //      try {
+    //        model = reader.read(new FileReader("pom.xml"));
+    //        // model =
+    // reader.read(getClass().getResourceAsStream("/META-INF/maven/".concat("pom.xml")));
+    //        return Version.parse(model.getVersion());
+    //
+    //      } catch (IOException | XmlPullParserException e) {
+    //        LOGGER.debug("Error parse current version"); //$NON-NLS-1$
+    //      }
+    //    } else {
+    //      LOGGER.debug("Pom-file not exist"); //$NON-NLS-1$
+    //      String v = ClusterAdminLibraryMain.class.getPackage().getImplementationVersion();
+    //      LOGGER.debug("PackageImplementationVersion {}", v); //$NON-NLS-1$
+    //      return Version.parse(v);
+    //    }
+
+    return Version.parse("0.3.0");
+  }
+
+  private void runReadUpstreamVersion() {
+
+    if (!checkingUpdate) {
+      return;
+    }
+
+    Display.getDefault()
+        .asyncExec(
+            new Runnable() {
+
+              @Override
+              public void run() {
+                readUpstreamVersion();
+              }
+            });
+  }
+
+  /** Узнать последнюю версию из релизов GitHub. */
+  public void readUpstreamVersion() {
+
+    URL url;
+    HttpURLConnection conn;
+    try {
+      url = new URL("https://api.github.com/repos/YanSergey/OneS_ClusterAdmin/releases/latest");
+      conn = (HttpURLConnection) url.openConnection();
+      conn.setRequestMethod("GET");
+    } catch (IOException e) {
+      LOGGER.debug("Error getting a upstream version", e); //$NON-NLS-1$
+      checkingUpdate = false;
+      return;
+    }
+
+    final int connectionTimeout = 10000;
+
+    conn.setRequestProperty("Content-Type", "application/json");
+    conn.setConnectTimeout(connectionTimeout);
+    conn.setReadTimeout(connectionTimeout);
+
+    StringBuilder result = new StringBuilder();
+
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+      for (String line; (line = reader.readLine()) != null; ) {
+        result.append(line);
+      }
+    } catch (IOException e) {
+      LOGGER.debug("Error read github response", e); //$NON-NLS-1$
+      checkingUpdate = false;
+      return;
+    }
+
+    String versionsJsonString = result.toString();
+
+    // Считываем json
+    JSONObject jo = new JSONObject(versionsJsonString);
+    String lastTagName = jo.getString("tag_name");
+    JSONArray assets = jo.getJSONArray("assets");
+
+    String currentOsString = "";
+    switch (currentOs) {
+      case WINDOWS:
+        currentOsString = "windows";
+        break;
+      case LINUX:
+        currentOsString = "linux";
+        break;
+      case MACOS:
+        currentOsString = "macos";
+        break;
+      default:
+        LOGGER.debug("Error get current OS"); //$NON-NLS-1$
+        checkingUpdate = false;
+        return;
+    }
+
+    String downloadUrl;
+    for (Object object : assets) {
+      downloadUrl = ((JSONObject) object).getString("browser_download_url");
+      if (downloadUrl.contains(currentOsString)) {
+        latestVersionUrl = downloadUrl;
+        break;
+      }
+    }
+    latestVersion = Version.parse(lastTagName);
+  }
+
+  /**
+   * Запуск скачивания нового релиза.
+   *
+   * @param parentShell - parent shell
+   */
+  public void runDownloadRelease(Shell parentShell) {
+    Display.getDefault()
+        .asyncExec(
+            new Runnable() {
+
+              @Override
+              public void run() {
+                String fname = selectFileToSave(parentShell);
+                if (fname == null) {
+                  return;
+                }
+
+                if (downloadReleaseToFile(fname)) {
+                  showDownloadedFile(fname);
+                }
+              }
+            });
+  }
+
+  private String selectFileToSave(Shell parentShell) {
+
+    String[] filterNames = {"Исполняемые файлы Java (*.jar)"};
+    String[] filterExt = {"*.jar"};
+
+    FileDialog dialog = new FileDialog(parentShell, SWT.SAVE);
+    dialog.setFileName(new File(latestVersionUrl).getName());
+    dialog.setText("Укажите расположение и имя файла");
+    dialog.setFilterNames(filterNames);
+    dialog.setFilterExtensions(filterExt);
+
+    return dialog.open();
+  }
+
+  private boolean downloadReleaseToFile(String fname) {
+
+    try {
+      Request.Get(latestVersionUrl).execute().saveContent(new File(fname));
+    } catch (IOException e) {
+      e.printStackTrace();
+      return false;
+    }
+
+    return true;
+  }
+
+  private void showDownloadedFile(String fname) {
+    if (Config.currentConfig.isWindows()) {
+
+      final String command = "explorer.exe /select,\"" + new File(fname).getAbsolutePath() + "\"";
+      try {
+        Runtime.getRuntime().exec(command);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+    } else {
+
+      Desktop desktop = Desktop.getDesktop();
+      desktop.browseFileDirectory(new File(fname));
+    }
+  }
+
+  /**
+   * Создание нового сервера.
+   *
+   * @return новый сервер
+   */
+  public Server createNewServer() {
+    Server newServer = null;
+
+    if (isReadClipboard()) {
+      Clipboard clipboard = new Clipboard(Display.getDefault());
+      String clip = (String) clipboard.getContents(TextTransfer.getInstance());
+      clipboard.dispose();
+
+      if (clip != null && clip.startsWith("Srvr=")) { //$NON-NLS-1$
+        String[] srvrPart = clip.split(";"); //$NON-NLS-1$
+        String srvr = srvrPart[0].substring(6, srvrPart[0].length() - 1);
+        newServer = new Server(srvr);
+      } else {
+        newServer = new Server("Server:1541"); //$NON-NLS-1$
+      }
+    } else {
+      newServer = new Server("Server:1541"); //$NON-NLS-1$
+    }
+    // servers.put(newServer.getServerKey(), newServer);
+    // TODO по идее еще рано добавлять в список серверов эту заготовку
+    return newServer;
+  }
+
+  public void addNewServer(Server server) {
+    servers.put(server.getServerKey(), server);
+    saveConfig();
+  }
+
+  public void removeServer(Server server) {
+    servers.remove(server.getServerKey(), server);
+    saveConfig();
+  }
+
+  public void close() {
+
+    saveConfig();
+
+    servers.forEach(
+        (serverKey, server) -> {
+          if (server.isConnected()) {
+            server.disconnectFromAgent();
+          }
+        });
+  }
+
+  /**
+   * Добавление новых серверов в конфиг.
+   *
+   * @param newServers - список новых серверов
+   * @return список серверов, которые были реально добавлены
+   */
+  public List<String> addNewServers(List<String> newServers) {
+    // Пакетное добавление серверов в список, предполагается для механизма импорта из списка
+    // информационных баз
+
+    List<String> addedServers = new ArrayList<>();
+
+    // Имя сервера, которое приходит сюда не равно Представлению сервера, выводимому в списке
+    // Имя сервера. оно же Key в map и json, строка вида Server:1541, с обязательным указанием порта
+    // менеджера, к которому подключаемся
+    // если порт менеджера не задан - ставим стандартный 1541
+    // переделать
+    for (String serverName : newServers) {
+      if (!servers.containsKey(serverName)) {
+        Server serverConfig = new Server(serverName);
+        servers.put(serverName, serverConfig);
+
+        addedServers.add(serverName);
+      }
+    }
+
+    return addedServers;
+  }
+
+  /** Подключиться ко всем серверам в тихом режиме. */
+  public void connectAllServers() {
+    servers.forEach((serverKey, server) -> server.connectToServer(false, true));
+  }
+
+  /** Проверить доступность всех серверов в тихом режиме. */
+  public void checkConnectionAllServers() {
+    servers.forEach((serverKey, server) -> server.connectToServer(true, true));
+  }
+
+  /**
+   * Проверять обновление при запуске.
+   *
+   * @return текущее значение
+   */
+  public boolean checkingUpdate() {
+    return checkingUpdate;
+  }
+
+  /**
+   * Установка проверки обновления при запуске.
+   *
+   * @param checkingUpdate - новое значение
+   */
+  public void setCheckingUpdate(boolean checkingUpdate) {
+    this.checkingUpdate = checkingUpdate;
+  }
+
+  /**
+   * Получает список зарегистрированных серверов.
+   *
+   * @return список серверов
+   */
+  public Map<String, Server> getServers() {
+    return servers;
+  }
+
+  /**
+   * При подключении разворачивать узел сервера в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandServersTree() {
+    return expandServersTree;
+  }
+
+  /**
+   * Установить разворачивание узла сервера в дереве при подключении.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandServersTree(boolean expand) {
+    this.expandServersTree = expand;
+  }
+
+  /**
+   * При подключении разворачивать узел кластера в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandClustersTree() {
+    return expandClustersTree;
+  }
+
+  /**
+   * Установить разворачивание узла кластеров в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandClustersTree(boolean expand) {
+    this.expandClustersTree = expand;
+  }
+
+  /**
+   * При подключении разворачивать узел инфобаз в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandInfobasesTree() {
+    return expandInfobasesTree;
+  }
+
+  /**
+   * Установить разворачивание узла инфобаз в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandInfobasesTree(boolean expand) {
+    this.expandInfobasesTree = expand;
+  }
+
+  /**
+   * Показывать узел рабочих серверов в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowWorkingServersTree() {
+    return showWorkingServersTree;
+  }
+
+  /**
+   * Установить показ узла рабочих серверов в дереве.
+   *
+   * @param show - значение показывать/не показывать
+   */
+  public void setShowWorkingServersTree(boolean show) {
+    this.showWorkingServersTree = show;
+  }
+
+  /**
+   * При подключении разворачивать узел рабочих серверов в дереве.
+   *
+   * @return значение разворачивать/не разворачивать
+   */
+  public boolean isExpandWorkingServersTree() {
+    return expandWorkingServersTree;
+  }
+
+  /**
+   * Установить разворачивание узла рабочих серверов в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandWorkingServersTree(boolean expand) {
+    this.expandWorkingServersTree = expand;
+  }
+
+  /**
+   * Показывать узел рабочих процессов в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowWorkingProcessesTree() {
+    return showWorkingProcessesTree;
+  }
+
+  /**
+   * Установить показ узла рабочих процессов в дереве.
+   *
+   * @param show - значение показывать/не показывать
+   */
+  public void setShowWorkingProcessesTree(boolean show) {
+    this.showWorkingProcessesTree = show;
+  }
+
+  /**
+   * При подключении разворачивать узел рабочих процессов в дереве.
+   *
+   * @return the значение разворачивать/не разворачивать
+   */
+  public boolean isExpandWorkingProcessesTree() {
+    return expandWorkingProcessesTree;
+  }
+
+  /**
+   * Установить разворачивание узла рабочих процессов в дереве при подключении сервера.
+   *
+   * @param expand - true=разворачивать, false=не разворачивать
+   */
+  public void setExpandWorkingProcessesTree(boolean expand) {
+    this.expandWorkingProcessesTree = expand;
+  }
+
+  /**
+   * Показывать описание сервера в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowServerDescription() {
+    return showServerDescription;
+  }
+
+  /**
+   * Установить показ описания сервера в дереве.
+   *
+   * @param show значение
+   */
+  public void setShowServerDescription(boolean show) {
+    this.showServerDescription = show;
+  }
+
+  /**
+   * Показывать версию сервера в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowServerVersion() {
+    return showServerVersion;
+  }
+
+  /**
+   * Установить показ версии сервера в дереве.
+   *
+   * @param show значение
+   */
+  public void setShowServerVersion(boolean show) {
+    this.showServerVersion = show;
+  }
+
+  /**
+   * Показывать описание инфобазы в дереве.
+   *
+   * @return значение
+   */
+  public boolean isShowInfobaseDescription() {
+    return showInfobaseDescription;
+  }
+
+  /**
+   * Установить показ описания инфобазы в дереве.
+   *
+   * @param show значение
+   */
+  public void setShowInfobaseDescription(boolean show) {
+    this.showInfobaseDescription = show;
+  }
+
+  /**
+   * Показывать информацию в дереве, что сервер подключен через local-RAS.
+   *
+   * @return значение
+   */
+  public boolean isShowLocalRasConnectInfo() {
+    return showLocalRasConnectInfo;
+  }
+
+  /**
+   * Установить показ информации в дереве, что сервер подключен через local-RAS.
+   *
+   * @param show значение
+   */
+  public void setShowLocalRasConnectInfo(boolean show) {
+    this.showLocalRasConnectInfo = show;
+  }
+
+  /**
+   * Получить текущий язык приложения.
+   *
+   * @return текущий язык приложения
+   */
+  public String getLocale() {
+    return locale;
+  }
+
+  /**
+   * Установить текущий язык приложения.
+   *
+   * @param locale - новый язык приложения
+   */
+  public void setLocale(String locale) {
+    this.locale = locale;
+  }
+
+  /**
+   * Затенять спящие сеансы.
+   *
+   * @return значение настройки
+   */
+  public boolean isShadeSleepingSessions() {
+    return shadeSleepingSessions;
+  }
+
+  /**
+   * Устанавливает настройку "Затенять спящие сеансы".
+   *
+   * @param shade - новое значение настройки
+   */
+  public void setShadowSleepSessions(boolean shade) {
+    this.shadeSleepingSessions = shade;
+  }
+
+  /**
+   * Подсвечивать новые строки в списках.
+   *
+   * @return значение настройки
+   */
+  public boolean isHighlightNewItems() {
+    return highlightNewItems;
+  }
+
+  /**
+   * Устанавливает настройку "Подсвечивать новые строки в списках".
+   *
+   * @param highlight - новое значение настройки
+   */
+  public void setHighlightNewItems(boolean highlight) {
+    this.highlightNewItems = highlight;
+  }
+
+  /**
+   * Получает длительность подсвечивания новых строк в списках.
+   *
+   * @return длительность подсветки
+   */
+  public int getHighlightNewItemsDuration() {
+    return highlightNewItemsDuration;
+  }
+
+  /**
+   * Устанавливает длительность подсвечивания новых строк в списках.
+   *
+   * @param duration - новая длительность подсветки
+   */
+  public void setHighlightNewItemsDuration(int duration) {
+    this.highlightNewItemsDuration = duration;
+  }
+
+  /**
+   * Читать бефер обмена.
+   *
+   * @return значение настройки
+   */
+  public boolean isReadClipboard() {
+    return readClipboard;
+  }
+
+  /**
+   * Установка настройки "Читать бефер обмена".
+   *
+   * @param read - новое значение настройки
+   */
+  public void setReadClipboard(boolean read) {
+    this.readClipboard = read;
+  }
+
+  /**
+   * Получает настройку "Направление сортировки строк по-умолчанию".
+   *
+   * @return значение настройки
+   */
+  public RowSortDirection getRowSortDirection() {
+    return rowSortDirection;
+  }
+
+  /**
+   * Устанавливает настройку "Направление сортировки строк по-умолчанию".
+   *
+   * @param sortDirection - новое значение настройки
+   */
+  public void setRowSortDirection(RowSortDirection sortDirection) {
+    this.rowSortDirection = sortDirection;
+  }
+
+  /**
+   * Получает настройку "Направление сортировки инфобаз".
+   *
+   * @return значение настройки
+   */
+  public InfobasesSortDirection getInfobasesSortDirection() {
+    return infobasesSortDirection;
+  }
+
+  /**
+   * Устанавливает настройку "Направление сортировки инфобаз".
+   *
+   * @param sortDirection - новое значение настройки
+   */
+  public void setInfobasesSortDirection(InfobasesSortDirection sortDirection) {
+    this.infobasesSortDirection = sortDirection;
+  }
+
+  /**
+   * Получение свойства колонок списков.
+   *
+   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @return ColumnProperties - свойства колонок списка
+   */
+  public ColumnProperties getColumnsProperties(Class<? extends BaseInfoExtended> clazz) {
+    if (clazz == SessionInfoExtended.class) {
+      return sessionColumnProperties;
+    } else if (clazz == ConnectionInfoExtended.class) {
+      return connectionColumnProperties;
+    } else if (clazz == LockInfoExtended.class) {
+      return lockColumnProperties;
+    } else if (clazz == WorkingProcessInfoExtended.class) {
+      return wpColumnProperties;
+    } else if (clazz == WorkingServerInfoExtended.class) {
+      return wsColumnProperties;
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Установка порядка колонок списков по имени класса.
+   *
+   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @param columnOrder - новый порядок колонок
+   */
+  public void setColumnsOrder(Class<? extends BaseInfoExtended> clazz, int[] columnOrder) {
+    getColumnsProperties(clazz).setOrder(columnOrder);
+  }
+
+  /**
+   * Установка ширины колонок списков по имени класса.
+   *
+   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @param index - индекс колонки
+   * @param width - ширина колонки
+   */
+  public void setColumnsWidth(Class<? extends BaseInfoExtended> clazz, int index, int width) {
+    getColumnsProperties(clazz).setWidth(index, width);
+  }
+
+  /**
+   * Это ОС Windows.
+   *
+   * @return true если Windows
+   */
+  public boolean isWindows() {
+    return currentOs == OsType.WINDOWS;
+  }
+
+  /**
+   * Это ОС Linux.
+   *
+   * @return true если Linux
+   */
+  public boolean isLinux() {
+    return currentOs == OsType.LINUX;
+  }
+
+  /**
+   * Это ОС MacOs.
+   *
+   * @return true если MacOs
+   */
+  public boolean isMacOs() {
+    return currentOs == OsType.MACOS;
+  }
+
+  /**
+   * Возвращает текущую версию приложения.
+   *
+   * @return Version
+   */
+  public Version getCurrentVersion() {
+    return currentVersion;
+  }
+
+  /**
+   * Возвращает последнюю версию приложения с релизов GitHub.
+   *
+   * @return Version или null, если запрос не выполнялся или завершился ошибкой
+   */
+  public Version getLatestVersion() {
+    return latestVersion;
+  }
+
+  /**
+   * Возвращает путь к файлу конфига.
+   *
+   * @return строка с путем к файлу конфига
+   */
+  public String getConfigPath() {
+    return configPath;
+  }
+
+  /**
+   * Устанавливает путь к файлу конфига.
+   *
+   * @param configPath - строка с путем к файлу конфига
+   */
+  public void setConfigPath(String configPath) {
+    this.configPath = configPath;
+  }
+
+  /**
+   * Читает конфиг из файла по-умолчанию.
+   *
+   * @return ссылка на прочитанный конфиг
+   */
+  public static Config readConfig() {
+    return readConfig(DEFAULT_CONFIG_PATH);
+  }
+
+  /**
+   * Читает конфиг из определенного файла.
+   *
+   * @param configPath - имя конфиг файла
+   * @return объект конфига
+   */
+  public static Config readConfig(String configPath) {
+    if (configPath == null || configPath.isBlank()) {
+      LOGGER.debug("Config path is empty, set config path in root folder"); //$NON-NLS-1$
+      configPath = DEFAULT_CONFIG_PATH;
+    }
+    LOGGER.info("Start read config from file <{}>", configPath); //$NON-NLS-1$
+
+    File configFile = new File(configPath);
+    if (!configFile.exists()) {
+      LOGGER.debug(
+          "Config file not exists, create new config in folder <{}>", configPath); //$NON-NLS-1$
+      return new Config(configPath);
+    }
+
+    JsonReader jsonReader = null;
+
+    try {
+      jsonReader =
+          new JsonReader(
+              new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
+    } catch (FileNotFoundException excp) {
+      LOGGER.debug("Config file read error:", excp); //$NON-NLS-1$
+      LOGGER.debug("Create temp config in root folder"); //$NON-NLS-1$
+      // configFile = new File(TEMP_CONFIG_PATH);
+      return new Config(TEMP_CONFIG_PATH);
+    }
+    Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
+
+    Config config = null;
+    try {
+      config = gson.fromJson(jsonReader, Config.class);
+    } catch (Exception excp) {
+      LOGGER.debug("error convert config from json:", excp); //$NON-NLS-1$
+      LOGGER.debug("Create temp config in root folder"); //$NON-NLS-1$
+      // configFile = new File(TEMP_CONFIG_PATH);
+      return new Config(TEMP_CONFIG_PATH);
+    }
+
+    if (config == null) {
+      LOGGER.debug("the config is null after reading the json"); //$NON-NLS-1$
+      LOGGER.debug("Create temp config in root folder"); //$NON-NLS-1$
+      // configFile = new File(TEMP_CONFIG_PATH);
+      config = new Config(TEMP_CONFIG_PATH);
+    } else {
+
+      config.setConfigPath(configPath);
+      config.migrateProps();
+      config.init();
+      if (config.getLocale() != null) {
+        LOGGER.debug("Set locale is <{}>", config.getLocale()); //$NON-NLS-1$
+        Locale locale = Locale.forLanguageTag(config.getLocale());
+        java.util.Locale.setDefault(locale);
+        Messages.reloadBundle(locale); // TODO не совсем понятно как работает
+      }
+    }
+    LOGGER.info("Config file read successfully"); //$NON-NLS-1$
+    return config;
+  }
+
+  /** Сохранение конфига в файл. */
+  public void saveConfig() {
+
+    LOGGER.info("Start save config to file <{}>", configPath); //$NON-NLS-1$
+
+    // configFile = new File(configPath);
+
+    JsonWriter jsonWriter;
+    try {
+      jsonWriter =
+          new JsonWriter(
+              new OutputStreamWriter(new FileOutputStream(configPath), StandardCharsets.UTF_8));
+    } catch (FileNotFoundException excp) {
+      LOGGER.error("Config file save error:", excp); //$NON-NLS-1$
+      return;
+    }
+    Gson gson =
+        new GsonBuilder().excludeFieldsWithoutExposeAnnotation().setPrettyPrinting().create();
+    try {
+      gson.toJson(this, this.getClass(), jsonWriter);
+    } catch (JsonIOException excp) {
+      LOGGER.error("Config file save error:", excp); //$NON-NLS-1$
+    }
+
+    try {
+      jsonWriter.close();
+    } catch (IOException excp) {
+      LOGGER.error("Config file save error:", excp); //$NON-NLS-1$
+    }
+    LOGGER.info("Config file write successfully"); //$NON-NLS-1$
+  }
 }
-
-
