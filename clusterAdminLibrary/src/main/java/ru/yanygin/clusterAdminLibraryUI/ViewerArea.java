@@ -1930,7 +1930,7 @@ public class ViewerArea extends Composite {
 
           int dialogResult = dialog.open();
           if (dialogResult == 0) {
-            updateClustersInTree(item[0]);
+            updateClustersInTree(item[0].getParentItem());
           }
         }
       };
