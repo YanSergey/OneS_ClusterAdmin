@@ -4,12 +4,16 @@ import com._1c.v8.ibis.admin.IClusterInfo;
 import com._1c.v8.ibis.admin.IInfoBaseInfo;
 import com._1c.v8.ibis.admin.IWorkingProcessInfo;
 import com._1c.v8.ibis.admin.IWorkingServerInfo;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.eclipse.swt.SWT;
@@ -42,6 +46,7 @@ import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.Tree;
@@ -50,6 +55,7 @@ import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.swt.widgets.Widget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.yanygin.clusterAdminLibrary.BackgroundTask;
 import ru.yanygin.clusterAdminLibrary.BaseInfoExtended;
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
 import ru.yanygin.clusterAdminLibrary.ColumnProperties;
@@ -120,6 +126,9 @@ public class ViewerArea extends Composite {
   TabItem tabWorkingProcesses;
   TabItem tabWorkingServers;
   TabItem currentTab;
+  
+  Table tableTasks;
+  Text tableTaskLog;
 
   ToolItem addToolbarItem;
   ToolItem editToolbarItem;
@@ -160,6 +169,9 @@ public class ViewerArea extends Composite {
   Map<TreeItemType, Menu> serversTreeContextMenus = new EnumMap<>(TreeItemType.class);
   Map<TabItem, Class<? extends BaseInfoExtended>> linksTablesToExtendedClass = new HashMap<>();
 
+  List<File> userScripts = new ArrayList<>();
+  Timer taskTimer; // = new Timer(true);
+
   // @Slf4j
   /**
    * Конструктор области приложения.
@@ -181,40 +193,47 @@ public class ViewerArea extends Composite {
     super(parent, style);
 
     this.clusterProvider = clusterProvider;
-    // this.clusterProvider.readConfig();
-    // this.config = ClusterProvider.getCommonConfig();
     this.config = config;
+    this.setLayout(new FillLayout(SWT.HORIZONTAL));
 
     initIcon();
+    initUserScripts();
     BaseInfoExtended.init();
+    
+    TabFolder mainTabFolder = new TabFolder(this, SWT.BOTTOM);
+	
+    TabItem tabMain = new TabItem(mainTabFolder, SWT.NONE);
+    tabMain.setText("Main");
 
-    SashForm sashForm = new SashForm(this, SWT.NONE);
+    // инициализация таблиц управления серверами
+    SashForm sashServers = new SashForm(mainTabFolder, SWT.NONE);
+    tabMain.setControl(sashServers);
 
     // toolBar = new ToolBar(this, SWT.FLAT | SWT.RIGHT); // Для отладки
     // toolBar.setBounds(0, 0, 500, 23); // Для отладки
 
     initToolbar(toolBar);
     initMainMenu(menu);
+    
+    initServersTree(sashServers);
 
-    initServersTree(sashForm);
+    TabFolder tabFolderServers = new TabFolder(sashServers, SWT.NONE);
 
-    TabFolder tabFolder = new TabFolder(sashForm, SWT.NONE);
-
-    tabFolder.addSelectionListener(
+    tabFolderServers.addSelectionListener(
         new SelectionAdapter() {
 
           @Override
           public void widgetSelected(SelectionEvent evt) {
-            currentTab = tabFolder.getSelection()[0];
+            currentTab = tabFolderServers.getSelection()[0];
             fillTabs();
           }
         });
 
-    tabSessions = initListTable(tabFolder, SessionInfoExtended.class, true);
-    tabConnections = initListTable(tabFolder, ConnectionInfoExtended.class, false);
-    tabLocks = initListTable(tabFolder, LockInfoExtended.class, false);
-    tabWorkingProcesses = initListTable(tabFolder, WorkingProcessInfoExtended.class, false);
-    tabWorkingServers = initListTable(tabFolder, WorkingServerInfoExtended.class, false);
+    tabSessions = initListTable(tabFolderServers, SessionInfoExtended.class, true);
+    tabConnections = initListTable(tabFolderServers, ConnectionInfoExtended.class, false);
+    tabLocks = initListTable(tabFolderServers, LockInfoExtended.class, false);
+    tabWorkingProcesses = initListTable(tabFolderServers, WorkingProcessInfoExtended.class, false);
+    tabWorkingServers = initListTable(tabFolderServers, WorkingServerInfoExtended.class, false);
     ////////////////////////////////////////////
 
     initMaps();
@@ -230,10 +249,8 @@ public class ViewerArea extends Composite {
     BaseInfoExtended.resetTabsTextCount();
     setEnableToolbarItems();
 
-    this.setLayout(new FillLayout(SWT.HORIZONTAL));
-
     // Пропорции областей
-    sashForm.setWeights(3, 10);
+    sashServers.setWeights(3, 10);
 
     // Заполнение списка серверов
     config
@@ -244,6 +261,39 @@ public class ViewerArea extends Composite {
             });
 
     runAutonnectAllServers();
+
+    // инициализация таблиц заданий
+    initTaskTab(mainTabFolder);
+
+  }
+
+  private void initTaskTab(TabFolder mainTabFolder) {
+    TabItem tabJobs = new TabItem(mainTabFolder, SWT.NONE);
+    tabJobs.setText("Jobs");
+
+    SashForm sashJobs = new SashForm(mainTabFolder, SWT.NONE);
+    tabJobs.setControl(sashJobs);
+
+    tableTasks = new Table(sashJobs, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
+    tableTasks.setHeaderVisible(true);
+    tableTasks.setLinesVisible(true);
+    tableTasks.addMouseListener(tableTaskMouseClickListener);
+
+    addTaskTableColumn(tableTasks, "Task", 140);
+    addTaskTableColumn(tableTasks, "State", 50);
+    addTaskTableColumn(tableTasks, "Start", 120, SWT.RIGHT);
+    addTaskTableColumn(tableTasks, "End", 120);
+
+    tableTaskLog = new Text(sashJobs, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL | SWT.READ_ONLY);
+    tableTaskLog.addListener(
+        SWT.Modify,
+        new Listener() {
+          public void handleEvent(Event e) {
+            tableTaskLog.setTopIndex(tableTaskLog.getLineCount() - 1);
+          }
+        });
+    // Пропорции областей
+    sashJobs.setWeights(4, 10);
   }
 
   private void initIcon() {
@@ -406,6 +456,14 @@ public class ViewerArea extends Composite {
     addMenuSeparator(serverMenu);
 
     addItemInMenu(serverMenu, Strings.CONTEXT_MENU_REMOVE_SERVER, deleteIcon, deleteServerListener);
+
+    // это для отладки без запуска севрера
+    addMenuSeparator(serverMenu);
+    Menu subMenuUserScripts = addItemGroupInMenu(serverMenu, "Пользовательские скрипты", null);
+
+    for (File script : userScripts) {
+      addItemInMenu(subMenuUserScripts, script.getName(), null, userScriptRunner, script);
+    }
   }
 
   private void initClusterMenu() {
@@ -518,6 +576,14 @@ public class ViewerArea extends Composite {
         Strings.CONTEXT_MENU_TERMINATE_USERS_SESSIONS,
         null,
         terminateUsersSessionsListener);
+
+    addMenuSeparator(infobaseMenu);
+    
+    Menu subMenuUserScripts = addItemGroupInMenu(infobaseMenu, "Пользовательские скрипты", null);
+
+    for (File script : userScripts) {
+      addItemInMenu(subMenuUserScripts, script.getName(), null, userScriptRunner, script);
+    }
   }
 
   private TabItem initListTable(
@@ -629,6 +695,23 @@ public class ViewerArea extends Composite {
     linksTablesToExtendedClass.put(tabWorkingProcesses, WorkingProcessInfoExtended.class);
   }
 
+  private void initUserScripts() {
+    File userScriptsDir = new File("scripts"); // $NON-NLS-1$
+    if (!userScriptsDir.exists()) {
+      userScriptsDir.mkdir();
+      // можно скачивать скрипты с репозитория
+    }
+
+    if (userScriptsDir.exists() && userScriptsDir.isDirectory()) {
+      File[] scripts = userScriptsDir.listFiles();
+      for (File script : scripts) {
+        if (script.isFile()) {
+          userScripts.add(script);
+        }
+      }
+    }
+  }
+
   private ToolItem addItemInToolbar(
       ToolBar parent, String text, Image icon, SelectionAdapter listener) {
 
@@ -663,6 +746,18 @@ public class ViewerArea extends Composite {
     menuItem.setText(text);
     menuItem.setImage(icon);
     menuItem.addSelectionListener(listener);
+
+    return menuItem;
+  }
+
+  private MenuItem addItemInMenu(
+      Menu parent, String text, Image icon, SelectionAdapter listener, Object data) {
+
+    MenuItem menuItem = new MenuItem(parent, SWT.NONE); // SWT.BOLD
+    menuItem.setText(text);
+    menuItem.setImage(icon);
+    menuItem.addSelectionListener(listener);
+    menuItem.setData(data);
 
     return menuItem;
   }
@@ -892,11 +987,7 @@ public class ViewerArea extends Composite {
 
     if (columnVisible != null && columnVisible[numOfColumn]) {
       newColumn.setResizable(true);
-      newColumn.setWidth(
-          // columnWidth == null //TODO нужно ли это еще
-          // || columnWidth.length <= table.getColumnCount()
-          // ||
-          columnWidth[numOfColumn] == 0 ? 100 : columnWidth[numOfColumn]);
+      newColumn.setWidth(columnWidth[numOfColumn] == 0 ? 100 : columnWidth[numOfColumn]);
     } else {
       newColumn.setResizable(false);
       newColumn.setWidth(0);
@@ -905,6 +996,20 @@ public class ViewerArea extends Composite {
     newColumn.addListener(SWT.Move, columnMoveListener);
     newColumn.addListener(SWT.Resize, columnResizeListener);
     newColumn.addListener(SWT.Selection, columnSortListener);
+  }
+
+  private void addTaskTableColumn(Table table, String text, int width) {
+    addTaskTableColumn(table, text, width, SWT.LEFT);
+  }
+
+  private void addTaskTableColumn(Table table, String text, int width, int alignment) {
+
+    var newColumn = new TableColumn(table, SWT.NONE);
+    newColumn.setText(text);
+    newColumn.setMoveable(false);
+    newColumn.setAlignment(alignment);
+    newColumn.setResizable(true);
+    newColumn.setWidth(width);
   }
 
   private Server getCurrentServer() {
@@ -2282,6 +2387,103 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter userScriptRunner =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          TreeItem[] items = serversTree.getSelection();
+          if (items.length == 0) {
+            return;
+          }
+          TreeItem infobaseItem = items[0];
+          Server server = getServer(infobaseItem);
+          if (server == null) {
+            return;
+          }
+
+          Map<String, String> env = new HashMap<>();
+
+          // UUID clusterId = getClusterId(infobaseItem);
+          // UUID infobaseId = getInfobaseId(infobaseItem);
+          // File script = (File) event.widget.getData();
+          //
+          // env.put("infobase", server.getInfoBaseName(clusterId, infobaseId)); //$NON-NLS-1$
+          // env.put("serverName", server.getAgentHost()); //$NON-NLS-1$
+          // env.put("serverPort", server.getAgentPortAsString()); //$NON-NLS-1$
+
+          File script = (File) event.widget.getData();
+
+          env.put("infobase", "dev1"); // $NON-NLS-1$
+          env.put("serverName", "server123"); // $NON-NLS-1$
+          env.put("serverPort", "4541"); // $NON-NLS-1$
+
+          BackgroundTask task = new BackgroundTask("dev1", script, env);
+
+          addToTasksQueue(task);
+        }
+
+        public void addToTasksQueue(BackgroundTask task) {
+          TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
+          // tableItem.setText(task.getDescription());
+          tableItem.setData(task);
+          tableItem.setChecked(false);
+
+          if (tableTasks.getSelection().length == 0 || BackgroundTask.countOfRunning == 0) {
+            tableTasks.setSelection(tableItem);
+          }
+
+          task.run();
+
+          if (BackgroundTask.countOfRunning == 0) {
+            taskTimer = new Timer(true);
+            taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
+          }
+        }
+
+        class TaskChekerTimer extends TimerTask {
+
+          @Override
+          public void run() {
+            // System.out.println("TimerTask начал свое выполнение в:" + new Date());
+
+            Display.getDefault()
+                .asyncExec(
+                    new Runnable() {
+                      public void run() {
+                        TableItem[] items = tableTasks.getItems();
+                        TableItem[] selectItems = tableTasks.getSelection();
+
+                        BackgroundTask.countOfRunning = 0;
+                        for (TableItem tableItem : items) {
+                          BackgroundTask task = (BackgroundTask) tableItem.getData();
+
+                          tableItem.setText(task.getDescription());
+                          tableItem.setImage(task.getIcon());
+
+                          if (selectItems.length > 0
+                              && tableItem.equals(selectItems[0])
+                              && (task.isRunning()
+                                  || tableTaskLog.getLineCount()
+                                      != task.getLog().lines().count())) {
+                            tableTaskLog.setText(task.getLog());
+                          }
+
+                          if (task.isRunning()) {
+                            BackgroundTask.countOfRunning++;
+                          }
+                        }
+
+                        if (BackgroundTask.countOfRunning == 0) {
+                          taskTimer.cancel();
+                        }
+                      }
+                    });
+
+            // System.out.println("TimerTask закончил свое выполнение в:" + new Date());
+          }
+        }
+      };
+
   SelectionAdapter createWorkingServerListener =
       new SelectionAdapter() {
         @Override
@@ -2618,7 +2820,7 @@ public class ViewerArea extends Composite {
         }
       };
 
-  Listener mouseSelectCellListener =
+  Listener mouseSelectCellListener = // TODO не используется?
       new Listener() {
         @Override
         public void handleEvent(Event event) {
@@ -2717,6 +2919,31 @@ public class ViewerArea extends Composite {
             default:
               break;
           }
+        }
+      };
+
+  MouseAdapter tableTaskMouseClickListener =
+      new MouseAdapter() {
+        @Override
+        public void mouseDown(MouseEvent event) {
+          if (event.button != 1) {
+            return;
+          }
+          TableItem[] tableItem = tableTasks.getSelection();
+          if (tableItem.length == 0) {
+            return;
+          }
+
+          BackgroundTask task = (BackgroundTask) tableItem[0].getData();
+
+          tableItem[0].setText(task.getDescription());
+          
+          tableTaskLog.setText(task.getLog());
+        }
+
+        @Override
+        public void mouseDoubleClick(MouseEvent e) {
+          // editItemInTablesListener.widgetSelected(null);
         }
       };
 

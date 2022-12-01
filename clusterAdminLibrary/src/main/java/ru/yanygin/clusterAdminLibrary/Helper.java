@@ -2,6 +2,9 @@ package ru.yanygin.clusterAdminLibrary;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -10,6 +13,7 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.wb.swt.SWTResourceManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +26,8 @@ public class Helper {
   /** Пустой UUID. */
   public static final UUID EMPTY_UUID =
       UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
+
+  public static Shell ActiveShell;
 
   private Helper() {}
 
@@ -43,7 +49,7 @@ public class Helper {
    * @param message - текст сообщения
    */
   public static void showMessageBox(String message) {
-    MessageBox messageBox = new MessageBox(Display.getDefault().getActiveShell());
+    MessageBox messageBox = new MessageBox(ActiveShell);
     messageBox.setMessage(message);
     messageBox.open();
   }
@@ -202,5 +208,21 @@ public class Helper {
    */
   public static Color getTurquoiseColor() {
     return new Color(0, 128, 128);
+  }
+
+  /**
+   * Преобразует дату к строке.
+   *
+   * @param date - Дата
+   * @return Дата строкой
+   */
+  public static String dateToString(Date date) {
+    Date emptyDate = new Date(0);
+    if (date == null || date.equals(emptyDate)) {
+      return "";
+    }
+
+    DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); // $NON-NLS-1$
+    return dateFormat.format(date);
   }
 }
