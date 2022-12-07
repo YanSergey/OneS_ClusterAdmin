@@ -5,8 +5,12 @@ import com._1c.v8.ibis.admin.IInfoBaseInfo;
 import com._1c.v8.ibis.admin.IWorkingProcessInfo;
 import com._1c.v8.ibis.admin.IWorkingServerInfo;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +19,8 @@ import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
@@ -34,13 +40,13 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Table;
@@ -86,10 +92,10 @@ public class ViewerArea extends Composite {
   //  Image clusterAdd48Icon;
   //  Image infobaseAdd48Icon;
 
-  Image serverIcon;
-  Image serverConnectedIcon;
-  Image serverDisconnectIcon;
-  Image serverConnectingIcon;
+  //  Image serverIcon;
+  //  Image serverConnectedIcon;
+  //  Image serverDisconnectIcon;
+  //  Image serverConnectingIcon;
   Image workingServerIcon;
   Image infobaseIcon;
   Image infobasesIcon;
@@ -99,11 +105,19 @@ public class ViewerArea extends Composite {
   Image workingProcessIcon;
   Image connectActionIcon;
   Image disconnectActionIcon;
-  Image editIcon;
-  Image addIcon;
-  Image deleteIcon;
   Image lockUsersIcon;
-  Image updateIcon;
+
+  Image addIcon16;
+  Image editIcon16;
+  Image deleteIcon16;
+  Image updateIcon16;
+
+  Image addIcon24;
+  Image editIcon24;
+  Image deleteIcon24;
+  Image updateIcon24;
+  Image updateAutoIcon24;
+
   Image favoritesIcon;
   Image sortIcon;
   Image moveUpIcon;
@@ -128,6 +142,7 @@ public class ViewerArea extends Composite {
   TabItem currentTab;
   
   Table tableTasks;
+  TabItem tabTask;
   Text tableTaskLog;
 
   ToolItem addToolbarItem;
@@ -170,7 +185,13 @@ public class ViewerArea extends Composite {
   Map<TabItem, Class<? extends BaseInfoExtended>> linksTablesToExtendedClass = new HashMap<>();
 
   List<File> userScripts = new ArrayList<>();
-  Timer taskTimer; // = new Timer(true);
+  Timer taskTimer;
+  Timer serverConnectionTimer;
+  Timer updateListTimer;
+
+  List<TreeItem> waitingConnectServers = new ArrayList<>();
+
+  UpdateTablesSelectionListener updateTablesListener;
 
   // @Slf4j
   /**
@@ -198,6 +219,12 @@ public class ViewerArea extends Composite {
 
     initIcon();
     initUserScripts();
+    initMainMenu(menu);
+    initToolbar(toolBar);
+
+    // toolBar = new ToolBar(this, SWT.FLAT | SWT.RIGHT); // Для отладки
+    // toolBar.setBounds(0, 0, 500, 23); // Для отладки
+    
     BaseInfoExtended.init();
     
     TabFolder mainTabFolder = new TabFolder(this, SWT.BOTTOM);
@@ -209,12 +236,6 @@ public class ViewerArea extends Composite {
     SashForm sashServers = new SashForm(mainTabFolder, SWT.NONE);
     tabMain.setControl(sashServers);
 
-    // toolBar = new ToolBar(this, SWT.FLAT | SWT.RIGHT); // Для отладки
-    // toolBar.setBounds(0, 0, 500, 23); // Для отладки
-
-    initToolbar(toolBar);
-    initMainMenu(menu);
-    
     initServersTree(sashServers);
 
     TabFolder tabFolderServers = new TabFolder(sashServers, SWT.NONE);
@@ -268,13 +289,13 @@ public class ViewerArea extends Composite {
   }
 
   private void initTaskTab(TabFolder mainTabFolder) {
-    TabItem tabJobs = new TabItem(mainTabFolder, SWT.NONE);
-    tabJobs.setText("Jobs");
+    tabTask = new TabItem(mainTabFolder, SWT.NONE);
+    tabTask.setText("Task");
 
-    SashForm sashJobs = new SashForm(mainTabFolder, SWT.NONE);
-    tabJobs.setControl(sashJobs);
+    SashForm sashTasks = new SashForm(mainTabFolder, SWT.NONE);
+    tabTask.setControl(sashTasks);
 
-    tableTasks = new Table(sashJobs, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
+    tableTasks = new Table(sashTasks, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
     tableTasks.setHeaderVisible(true);
     tableTasks.setLinesVisible(true);
     tableTasks.addMouseListener(tableTaskMouseClickListener);
@@ -283,8 +304,9 @@ public class ViewerArea extends Composite {
     addTaskTableColumn(tableTasks, "State", 50);
     addTaskTableColumn(tableTasks, "Start", 120, SWT.RIGHT);
     addTaskTableColumn(tableTasks, "End", 120);
+    addTaskTableColumn(tableTasks, "Params", 120);
 
-    tableTaskLog = new Text(sashJobs, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL | SWT.READ_ONLY);
+    tableTaskLog = new Text(sashTasks, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL | SWT.READ_ONLY);
     tableTaskLog.addListener(
         SWT.Modify,
         new Listener() {
@@ -293,7 +315,7 @@ public class ViewerArea extends Composite {
           }
         });
     // Пропорции областей
-    sashJobs.setWeights(4, 10);
+    sashTasks.setWeights(5, 10);
   }
 
   private void initIcon() {
@@ -303,12 +325,12 @@ public class ViewerArea extends Composite {
     //    clusterAdd48Icon = Helper.getImage("cluster_add_48.png"); //$NON-NLS-1$
     //    infobaseAdd48Icon = Helper.getImage("infobase_add_48.png"); //$NON-NLS-1$
 
-    serverIcon = Helper.getImage("server_24.png"); //$NON-NLS-1$
-    serverConnectedIcon = Helper.getImage("server_connected_24.png"); //$NON-NLS-1$
-    serverDisconnectIcon = Helper.getImage("server_disconnect_24.png"); //$NON-NLS-1$
-    serverConnectingIcon = Helper.getImage("server_connecting_24.png"); //$NON-NLS-1$
-    
-    workingServerIcon = Helper.getImage("working_server_24.png"); //$NON-NLS-1$
+    //    serverIcon = Helper.getImage("server_24.png"); //$NON-NLS-1$
+    //    serverConnectedIcon = Helper.getImage("server_connected_24.png"); //$NON-NLS-1$
+    //    serverDisconnectIcon = Helper.getImage("server_disconnect_24.png"); //$NON-NLS-1$
+    //    serverConnectingIcon = Helper.getImage("server_connecting_24.png"); //$NON-NLS-1$
+
+    workingServerIcon = Helper.getImage("working_server_24.png"); // $NON-NLS-1$
     // infobaseIcon = Helper.getImage("infobase_24.png"); //$NON-NLS-1$
     infobasesIcon = Helper.getImage("infobases_24.png"); //$NON-NLS-1$
     clusterIcon = Helper.getImage("cluster_24.png"); //$NON-NLS-1$
@@ -318,12 +340,19 @@ public class ViewerArea extends Composite {
 
     connectActionIcon = Helper.getImage("connect_action_24.png"); //$NON-NLS-1$
     disconnectActionIcon = Helper.getImage("disconnect_action_24.png"); //$NON-NLS-1$
+    lockUsersIcon = Helper.getImage("lock_users_16.png"); // $NON-NLS-1$
 
-    editIcon = Helper.getImage("edit_16.png"); //$NON-NLS-1$
-    addIcon = Helper.getImage("add_16.png"); //$NON-NLS-1$
-    deleteIcon = Helper.getImage("delete_16.png"); //$NON-NLS-1$
-    lockUsersIcon = Helper.getImage("lock_users_16.png"); //$NON-NLS-1$
-    updateIcon = Helper.getImage("update.png"); //$NON-NLS-1$
+    editIcon16 = Helper.getImage("edit_16.png"); // $NON-NLS-1$
+    addIcon16 = Helper.getImage("add_16.png"); // $NON-NLS-1$
+    deleteIcon16 = Helper.getImage("delete_16.png"); // $NON-NLS-1$
+    updateIcon16 = Helper.getImage("update_16.png"); // $NON-NLS-1$
+
+    editIcon24 = Helper.getImage("edit_24.png"); // $NON-NLS-1$
+    addIcon24 = Helper.getImage("add_24.png"); // $NON-NLS-1$
+    deleteIcon24 = Helper.getImage("delete_24.png"); // $NON-NLS-1$
+    updateIcon24 = Helper.getImage("update_24.png"); // $NON-NLS-1$
+    updateAutoIcon24 = Helper.getImage("updateAuto_24.png"); // $NON-NLS-1$
+
     favoritesIcon = Helper.getImage("favorites.png"); //$NON-NLS-1$
     sortIcon = Helper.getImage("sort.png"); //$NON-NLS-1$
     moveUpIcon = Helper.getImage("move_up.png"); //$NON-NLS-1$
@@ -341,15 +370,27 @@ public class ViewerArea extends Composite {
     toolBar.setSize(-1, 48);
 
     addToolbarItem =
-        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_CREATE, addIcon, toolbarListener);
+        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_CREATE, addIcon24, toolbarListener);
     editToolbarItem =
-        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_EDIT, editIcon, toolbarListener);
+        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_EDIT, editIcon24, toolbarListener);
     deleteToolbarItem =
-        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_DELETE, deleteIcon, toolbarListener);
+        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_DELETE, deleteIcon24, toolbarListener);
 
     new ToolItem(toolBar, SWT.SEPARATOR);
 
-    addItemInToolbar(toolBar, Strings.CONTEXT_MENU_UPDATE, updateIcon, updateTablesListener);
+    // addItemInToolbar(toolBar, Strings.CONTEXT_MENU_UPDATE, updateIcon, updateTablesListener);
+
+    ToolItem toolItem = new ToolItem(toolBar, SWT.DROP_DOWN);
+    toolItem.setText(Strings.CONTEXT_MENU_UPDATE);
+    toolItem.setImage(updateIcon24);
+
+    updateTablesListener = new UpdateTablesSelectionListener(toolItem);
+    toolItem.addSelectionListener(updateTablesListener);
+
+    updateTablesListener.add("Включить автообновление");
+    updateTablesListener.add("Задать период автообновления");
+
+    toolBar.pack();
   }
 
   private void initMainMenu(Menu mainMenu) {
@@ -442,9 +483,9 @@ public class ViewerArea extends Composite {
 
     addMenuSeparator(serverMenu);
 
-    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_ADD_SERVER, addIcon, addServerListener);
-    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_EDIT_SERVER, editIcon, editServerListener);
-    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon, updateServerListener);
+    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_ADD_SERVER, addIcon16, addServerListener);
+    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_EDIT_SERVER, editIcon16, editServerListener);
+    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateServerListener);
 
     addMenuSeparator(serverMenu);
 
@@ -455,7 +496,8 @@ public class ViewerArea extends Composite {
 
     addMenuSeparator(serverMenu);
 
-    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_REMOVE_SERVER, deleteIcon, deleteServerListener);
+    addItemInMenu(
+        serverMenu, Strings.CONTEXT_MENU_REMOVE_SERVER, deleteIcon16, deleteServerListener);
 
     // это для отладки без запуска севрера
     addMenuSeparator(serverMenu);
@@ -470,12 +512,13 @@ public class ViewerArea extends Composite {
 
     clusterMenu = new Menu(serversTree);
 
-    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_CREATE_CLUSTER, addIcon, createClusterListener);
-    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_EDIT_CLUSTER, editIcon, editClusterListener);
-    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon, updateClusterListener);
+    addItemInMenu(
+        clusterMenu, Strings.CONTEXT_MENU_CREATE_CLUSTER, addIcon16, createClusterListener);
+    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_EDIT_CLUSTER, editIcon16, editClusterListener);
+    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateClusterListener);
     addMenuSeparator(clusterMenu);
     addItemInMenu(
-        clusterMenu, Strings.CONTEXT_MENU_DELETE_CLUSTER, deleteIcon, deleteClusterListener);
+        clusterMenu, Strings.CONTEXT_MENU_DELETE_CLUSTER, deleteIcon16, deleteClusterListener);
   }
 
   private void initWorkingServerMenu() {
@@ -485,13 +528,13 @@ public class ViewerArea extends Composite {
     addItemInMenu(
         workingServerMenu,
         Strings.CONTEXT_MENU_CREATE_WORKING_SERVER,
-        addIcon,
+        addIcon16,
         createWorkingServerListenerInTree);
 
     addItemInMenu(
         workingServerMenu,
         Strings.CONTEXT_MENU_EDIT_WORKING_SERVER,
-        editIcon,
+        editIcon16,
         editWorkingServerListenerInTree);
   }
 
@@ -500,12 +543,12 @@ public class ViewerArea extends Composite {
     infobaseNodeMenu = new Menu(serversTree);
 
     addItemInMenu(
-        infobaseNodeMenu, Strings.CONTEXT_MENU_CREATE_INFOBASE, addIcon, createInfobaseListener);
+        infobaseNodeMenu, Strings.CONTEXT_MENU_CREATE_INFOBASE, addIcon16, createInfobaseListener);
 
     addItemInMenu(
         infobaseNodeMenu,
         Strings.CONTEXT_MENU_UPDATE_INFOBASES,
-        updateIcon,
+        updateIcon16,
         updateInfobasesListener);
 
     // группа вложенного меню
@@ -542,12 +585,13 @@ public class ViewerArea extends Composite {
     infobaseMenu.addListener(SWT.Show, setActiveInfobaseFavoritesActionListener);
 
     addItemInMenu(
-        infobaseMenu, Strings.CONTEXT_MENU_COPY_INFOBASE, addIcon, createInfobaseListener);
-
-    addItemInMenu(infobaseMenu, Strings.CONTEXT_MENU_EDIT_INFOBASE, editIcon, editInfobaseListener);
+        infobaseMenu, Strings.CONTEXT_MENU_COPY_INFOBASE, addIcon16, createInfobaseListener);
 
     addItemInMenu(
-        infobaseMenu, Strings.CONTEXT_MENU_DELETE_INFOBASE, deleteIcon, deleteInfobaseListener);
+        infobaseMenu, Strings.CONTEXT_MENU_EDIT_INFOBASE, editIcon16, editInfobaseListener);
+
+    addItemInMenu(
+        infobaseMenu, Strings.CONTEXT_MENU_DELETE_INFOBASE, deleteIcon16, deleteInfobaseListener);
 
     addMenuSeparator(infobaseMenu);
 
@@ -630,25 +674,25 @@ public class ViewerArea extends Composite {
     table.setMenu(tableMenu);
 
     if (updatable) {
-      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_UPDATE_F5, updateIcon, updateTablesListener);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_UPDATE_F5, updateIcon16, updateTablesListener);
     }
 
     if (creatable) {
       addItemInMenu(
           tableMenu,
           Strings.CONTEXT_MENU_CREATE_WORKING_SERVER,
-          addIcon,
+          addIcon16,
           createWorkingServerListener);
     }
 
     if (editable) {
       String title = tableContextItemEdit.get(tab);
-      addItemInMenu(tableMenu, title, editIcon, editItemInTablesListener);
+      addItemInMenu(tableMenu, title, editIcon16, editItemInTablesListener);
     }
 
     if (killable) {
       String title = tableContextItemDelete.get(tab);
-      addItemInMenu(tableMenu, title, deleteIcon, deleteItemInTablesListener);
+      addItemInMenu(tableMenu, title, deleteIcon16, deleteItemInTablesListener);
     }
   }
 
@@ -715,7 +759,7 @@ public class ViewerArea extends Composite {
   private ToolItem addItemInToolbar(
       ToolBar parent, String text, Image icon, SelectionAdapter listener) {
 
-    ToolItem toolItem = new ToolItem(parent, SWT.PUSH);
+    ToolItem toolItem = new ToolItem(parent, SWT.PUSH | SWT.WRAP);
     toolItem.setText(text);
     toolItem.setImage(icon);
     toolItem.addSelectionListener(listener);
@@ -791,14 +835,13 @@ public class ViewerArea extends Composite {
         TreeItemType.SERVER,
         SERVER_INFO,
         server,
-        server.isConnected() ? serverConnectedIcon : serverIcon);
+        server.getTreeImage());
   }
 
   private TreeItem addClusterItemInServersTree(TreeItem serverItem, IClusterInfo clusterInfo) {
 
     Server server = getServer(serverItem);
     if (server == null) {
-      LOGGER.error("Error get Server from serverItem"); //$NON-NLS-1$
       return null;
     }
 
@@ -1030,6 +1073,7 @@ public class ViewerArea extends Composite {
 
   private Server getServer(TreeItem item) {
     if (item == null) {
+      LOGGER.error("Error get Server from serverItem"); // $NON-NLS-1$
       return null;
     }
 
@@ -1046,6 +1090,7 @@ public class ViewerArea extends Composite {
         parentItem = parentItem.getParentItem();
       }
     }
+    LOGGER.error("Error get Server from serverItem"); // $NON-NLS-1$
     return null;
   }
 
@@ -1117,27 +1162,27 @@ public class ViewerArea extends Composite {
 
   private void connectServerItem(TreeItem serverItem, boolean silentMode) {
 
-    // async не работает асинхронно
-    serverItem.setImage(serverConnectingIcon);
-    Display.getDefault()
-        .asyncExec(
-            new Runnable() {
+    Server server = getServer(serverItem);
+    if (server == null) {
+      return;
+    }
 
-              @Override
-              public void run() {
-
-                Server server = getServer(serverItem);
-                if (server == null) {
-                  return;
-                }
-                server.connectToServer(false, silentMode);
-
-                serverItem.setImage( // TODO server.getImage()
-                    server.isConnected() ? serverConnectedIcon : serverDisconnectIcon);
-                serverItem.setText(new String[] {server.getTreeTitle()});
-                updateClustersInTree(serverItem);
-              }
+    Thread thread =
+        new Thread(
+            () -> {
+              Date startDate = new Date();
+              server.connectToServer(false, silentMode);
+              Date finishDate = new Date();
             });
+
+    thread.start();
+
+    waitingConnectServers.add(serverItem);
+    if (serverConnectionTimer == null) {
+      serverConnectionTimer = new Timer(true);
+      serverConnectionTimer.schedule(new ServerConnectionChekerTimer(), 1000, 1000);
+    }
+    server.updateTreeItemState(serverItem);
   }
 
   private void disconnectServerItem(TreeItem serverItem) {
@@ -1146,7 +1191,8 @@ public class ViewerArea extends Composite {
       return;
     }
     server.disconnectFromAgent();
-    serverItem.setImage(serverIcon);
+    server.updateTreeItemState(serverItem);
+    // serverItem.setImage(serverIcon);
 
     TreeItem[] clusterItems = serverItem.getItems();
     for (TreeItem clusterItem : clusterItems) {
@@ -1545,7 +1591,10 @@ public class ViewerArea extends Composite {
 
   private void setEnableToolbarItems() {
     // включение/выключение активности кнопок тулбара
-    addToolbarItem.setEnabled(toolbarCreateListeners.get(currentHighlightingType) != null);
+    addToolbarItem.setEnabled(
+        serversTree.getSelection().length == 0
+            || toolbarCreateListeners.get(currentHighlightingType) != null);
+
     editToolbarItem.setEnabled(toolbarEditListeners.get(currentHighlightingType) != null);
     deleteToolbarItem.setEnabled(toolbarDeleteListeners.get(currentHighlightingType) != null);
   }
@@ -1728,9 +1777,7 @@ public class ViewerArea extends Composite {
             return;
           }
 
-          var messageBox = new MessageBox(Display.getDefault().getActiveShell());
-          messageBox.setMessage(server.getConnectionError());
-          messageBox.open();
+          Helper.showMessageBox(server.getConnectionError());
         }
       };
 
@@ -1739,23 +1786,24 @@ public class ViewerArea extends Composite {
         @Override
         public void widgetSelected(SelectionEvent event) {
 
-          if (currentHighlightingType == null) { // пустое дерево
+          String buttonName = ((ToolItem) event.widget).getText();
+
+          if (serversTree.getSelection().length == 0
+              && Strings.CONTEXT_MENU_CREATE.equals(buttonName)) {
             addServerListener.widgetSelected(event);
             return;
           }
 
-          TreeItem[] item = serversTree.getSelection();
-          if (item.length == 0) {
+          if (currentHighlightingType == null) { // пустое дерево или ничего не выбрано
             return;
           }
 
           Map<TreeItemType, SelectionAdapter> currListener = null;
-          String text = ((ToolItem) event.widget).getText();
-          if (Strings.CONTEXT_MENU_CREATE.equals(text)) {
+          if (Strings.CONTEXT_MENU_CREATE.equals(buttonName)) {
             currListener = toolbarCreateListeners;
-          } else if (Strings.CONTEXT_MENU_EDIT.equals(text)) {
+          } else if (Strings.CONTEXT_MENU_EDIT.equals(buttonName)) {
             currListener = toolbarEditListeners;
-          } else if (Strings.CONTEXT_MENU_DELETE.equals(text)) {
+          } else if (Strings.CONTEXT_MENU_DELETE.equals(buttonName)) {
             currListener = toolbarDeleteListeners;
           } else {
             return;
@@ -2396,45 +2444,104 @@ public class ViewerArea extends Composite {
             return;
           }
           TreeItem infobaseItem = items[0];
-          Server server = getServer(infobaseItem);
-          if (server == null) {
+
+          File script = (File) event.widget.getData();
+          Map<String, String> params = fillParams(script, infobaseItem);
+          if (params.isEmpty()) {
+            Helper.showMessageBox("Params is empty");
             return;
           }
 
-          Map<String, String> env = new HashMap<>();
-
-          // UUID clusterId = getClusterId(infobaseItem);
-          // UUID infobaseId = getInfobaseId(infobaseItem);
-          // File script = (File) event.widget.getData();
-          //
-          // env.put("infobase", server.getInfoBaseName(clusterId, infobaseId)); //$NON-NLS-1$
-          // env.put("serverName", server.getAgentHost()); //$NON-NLS-1$
-          // env.put("serverPort", server.getAgentPortAsString()); //$NON-NLS-1$
-
-          File script = (File) event.widget.getData();
-
-          env.put("infobase", "dev1"); // $NON-NLS-1$
-          env.put("serverName", "server123"); // $NON-NLS-1$
-          env.put("serverPort", "4541"); // $NON-NLS-1$
-
-          BackgroundTask task = new BackgroundTask("dev1", script, env);
-
+          BackgroundTask task = new BackgroundTask(script, params);
           addToTasksQueue(task);
+        }
+
+        public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
+          Map<String, String> params = new HashMap<>();
+
+          UUID clusterId = getClusterId(infobaseItem);
+          UUID infobaseId = getInfobaseId(infobaseItem);
+          Server server = getServer(infobaseItem);
+          if (server == null) {
+            LOGGER.error(
+                "Error get server info {}", //$NON-NLS-1$
+                script.getName());
+            return params;
+          }
+
+          String scriptText;
+          try {
+            scriptText = Files.readString(Path.of(script.getPath()));
+          } catch (IOException excp) {
+            LOGGER.error(
+                "Error read script {}", //$NON-NLS-1$
+                script.getName(),
+                excp);
+            return params;
+          }
+
+          Pattern p = Pattern.compile("\\%.+?\\%");
+          // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
+
+          Matcher m = p.matcher(scriptText);
+          while (m.find()) {
+            final String foundParam = m.group();
+            String paramValue;
+
+            switch (foundParam) {
+              case "%infobase%":
+                paramValue = server.getInfoBaseName(clusterId, infobaseId); // $NON-NLS-1$
+                break;
+
+              case "%serverName%":
+                paramValue = server.getAgentHost(); // $NON-NLS-1$
+                break;
+
+              case "%agentPort%":
+                paramValue = server.getAgentPortAsString(); // $NON-NLS-1$
+                break;
+
+              case "%managerPort%":
+                paramValue = server.getClusterMainPort(clusterId); // $NON-NLS-1$
+                break;
+
+              default:
+                LOGGER.error(
+                    "Found unknown param {}", //$NON-NLS-1$
+                    foundParam);
+                paramValue = ""; // $NON-NLS-1$
+                break;
+            }
+
+            String paramKey = foundParam.replace("%", "");
+            params.put(paramKey, paramValue);
+          }
+
+          // env.put("infobase", server.getInfoBaseName(clusterId, infobaseId)); //$NON-NLS-1$
+          // env.put("serverName", server.getAgentHost()); // $NON-NLS-1$
+          // env.put("agentPort", server.getAgentPortAsString()); // $NON-NLS-1$
+          // env.put("managerPort",String.valueOf(server.getClusterInfo(clusterId).getMainPort()));
+          // //$NON-NLS-1$
+
+          // env.put("infobase", "dev1"); // $NON-NLS-1$
+          // env.put("serverName", "server123"); // $NON-NLS-1$
+          // env.put("serverPort", "4541"); // $NON-NLS-1$
+
+          return params;
         }
 
         public void addToTasksQueue(BackgroundTask task) {
           TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
-          // tableItem.setText(task.getDescription());
           tableItem.setData(task);
           tableItem.setChecked(false);
 
-          if (tableTasks.getSelection().length == 0 || BackgroundTask.countOfRunning == 0) {
+          if (tableTasks.getSelection().length == 0 || BackgroundTask.getRunningCount() == 0) {
             tableTasks.setSelection(tableItem);
           }
 
           task.run();
 
-          if (BackgroundTask.countOfRunning == 0) {
+          if (BackgroundTask.getRunningCount() == 0) {
             taskTimer = new Timer(true);
             taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
           }
@@ -2444,7 +2551,6 @@ public class ViewerArea extends Composite {
 
           @Override
           public void run() {
-            // System.out.println("TimerTask начал свое выполнение в:" + new Date());
 
             Display.getDefault()
                 .asyncExec(
@@ -2453,12 +2559,15 @@ public class ViewerArea extends Composite {
                         TableItem[] items = tableTasks.getItems();
                         TableItem[] selectItems = tableTasks.getSelection();
 
-                        BackgroundTask.countOfRunning = 0;
+                        BackgroundTask.resetCount();
+
                         for (TableItem tableItem : items) {
                           BackgroundTask task = (BackgroundTask) tableItem.getData();
+                          task.update(tableItem);
 
-                          tableItem.setText(task.getDescription());
-                          tableItem.setImage(task.getIcon());
+                          // tableItem.setText(task.getDescription());
+                          // tableItem.setImage(task.getIcon());
+                          // BackgroundTask.calculateCount(task);
 
                           if (selectItems.length > 0
                               && tableItem.equals(selectItems[0])
@@ -2467,19 +2576,16 @@ public class ViewerArea extends Composite {
                                       != task.getLog().lines().count())) {
                             tableTaskLog.setText(task.getLog());
                           }
-
-                          if (task.isRunning()) {
-                            BackgroundTask.countOfRunning++;
-                          }
                         }
 
-                        if (BackgroundTask.countOfRunning == 0) {
+                        BackgroundTask.setTabTitle(tabTask);
+
+                        if (BackgroundTask.getRunningCount() == 0) {
                           taskTimer.cancel();
+                          taskTimer = null;
                         }
                       }
                     });
-
-            // System.out.println("TimerTask закончил свое выполнение в:" + new Date());
           }
         }
       };
@@ -2675,13 +2781,22 @@ public class ViewerArea extends Composite {
         }
       };
 
-  SelectionAdapter updateTablesListener =
-      new SelectionAdapter() {
-        @Override
-        public void widgetSelected(SelectionEvent e) {
-          fillTabs();
-        }
-      };
+  //  SelectionAdapter updateTablesListener =
+  //      new SelectionAdapter() {
+  //        @Override
+  //        public void widgetSelected(SelectionEvent e) {
+  //          if (e.detail == SWT.ARROW) {
+  //            ToolItem item = (ToolItem) e.widget;
+  //            Rectangle rect = item.getBounds();
+  //            Point pt = item.getParent().toDisplay(new Point(rect.x, rect.y));
+  //            menu.setLocation(pt.x, pt.y + rect.height);
+  //            menu.setVisible(true);
+  //          } else {
+  //            System.out.println(dropdown.getText() + " Pressed");
+  //            fillTabs();
+  //          }
+  //        }
+  //      };
 
   SelectionAdapter editItemInTablesListener =
       new SelectionAdapter() {
@@ -2946,6 +3061,123 @@ public class ViewerArea extends Composite {
           // editItemInTablesListener.widgetSelected(null);
         }
       };
+
+  private class ServerConnectionChekerTimer extends TimerTask {
+
+    @Override
+    public void run() {
+
+      Display.getDefault()
+          .asyncExec(
+              new Runnable() {
+                public void run() {
+                  if (serverConnectionTimer == null) {
+                    return;
+                  }
+
+                  List<TreeItem> doneItems = new ArrayList<>();
+
+                  for (TreeItem serverItem : waitingConnectServers) {
+                    Server server = getServer(serverItem);
+                    if (server == null) {
+                      return;
+                    }
+
+                    if (server.isConnected() || !server.getConnectionError().isBlank()) {
+                      doneItems.add(serverItem);
+                    }
+                  }
+
+                  waitingConnectServers.removeAll(doneItems);
+                  if (waitingConnectServers.isEmpty()) {
+                    serverConnectionTimer.cancel();
+                    serverConnectionTimer = null;
+                  }
+
+                  for (TreeItem serverItem : doneItems) {
+                    Server server = getServer(serverItem);
+                    if (server == null) {
+                      return;
+                    }
+                    server.updateTreeItemState(serverItem);
+
+                    if (server.isConnected()) {
+                      updateClustersInTree(serverItem);
+                    }
+                    if (!server.getConnectionError().isBlank()) {
+                      Helper.showMessageBox(server.getConnectionError());
+                    }
+                  }
+                }
+              });
+    }
+  }
+
+  private class UpdateListTimer extends TimerTask {
+
+    @Override
+    public void run() {
+      //      fillTabs();
+
+      Display.getDefault()
+          .asyncExec(
+              new Runnable() {
+                public void run() {
+                  fillTabs();
+                }
+              });
+    }
+  }
+
+  class UpdateTablesSelectionListener extends SelectionAdapter {
+
+    private ToolItem dropdown;
+    private Menu menu;
+
+    public UpdateTablesSelectionListener(ToolItem dropdown) {
+      this.dropdown = dropdown;
+      menu = new Menu(dropdown.getParent().getShell());
+    }
+
+    public void add(String item) {
+      MenuItem menuItem = new MenuItem(menu, SWT.CHECK);
+      menuItem.setText(item);
+      menuItem.addSelectionListener(
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent event) {
+              MenuItem selected = (MenuItem) event.widget;
+
+              if (selected.getSelection()) {
+                updateListTimer = new Timer(true);
+                updateListTimer.schedule(new UpdateListTimer(), 1000, 5000);
+                dropdown.setImage(updateAutoIcon24);
+              } else {
+                updateListTimer.cancel();
+                updateListTimer = null;
+
+                // dropdown.setText(Strings.CONTEXT_MENU_UPDATE); // + " \n(ручное)"
+                dropdown.setImage(updateIcon24);
+              }
+
+            }
+          });
+    }
+
+    @Override
+    public void widgetSelected(SelectionEvent event) {
+      if (event.detail == SWT.ARROW) {
+        ToolItem item = (ToolItem) event.widget;
+        Rectangle rect = item.getBounds();
+        Point pt = item.getParent().toDisplay(new Point(rect.x, rect.y));
+        menu.setLocation(pt.x, pt.y + rect.height);
+        menu.setVisible(true);
+      } else {
+        System.out.println(dropdown.getText() + " Pressed");
+        fillTabs();
+      }
+    }
+  }
 
   private static class Strings {
 

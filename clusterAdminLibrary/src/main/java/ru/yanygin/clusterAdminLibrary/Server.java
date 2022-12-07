@@ -40,7 +40,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.TreeItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibraryUI.AuthenticateDialog;
@@ -125,7 +127,7 @@ public class Server implements Comparable<Server> {
   @Expose
   private List<String> favoriteInfobases = new ArrayList<>();
 
-
+  private ServerState serverState = ServerState.DISCONNECT;
   private boolean available;
   private Process localRasProcess;
   private String connectionError = ""; //$NON-NLS-1$;
@@ -148,6 +150,18 @@ public class Server implements Comparable<Server> {
   public static final String BACKGROUND_JOB = "BackgroundJob"; //$NON-NLS-1$
 
   private static final String TREE_TITLE_PATTERN = "%s (%s)"; //$NON-NLS-1$
+
+  private static Image defaultIcon = Helper.getImage("server_default_24.png"); // $NON-NLS-1$
+  private static Image connectedIcon = Helper.getImage("server_connected_24.png"); // $NON-NLS-1$
+  private static Image connectingIcon = Helper.getImage("server_connecting_24.png"); // $NON-NLS-1$
+  private static Image connectErrorIcon = Helper.getImage("server_connectError_24.png"); // $NON-NLS-1$
+
+  private enum ServerState {
+    DISCONNECT,
+    CONNECTED,
+    CONNECTING,
+    CONNECT_ERROR
+  }
 
   public enum SaveCredentialsVariant {
     DISABLE,
@@ -786,22 +800,38 @@ public class Server implements Comparable<Server> {
       return true;
     }
 
+    available = false;
+    connectionError = "";
+    serverState = ServerState.CONNECTING;
+
+    // все вызовы здесь проверить на Helper.showMessageBox
+    // этого тут быть не должно, потому что выполняется в отдельном потоке
+
     if (!checkAndRunLocalRas()) {
+      serverState = ServerState.DISCONNECT;
       return false;
     }
 
     String currentRasHost = useLocalRas ? "localhost" : this.rasHost; //$NON-NLS-1$
 
     int currentRasPort = useLocalRas ? localRasPort : this.rasPort;
-
+    //    try {
+    //      Thread.sleep(30000);
+    //    } catch (InterruptedException e) { // TODO Auto-generated catch block
+    //      e.printStackTrace();
+    //    }
     try {
-      connectToAgent(currentRasHost, currentRasPort, 20);
+      connectToAgent(currentRasHost, currentRasPort, 120);
+      serverState = ServerState.CONNECTED;
 
       if (disconnectAfter) {
         disconnectFromAgent();
+        serverState = ServerState.DISCONNECT;
       }
     } catch (Exception excp) {
       available = false;
+      serverState = ServerState.CONNECT_ERROR;
+
       disconnectLocalRas();
 
       connectionError =
@@ -810,9 +840,9 @@ public class Server implements Comparable<Server> {
               this.getServerKey(), getLocalisedMessage(excp));
       LOGGER.error(connectionError);
 
-      if (!silentMode) {
-        Helper.showMessageBox(connectionError);
-      }
+      // if (!silentMode) {
+      // Helper.showMessageBox(connectionError);
+      // }
       return false;
     }
     return true;
@@ -970,6 +1000,7 @@ public class Server implements Comparable<Server> {
           "The connection to server <{}> is already established", //$NON-NLS-1$
           this.getServerKey());
       available = true;
+      connectionError = ""; // $NON-NLS-1$
       return;
     }
 
@@ -1377,6 +1408,16 @@ public class Server implements Comparable<Server> {
     return clusterInfo;
   }
 
+  /**
+   * Получение порта менеджера кластера.
+   *
+   * @param clusterId - ID кластера
+   * @return String - порт менеджера кластера
+   */
+  public String getClusterMainPort(UUID clusterId) {
+    IClusterInfo clusterInfo = getClusterInfo(clusterId);
+    return clusterInfo == null ? "0" : String.valueOf(clusterInfo.getMainPort());
+  }
   /**
    * Gets the list of cluster manager descriptions.
    *
@@ -3629,5 +3670,46 @@ public class Server implements Comparable<Server> {
     // TODO
     return agentConnection.getResourceConsumptionCounterAccumulatedValues(
         clusterId, counterName, object);
+  }
+
+  /**
+   * Получить иконку с текущим состоянием сервера.
+   *
+   * @return Image - иконка текущего состояния сервера
+   */
+  public Image getTreeImage() {
+
+    Image icon;
+
+    switch (serverState) {
+      case CONNECTED:
+        icon = connectedIcon;
+        break;
+
+      case CONNECTING:
+        icon = connectingIcon;
+        break;
+
+      case CONNECT_ERROR:
+        icon = connectErrorIcon;
+        break;
+
+      case DISCONNECT:
+      default:
+        icon = defaultIcon;
+        break;
+    }
+
+    return icon;
+  }
+
+  /**
+   * Обновить элемент дерева сервера.
+   *
+   * @param serverItem - элемент дерева содержащий ссылку на Сервер
+   */
+  public void updateTreeItemState(TreeItem serverItem) {
+    serverItem.setImage(getTreeImage());
+    serverItem.setText(new String[] {getTreeTitle()});
   }
 }

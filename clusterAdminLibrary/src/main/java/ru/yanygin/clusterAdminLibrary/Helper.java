@@ -13,7 +13,6 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.wb.swt.SWTResourceManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +25,6 @@ public class Helper {
   /** Пустой UUID. */
   public static final UUID EMPTY_UUID =
       UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
-
-  public static Shell ActiveShell;
 
   private Helper() {}
 
@@ -49,7 +46,9 @@ public class Helper {
    * @param message - текст сообщения
    */
   public static void showMessageBox(String message) {
-    MessageBox messageBox = new MessageBox(ActiveShell);
+    MessageBox messageBox =
+        new MessageBox(Display.getDefault().getActiveShell()); // SWT.ICON_INFORMATION | SWT.OK
+    // messageBox.setText("Information");
     messageBox.setMessage(message);
     messageBox.open();
   }
