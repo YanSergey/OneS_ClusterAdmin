@@ -34,7 +34,8 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.slf4j.Logger;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibrary.ColumnProperties.RowSortDirection;
 import ru.yanygin.clusterAdminLibrary.InfoBaseInfoShortExt.InfobasesSortDirection;
@@ -122,6 +123,14 @@ public class Config {
   @Expose
   private InfobasesSortDirection infobasesSortDirection = InfobasesSortDirection.DISABLE;
 
+  @SerializedName("ListRefreshRate")
+  @Expose
+  private int listRefreshRate = 5000;
+
+  @SerializedName("LoggerLevel")
+  @Expose
+  private String loggerLevel = "error";
+
   @SerializedName("Servers")
   @Expose
   private Map<String, Server> servers = new HashMap<>();
@@ -147,8 +156,12 @@ public class Config {
   private ColumnProperties wsColumnProperties = new ColumnProperties(0);
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
-  private static final String DEFAULT_CONFIG_PATH = "config.json"; //$NON-NLS-1$
+      (Logger) LoggerFactory.getLogger(Config.class.getSimpleName());
+
+  private static final Logger ROOT_LOGGER =
+      (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+
+  private static final String DEFAULT_CONFIG_PATH = "config.json"; // $NON-NLS-1$
   private static final String TEMP_CONFIG_PATH = "config_temp.json"; //$NON-NLS-1$
 
   public static Config currentConfig;
@@ -845,6 +858,56 @@ public class Config {
   }
 
   /**
+   * Получить установленный уровень логирования.
+   *
+   * @return уровень логирования
+   */
+  public String getLoggerLevel() {
+    return loggerLevel;
+  }
+
+  /**
+   * Установить уровень логирования.
+   *
+   * @param level - уровень логирования
+   */
+  public void setLoggerLevel(String level) {
+    this.loggerLevel = level;
+    applyLoggerLevel();
+  }
+
+  /** Применить уровень логирования из конфига. */
+  private void applyLoggerLevel() {
+
+    ROOT_LOGGER.setLevel(Level.toLevel("info"));
+    ROOT_LOGGER.info("logger level switching to <{}>", loggerLevel); // $NON-NLS-1$
+    ROOT_LOGGER.setLevel(Level.toLevel(loggerLevel));
+
+    ROOT_LOGGER.error("test logger level = error"); // $NON-NLS-1$
+    ROOT_LOGGER.warn("test logger level = warn"); // $NON-NLS-1$
+    ROOT_LOGGER.info("test logger level = info"); // $NON-NLS-1$
+    ROOT_LOGGER.debug("test logger level = debug"); // $NON-NLS-1$
+  }
+
+  /**
+   * Получить частоту обновления списка.
+   *
+   * @return частота обновления списка (миллисекунд)
+   */
+  public int getListRrefreshRate() {
+    return listRefreshRate;
+  }
+
+  /**
+   * Установка частоты обновления списка.
+   *
+   * @param refreshRate - частота обновления списка (миллисекунд)
+   */
+  public void setListRrefreshRate(int refreshRate) {
+    this.listRefreshRate = refreshRate;
+  }
+
+  /**
    * Получение свойства колонок списков.
    *
    * @param clazz - имя класса, идентифицирующее список-кладелец колонок
@@ -1019,6 +1082,8 @@ public class Config {
         java.util.Locale.setDefault(locale);
         Messages.reloadBundle(locale); // TODO не совсем понятно как работает
       }
+
+      config.applyLoggerLevel();
     }
     LOGGER.info("Config file read successfully"); //$NON-NLS-1$
     return config;

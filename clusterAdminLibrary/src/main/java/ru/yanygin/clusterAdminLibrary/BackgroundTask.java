@@ -47,7 +47,6 @@ public class BackgroundTask {
   static Image taskRunning = Helper.getImage("taskRunning.png"); // $NON-NLS-1$
   static Image taskCompleted = Helper.getImage("taskCompleted.png"); // $NON-NLS-1$
   static Image taskError = Helper.getImage("taskError.png"); // $NON-NLS-1$
-  // Image currentIcon;
 
   Date startDate;
   Date finishDate;

@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +39,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -280,6 +278,7 @@ public class ViewerArea extends Composite {
             (serverKey, server) -> {
               addServerItemInServersTree(server);
             });
+    columnServer.pack();
 
     runAutonnectAllServers();
 
@@ -385,10 +384,6 @@ public class ViewerArea extends Composite {
     toolItem.setImage(updateIcon24);
 
     updateTablesListener = new UpdateTablesSelectionListener(toolItem);
-    toolItem.addSelectionListener(updateTablesListener);
-
-    updateTablesListener.add("Включить автообновление");
-    updateTablesListener.add("Задать период автообновления");
 
     toolBar.pack();
   }
@@ -1072,7 +1067,7 @@ public class ViewerArea extends Composite {
   }
 
   private Server getServer(TreeItem item) {
-    if (item == null) {
+    if (item == null || item.isDisposed()) {
       LOGGER.error("Error get Server from serverItem"); // $NON-NLS-1$
       return null;
     }
@@ -1170,9 +1165,7 @@ public class ViewerArea extends Composite {
     Thread thread =
         new Thread(
             () -> {
-              Date startDate = new Date();
               server.connectToServer(false, silentMode);
-              Date finishDate = new Date();
             });
 
     thread.start();
@@ -1190,7 +1183,7 @@ public class ViewerArea extends Composite {
     if (server == null) {
       return;
     }
-    server.disconnectFromAgent();
+    server.disconnectFromAgent(); // TODO надо сюда переместить updateTreeItemState и dispose
     server.updateTreeItemState(serverItem);
     // serverItem.setImage(serverIcon);
 
@@ -2517,15 +2510,9 @@ public class ViewerArea extends Composite {
             params.put(paramKey, paramValue);
           }
 
-          // env.put("infobase", server.getInfoBaseName(clusterId, infobaseId)); //$NON-NLS-1$
-          // env.put("serverName", server.getAgentHost()); // $NON-NLS-1$
-          // env.put("agentPort", server.getAgentPortAsString()); // $NON-NLS-1$
-          // env.put("managerPort",String.valueOf(server.getClusterInfo(clusterId).getMainPort()));
-          // //$NON-NLS-1$
-
-          // env.put("infobase", "dev1"); // $NON-NLS-1$
-          // env.put("serverName", "server123"); // $NON-NLS-1$
-          // env.put("serverPort", "4541"); // $NON-NLS-1$
+          // params.put("infobase", "dev1"); // $NON-NLS-1$
+          // params.put("serverName", "server123"); // $NON-NLS-1$
+          // params.put("managerPort", "4541"); // $NON-NLS-1$
 
           return params;
         }
@@ -3082,6 +3069,7 @@ public class ViewerArea extends Composite {
                     if (server == null) {
                       return;
                     }
+                    server.updateTreeItemState(serverItem);
 
                     if (server.isConnected() || !server.getConnectionError().isBlank()) {
                       doneItems.add(serverItem);
@@ -3099,12 +3087,12 @@ public class ViewerArea extends Composite {
                     if (server == null) {
                       return;
                     }
-                    server.updateTreeItemState(serverItem);
+                    // server.updateTreeItemState(serverItem);
 
                     if (server.isConnected()) {
                       updateClustersInTree(serverItem);
                     }
-                    if (!server.getConnectionError().isBlank()) {
+                    if (server.needShowConnectionError()) {
                       Helper.showMessageBox(server.getConnectionError());
                     }
                   }
@@ -3131,35 +3119,72 @@ public class ViewerArea extends Composite {
 
   class UpdateTablesSelectionListener extends SelectionAdapter {
 
-    private ToolItem dropdown;
-    private Menu menu;
+    private ToolItem mainButton;
+    private Menu dropdownMenu;
+    private int refreshRate = config.getListRrefreshRate();
 
-    public UpdateTablesSelectionListener(ToolItem dropdown) {
-      this.dropdown = dropdown;
-      menu = new Menu(dropdown.getParent().getShell());
+    public UpdateTablesSelectionListener(ToolItem mainButton) {
+      this.mainButton = mainButton;
+      this.mainButton.addSelectionListener(this);
+
+      dropdownMenu = new Menu(mainButton.getParent().getShell());
+
+      this.add(dropdownMenu, "Автообновление", SWT.CHECK, null);
+
+      // this.add(dropdownMenu, "Задать период автообновления", SWT.PUSH);
+      Menu subMenuUpdatePeriod = addItemGroupInMenu(dropdownMenu, "Период", null);
+      // подменю с секундами = 1, 2, 5, 10
+      this.add(subMenuUpdatePeriod, "1 сек", SWT.RADIO, 1000);
+      this.add(subMenuUpdatePeriod, "2 сек", SWT.RADIO, 2000);
+      this.add(subMenuUpdatePeriod, "5 сек", SWT.RADIO, 5000);
+      this.add(subMenuUpdatePeriod, "10 сек", SWT.RADIO, 10000);
     }
 
-    public void add(String item) {
-      MenuItem menuItem = new MenuItem(menu, SWT.CHECK);
-      menuItem.setText(item);
+    public void add(Menu parentMenu, String title, int style, Object data) {
+      MenuItem menuItem = new MenuItem(parentMenu, style);
+      menuItem.setText(title);
+      menuItem.setData(data);
+      if (style == SWT.CHECK) {
+        menuItem.setImage(updateAutoIcon24);
+      }
+      if (style == SWT.RADIO) {
+        menuItem.setSelection((int) data == refreshRate);
+      }
+
       menuItem.addSelectionListener(
           new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent event) {
               MenuItem selected = (MenuItem) event.widget;
 
-              if (selected.getSelection()) {
-                updateListTimer = new Timer(true);
-                updateListTimer.schedule(new UpdateListTimer(), 1000, 5000);
-                dropdown.setImage(updateAutoIcon24);
-              } else {
-                updateListTimer.cancel();
-                updateListTimer = null;
+              switch (selected.getStyle()) {
+                case SWT.CHECK:
+                  if (selected.getSelection()) {
+                    updateListTimer = new Timer(true);
+                    updateListTimer.schedule(new UpdateListTimer(), 1000, refreshRate);
+                    mainButton.setImage(updateAutoIcon24);
+                  } else {
+                    updateListTimer.cancel();
+                    updateListTimer = null;
+                    mainButton.setImage(updateIcon24);
+                  }
+                  break;
 
-                // dropdown.setText(Strings.CONTEXT_MENU_UPDATE); // + " \n(ручное)"
-                dropdown.setImage(updateIcon24);
+                case SWT.RADIO:
+                  if (selected.getSelection()) {
+                    refreshRate = (int) selected.getData();
+                    config.setListRrefreshRate(refreshRate);
+                    if (updateListTimer != null) {
+                      updateListTimer.cancel();
+                      updateListTimer = new Timer(true);
+                      updateListTimer.schedule(new UpdateListTimer(), 1000, refreshRate);
+                    }
+                  }
+                  break;
+
+                default:
+                  break;
               }
-
             }
           });
     }
@@ -3170,10 +3195,9 @@ public class ViewerArea extends Composite {
         ToolItem item = (ToolItem) event.widget;
         Rectangle rect = item.getBounds();
         Point pt = item.getParent().toDisplay(new Point(rect.x, rect.y));
-        menu.setLocation(pt.x, pt.y + rect.height);
-        menu.setVisible(true);
+        dropdownMenu.setLocation(pt.x, pt.y + rect.height);
+        dropdownMenu.setVisible(true);
       } else {
-        System.out.println(dropdown.getText() + " Pressed");
         fillTabs();
       }
     }

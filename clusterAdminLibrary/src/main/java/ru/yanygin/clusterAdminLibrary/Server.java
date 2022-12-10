@@ -131,6 +131,7 @@ public class Server implements Comparable<Server> {
   private boolean available;
   private Process localRasProcess;
   private String connectionError = ""; //$NON-NLS-1$;
+  boolean silentConnectionMode = false;
   //  private String agentVersion = ""; //$NON-NLS-1$
   private String agentVersion = Messages.getString("Server.NotConnect"); //$NON-NLS-1$
 
@@ -369,6 +370,15 @@ public class Server implements Comparable<Server> {
    */
   public String getConnectionError() {
     return connectionError;
+  }
+
+  /**
+   * Показывает, нужно ли выводить ошибку подключения.
+   *
+   * @return выводить ошибку подключения
+   */
+  public boolean needShowConnectionError() {
+    return !connectionError.isBlank() && !silentConnectionMode;
   }
 
   /**
@@ -777,7 +787,10 @@ public class Server implements Comparable<Server> {
   public boolean isConnected() {
     boolean isConnected = (agentConnection != null);
 
-    if (!isConnected) {
+    if (isConnected) {
+      serverState = ServerState.CONNECTED;
+    } else if (serverState != ServerState.CONNECTING) {
+      serverState = ServerState.DISCONNECT;
       LOGGER.info(
           "The connection a server <{}> is not established", //$NON-NLS-1$
           this.getServerKey());
@@ -803,6 +816,7 @@ public class Server implements Comparable<Server> {
     available = false;
     connectionError = "";
     serverState = ServerState.CONNECTING;
+    silentConnectionMode = silentMode;
 
     // все вызовы здесь проверить на Helper.showMessageBox
     // этого тут быть не должно, потому что выполняется в отдельном потоке
@@ -816,8 +830,8 @@ public class Server implements Comparable<Server> {
 
     int currentRasPort = useLocalRas ? localRasPort : this.rasPort;
     //    try {
-    //      Thread.sleep(30000);
-    //    } catch (InterruptedException e) { // TODO Auto-generated catch block
+    //      Thread.sleep(5000);
+    //    } catch (InterruptedException e) { // TODO Искусственная задержка подключения
     //      e.printStackTrace();
     //    }
     try {
@@ -1046,6 +1060,7 @@ public class Server implements Comparable<Server> {
     } finally {
       agentConnection = null;
       agentConnector = null;
+      serverState = ServerState.DISCONNECT;
     }
   }
 

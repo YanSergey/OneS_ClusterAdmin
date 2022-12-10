@@ -48,7 +48,7 @@ public class Helper {
   public static void showMessageBox(String message) {
     MessageBox messageBox =
         new MessageBox(Display.getDefault().getActiveShell()); // SWT.ICON_INFORMATION | SWT.OK
-    // messageBox.setText("Information");
+    messageBox.setText("Information");
     messageBox.setMessage(message);
     messageBox.open();
   }
