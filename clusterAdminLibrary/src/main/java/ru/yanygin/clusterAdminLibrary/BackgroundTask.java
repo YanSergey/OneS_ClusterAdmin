@@ -18,14 +18,18 @@ import org.slf4j.LoggerFactory;
 /** Фоновый процесс. */
 public class BackgroundTask {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger("BackgroundTask"); // $NON-NLS-1$
+  static final Logger LOGGER = LoggerFactory.getLogger(BackgroundTask.class.getSimpleName());
 
   static int countOfRunning = 0;
   static int countOfCompleted = 0;
   static int countWithError = 0;
   static Map<String, Integer> taskNamesCounter = new HashMap<>();
 
-  String name;
+  static Image taskRunning = Helper.getImage("taskRunning.png"); //$NON-NLS-1$
+  static Image taskCompleted = Helper.getImage("taskCompleted.png"); //$NON-NLS-1$
+  static Image taskError = Helper.getImage("taskError.png"); //$NON-NLS-1$
+
+  String taskName;
   File script;
   Map<String, String> params;
 
@@ -44,10 +48,6 @@ public class BackgroundTask {
 
   Thread thread;
 
-  static Image taskRunning = Helper.getImage("taskRunning.png"); // $NON-NLS-1$
-  static Image taskCompleted = Helper.getImage("taskCompleted.png"); // $NON-NLS-1$
-  static Image taskError = Helper.getImage("taskError.png"); // $NON-NLS-1$
-
   Date startDate;
   Date finishDate;
 
@@ -61,7 +61,7 @@ public class BackgroundTask {
     
     this.script = script;
     this.params = params;
-    this.name = generateTaskName();
+    this.taskName = generateTaskName();
 
   }
 
@@ -105,7 +105,7 @@ public class BackgroundTask {
    *
    * @param task - задача
    */
-  public static void calculateCount(BackgroundTask task) {
+  private static void calculateCount(BackgroundTask task) {
 
     if (task.isRunning()) {
       countOfRunning++;
@@ -137,6 +137,7 @@ public class BackgroundTask {
     //                countOfRunning, countOfCompleted, countWithError);
 
     tab.setText(title);
+    tab.setImage(countOfRunning == 0 ? taskCompleted : taskRunning);
   }
 
   /**
@@ -144,8 +145,8 @@ public class BackgroundTask {
    *
    * @return name of task
    */
-  public String getName() {
-    return name;
+  public String getTaskName() {
+    return taskName;
   }
 
   /**
@@ -175,7 +176,7 @@ public class BackgroundTask {
     //            .collect(Collectors.joining("\n"));
 
     return new String[] {
-      name,
+      taskName,
       stateString,
       Helper.dateToString(startDate),
       Helper.dateToString(finishDate),
@@ -249,7 +250,7 @@ public class BackgroundTask {
       stateLast = state;
     }
 
-    BackgroundTask.calculateCount(this);
+    calculateCount(this);
   }
 
   /** Запуск фонового задания. */

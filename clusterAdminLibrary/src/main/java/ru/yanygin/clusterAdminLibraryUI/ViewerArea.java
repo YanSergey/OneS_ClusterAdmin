@@ -182,14 +182,15 @@ public class ViewerArea extends Composite {
   Map<TreeItemType, Menu> serversTreeContextMenus = new EnumMap<>(TreeItemType.class);
   Map<TabItem, Class<? extends BaseInfoExtended>> linksTablesToExtendedClass = new HashMap<>();
 
-  List<File> userScripts = new ArrayList<>();
+  // List<File> userScripts = new ArrayList<>();
   Timer taskTimer;
   Timer serverConnectionTimer;
   Timer updateListTimer;
 
   List<TreeItem> waitingConnectServers = new ArrayList<>();
 
-  UpdateTablesSelectionListener updateTablesListener;
+  RefreshTablesSelectionListener refreshTablesListener;
+  //  UserScriptRunner userScriptRunner;
 
   // @Slf4j
   /**
@@ -216,7 +217,6 @@ public class ViewerArea extends Composite {
     this.setLayout(new FillLayout(SWT.HORIZONTAL));
 
     initIcon();
-    initUserScripts();
     initMainMenu(menu);
     initToolbar(toolBar);
 
@@ -244,7 +244,7 @@ public class ViewerArea extends Composite {
           @Override
           public void widgetSelected(SelectionEvent evt) {
             currentTab = tabFolderServers.getSelection()[0];
-            fillTabs();
+            refreshCurrentList();
           }
         });
 
@@ -379,11 +379,11 @@ public class ViewerArea extends Composite {
 
     // addItemInToolbar(toolBar, Strings.CONTEXT_MENU_UPDATE, updateIcon, updateTablesListener);
 
-    ToolItem toolItem = new ToolItem(toolBar, SWT.DROP_DOWN);
-    toolItem.setText(Strings.CONTEXT_MENU_UPDATE);
-    toolItem.setImage(updateIcon24);
+    ToolItem refreshToolbarItem = new ToolItem(toolBar, SWT.DROP_DOWN);
+    refreshToolbarItem.setText(Strings.CONTEXT_MENU_UPDATE);
+    refreshToolbarItem.setImage(updateIcon24);
 
-    updateTablesListener = new UpdateTablesSelectionListener(toolItem);
+    refreshTablesListener = new RefreshTablesSelectionListener(refreshToolbarItem);
 
     toolBar.pack();
   }
@@ -494,13 +494,8 @@ public class ViewerArea extends Composite {
     addItemInMenu(
         serverMenu, Strings.CONTEXT_MENU_REMOVE_SERVER, deleteIcon16, deleteServerListener);
 
-    // это для отладки без запуска севрера
-    addMenuSeparator(serverMenu);
-    Menu subMenuUserScripts = addItemGroupInMenu(serverMenu, "Пользовательские скрипты", null);
-
-    for (File script : userScripts) {
-      addItemInMenu(subMenuUserScripts, script.getName(), null, userScriptRunner, script);
-    }
+    // TODO это для отладки без запуска сервера - удалить
+    new UserScriptRunner(serverMenu);
   }
 
   private void initClusterMenu() {
@@ -616,13 +611,7 @@ public class ViewerArea extends Composite {
         null,
         terminateUsersSessionsListener);
 
-    addMenuSeparator(infobaseMenu);
-    
-    Menu subMenuUserScripts = addItemGroupInMenu(infobaseMenu, "Пользовательские скрипты", null);
-
-    for (File script : userScripts) {
-      addItemInMenu(subMenuUserScripts, script.getName(), null, userScriptRunner, script);
-    }
+    new UserScriptRunner(infobaseMenu);
   }
 
   private TabItem initListTable(
@@ -669,7 +658,7 @@ public class ViewerArea extends Composite {
     table.setMenu(tableMenu);
 
     if (updatable) {
-      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_UPDATE_F5, updateIcon16, updateTablesListener);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_UPDATE_F5, updateIcon16, refreshTablesListener);
     }
 
     if (creatable) {
@@ -734,23 +723,6 @@ public class ViewerArea extends Composite {
     linksTablesToExtendedClass.put(tabWorkingProcesses, WorkingProcessInfoExtended.class);
   }
 
-  private void initUserScripts() {
-    File userScriptsDir = new File("scripts"); // $NON-NLS-1$
-    if (!userScriptsDir.exists()) {
-      userScriptsDir.mkdir();
-      // можно скачивать скрипты с репозитория
-    }
-
-    if (userScriptsDir.exists() && userScriptsDir.isDirectory()) {
-      File[] scripts = userScriptsDir.listFiles();
-      for (File script : scripts) {
-        if (script.isFile()) {
-          userScripts.add(script);
-        }
-      }
-    }
-  }
-
   private ToolItem addItemInToolbar(
       ToolBar parent, String text, Image icon, SelectionAdapter listener) {
 
@@ -802,11 +774,7 @@ public class ViewerArea extends Composite {
   }
 
   private MenuItem addRadioItemInMenu(
-      Menu parent,
-      String text,
-      SelectionAdapter listener,
-      Object data,
-      boolean selected) {
+      Menu parent, String text, SelectionAdapter listener, Object data, boolean selected) {
 
     MenuItem menuItem = new MenuItem(parent, SWT.RADIO);
     menuItem.setText(text);
@@ -1173,7 +1141,7 @@ public class ViewerArea extends Composite {
     waitingConnectServers.add(serverItem);
     if (serverConnectionTimer == null) {
       serverConnectionTimer = new Timer(true);
-      serverConnectionTimer.schedule(new ServerConnectionChekerTimer(), 1000, 1000);
+      serverConnectionTimer.schedule(new ServerConnectionCheckerTimer(), 1000, 1000);
     }
     server.updateTreeItemState(serverItem);
   }
@@ -1183,14 +1151,10 @@ public class ViewerArea extends Composite {
     if (server == null) {
       return;
     }
-    server.disconnectFromAgent(); // TODO надо сюда переместить updateTreeItemState и dispose
+    server.disconnectFromAgent();
     server.updateTreeItemState(serverItem);
-    // serverItem.setImage(serverIcon);
-
-    TreeItem[] clusterItems = serverItem.getItems();
-    for (TreeItem clusterItem : clusterItems) {
-      clusterItem.dispose();
-    }
+    saveCurrentSelectedData(serverItem);
+    Arrays.stream(serverItem.getItems()).forEach(Widget::dispose);
   }
 
   private void fillServersList() {
@@ -1240,6 +1204,7 @@ public class ViewerArea extends Composite {
 
     // Разворачиваем дерево, если включена настройка
     serverItem.setExpanded(config.isExpandServersTree());
+    columnServer.pack();
   }
 
   private void updateNodesOfCluster(TreeItem clusterItem, Server server) {
@@ -1429,7 +1394,7 @@ public class ViewerArea extends Composite {
     UUID clusterId = getClusterId(clusterItem);
   }
 
-  private void fillTabs() {
+  private void refreshCurrentList() {
 
     Table currentTable = getCurrentTable();
     if (currentTable == null) {
@@ -1444,7 +1409,7 @@ public class ViewerArea extends Composite {
     UUID clusterId = getCurrentClusterId();
     UUID infobaseId = getInfobaseId(currentTreeItem);
     UUID workingProcessId = getCurrentWorkingProcessId();
-    TreeItemType treeItemType = getTreeItemType(currentTreeItem); // TODO currentHighlightingType
+    // TreeItemType treeItemType = getTreeItemType(currentTreeItem); // TODO currentHighlightingType
 
     clearTabs();
     List<BaseInfoExtended> list = null;
@@ -1452,20 +1417,25 @@ public class ViewerArea extends Composite {
     // TODO getSessionsExtendedInfo, getConnectionsExtendedInfo и др.
     // заменить на одну?, определяемую через map
     if (currentTab.equals(tabSessions)) {
-      list = server.getSessionsExtendedInfo(treeItemType, clusterId, workingProcessId, infobaseId);
+      list =
+          server.getSessionsExtendedInfo(
+              currentHighlightingType, clusterId, workingProcessId, infobaseId);
 
     } else if (currentTab.equals(tabConnections)) {
       list =
-          server.getConnectionsExtendedInfo(treeItemType, clusterId, workingProcessId, infobaseId);
+          server.getConnectionsExtendedInfo(
+              currentHighlightingType, clusterId, workingProcessId, infobaseId);
 
     } else if (currentTab.equals(tabLocks)) {
-      list = server.getLocksExtendedInfo(treeItemType, clusterId, infobaseId);
+      list = server.getLocksExtendedInfo(currentHighlightingType, clusterId, infobaseId);
 
     } else if (currentTab.equals(tabWorkingProcesses)) {
-      list = server.getWorkingProcessesExtendedInfo(treeItemType, clusterId, workingProcessId);
+      list =
+          server.getWorkingProcessesExtendedInfo(
+              currentHighlightingType, clusterId, workingProcessId);
 
     } else if (currentTab.equals(tabWorkingServers)) {
-      list = server.getWorkingServersExtendedInfo(treeItemType, clusterId);
+      list = server.getWorkingServersExtendedInfo(currentHighlightingType, clusterId);
 
     } else {
       return;
@@ -1478,6 +1448,7 @@ public class ViewerArea extends Composite {
   private void highlightTreeItem(TreeItem treeItem) {
     currentTreeItem = treeItem;
     currentTreeItem.setFont(fontBold);
+    columnServer.pack();
   }
 
   private void setActiveContextMenuInTree(TreeItem treeItem) {
@@ -1497,8 +1468,6 @@ public class ViewerArea extends Composite {
   }
 
   private void clickItemInServerTree(int mouseButton) {
-    // TODO запутанный метод
-    // его надо переделать, переименовать, переосмыслить места вызова
     TreeItem[] item = serversTree.getSelection();
     if (item.length == 0) {
       return;
@@ -1513,7 +1482,7 @@ public class ViewerArea extends Composite {
         }
         saveCurrentSelectedData(treeItem);
         setEnableToolbarItems();
-        fillTabs();
+        refreshCurrentList();
         break;
 
       case 3: // right click
@@ -2428,155 +2397,6 @@ public class ViewerArea extends Composite {
         }
       };
 
-  SelectionAdapter userScriptRunner =
-      new SelectionAdapter() {
-        @Override
-        public void widgetSelected(SelectionEvent event) {
-          TreeItem[] items = serversTree.getSelection();
-          if (items.length == 0) {
-            return;
-          }
-          TreeItem infobaseItem = items[0];
-
-          File script = (File) event.widget.getData();
-          Map<String, String> params = fillParams(script, infobaseItem);
-          if (params.isEmpty()) {
-            Helper.showMessageBox("Params is empty");
-            return;
-          }
-
-          BackgroundTask task = new BackgroundTask(script, params);
-          addToTasksQueue(task);
-        }
-
-        public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
-          Map<String, String> params = new HashMap<>();
-
-          UUID clusterId = getClusterId(infobaseItem);
-          UUID infobaseId = getInfobaseId(infobaseItem);
-          Server server = getServer(infobaseItem);
-          if (server == null) {
-            LOGGER.error(
-                "Error get server info {}", //$NON-NLS-1$
-                script.getName());
-            return params;
-          }
-
-          String scriptText;
-          try {
-            scriptText = Files.readString(Path.of(script.getPath()));
-          } catch (IOException excp) {
-            LOGGER.error(
-                "Error read script {}", //$NON-NLS-1$
-                script.getName(),
-                excp);
-            return params;
-          }
-
-          Pattern p = Pattern.compile("\\%.+?\\%");
-          // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
-
-          Matcher m = p.matcher(scriptText);
-          while (m.find()) {
-            final String foundParam = m.group();
-            String paramValue;
-
-            switch (foundParam) {
-              case "%infobase%":
-                paramValue = server.getInfoBaseName(clusterId, infobaseId); // $NON-NLS-1$
-                break;
-
-              case "%serverName%":
-                paramValue = server.getAgentHost(); // $NON-NLS-1$
-                break;
-
-              case "%agentPort%":
-                paramValue = server.getAgentPortAsString(); // $NON-NLS-1$
-                break;
-
-              case "%managerPort%":
-                paramValue = server.getClusterMainPort(clusterId); // $NON-NLS-1$
-                break;
-
-              default:
-                LOGGER.error(
-                    "Found unknown param {}", //$NON-NLS-1$
-                    foundParam);
-                paramValue = ""; // $NON-NLS-1$
-                break;
-            }
-
-            String paramKey = foundParam.replace("%", "");
-            params.put(paramKey, paramValue);
-          }
-
-          // params.put("infobase", "dev1"); // $NON-NLS-1$
-          // params.put("serverName", "server123"); // $NON-NLS-1$
-          // params.put("managerPort", "4541"); // $NON-NLS-1$
-
-          return params;
-        }
-
-        public void addToTasksQueue(BackgroundTask task) {
-          TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
-          tableItem.setData(task);
-          tableItem.setChecked(false);
-
-          if (tableTasks.getSelection().length == 0 || BackgroundTask.getRunningCount() == 0) {
-            tableTasks.setSelection(tableItem);
-          }
-
-          task.run();
-
-          if (BackgroundTask.getRunningCount() == 0) {
-            taskTimer = new Timer(true);
-            taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
-          }
-        }
-
-        class TaskChekerTimer extends TimerTask {
-
-          @Override
-          public void run() {
-
-            Display.getDefault()
-                .asyncExec(
-                    new Runnable() {
-                      public void run() {
-                        TableItem[] items = tableTasks.getItems();
-                        TableItem[] selectItems = tableTasks.getSelection();
-
-                        BackgroundTask.resetCount();
-
-                        for (TableItem tableItem : items) {
-                          BackgroundTask task = (BackgroundTask) tableItem.getData();
-                          task.update(tableItem);
-
-                          // tableItem.setText(task.getDescription());
-                          // tableItem.setImage(task.getIcon());
-                          // BackgroundTask.calculateCount(task);
-
-                          if (selectItems.length > 0
-                              && tableItem.equals(selectItems[0])
-                              && (task.isRunning()
-                                  || tableTaskLog.getLineCount()
-                                      != task.getLog().lines().count())) {
-                            tableTaskLog.setText(task.getLog());
-                          }
-                        }
-
-                        BackgroundTask.setTabTitle(tabTask);
-
-                        if (BackgroundTask.getRunningCount() == 0) {
-                          taskTimer.cancel();
-                          taskTimer = null;
-                        }
-                      }
-                    });
-          }
-        }
-      };
-
   SelectionAdapter createWorkingServerListener =
       new SelectionAdapter() {
         @Override
@@ -2837,7 +2657,7 @@ public class ViewerArea extends Composite {
             int dialogResult = dialog.open();
             if (dialogResult == 0) {
               // clickItemInServerTree(0); // TODO что здесь должно делаться???
-              fillTabs();
+              refreshCurrentList();
             }
           } else {
             return;
@@ -2997,7 +2817,7 @@ public class ViewerArea extends Composite {
               break;
 
             case SWT.F5:
-              fillTabs();
+              refreshCurrentList();
               break;
 
             case SWT.DEL:
@@ -3049,7 +2869,7 @@ public class ViewerArea extends Composite {
         }
       };
 
-  private class ServerConnectionChekerTimer extends TimerTask {
+  private class ServerConnectionCheckerTimer extends TimerTask {
 
     @Override
     public void run() {
@@ -3111,19 +2931,218 @@ public class ViewerArea extends Composite {
           .asyncExec(
               new Runnable() {
                 public void run() {
-                  fillTabs();
+                  refreshCurrentList();
                 }
               });
     }
   }
 
-  class UpdateTablesSelectionListener extends SelectionAdapter {
+  class TaskChekerTimer extends TimerTask {
+
+    @Override
+    public void run() {
+
+      Display.getDefault()
+          .asyncExec(
+              new Runnable() {
+                public void run() {
+                  TableItem[] items = tableTasks.getItems();
+                  TableItem[] selectItems = tableTasks.getSelection();
+
+                  BackgroundTask.resetCount();
+
+                  for (TableItem tableItem : items) {
+                    BackgroundTask task = (BackgroundTask) tableItem.getData();
+                    task.update(tableItem);
+
+                    if (selectItems.length > 0
+                        && tableItem.equals(selectItems[0])
+                        && (task.isRunning()
+                            || tableTaskLog.getLineCount() != task.getLog().lines().count())) {
+                      tableTaskLog.setText(task.getLog());
+                    }
+                  }
+
+                  BackgroundTask.setTabTitle(tabTask);
+
+                  if (BackgroundTask.getRunningCount() == 0) {
+                    taskTimer.cancel();
+                    taskTimer = null;
+                  }
+                }
+              });
+    }
+  }
+
+  class UserScriptRunner extends SelectionAdapter {
+
+    // поля
+    // private Menu menuUserScripts;
+
+    public UserScriptRunner(Menu parentMenu) {
+      // this.menuUserScripts = parentMenu;
+
+      addMenuSeparator(parentMenu);
+      Menu menuUserScripts = addItemGroupInMenu(parentMenu, "Пользовательские скрипты", null);
+      this.fillUserScriptsItems(menuUserScripts);
+    }
+
+    public void fillUserScriptsItems(Menu subMenuUserScripts) {
+      Arrays.stream(subMenuUserScripts.getItems()).forEach(Widget::dispose);
+      // filter на элемент "Обновить" ???
+
+      addItemInMenu(subMenuUserScripts, Strings.CONTEXT_MENU_UPDATE, updateIcon16, this, null);
+      addMenuSeparator(subMenuUserScripts);
+
+      // чтение каталога скриптов и создание подэлементов
+      readUserScripts()
+          .forEach(
+              script -> addItemInMenu(subMenuUserScripts, script.getName(), null, this, script));
+    }
+
+    private List<File> readUserScripts() {
+      if (config.isWindows()) {
+        return new ArrayList<>();
+      }
+
+      File userScriptsDir = new File("scripts"); // $NON-NLS-1$
+      if (!userScriptsDir.exists()) {
+        userScriptsDir.mkdir();
+        // можно скачивать скрипты с репозитория
+      }
+      // userScripts.clear();
+      List<File> userScripts = new ArrayList<>();
+      if (userScriptsDir.exists() && userScriptsDir.isDirectory()) {
+        File[] scripts = userScriptsDir.listFiles();
+        for (File script : scripts) {
+          if (script.isFile()) {
+            userScripts.add(script);
+          }
+        }
+      }
+      return userScripts;
+    }
+
+    @Override
+    public void widgetSelected(SelectionEvent event) {
+      TreeItem[] items = serversTree.getSelection();
+      if (items.length == 0) {
+        return;
+      }
+
+      Object scriptData = event.widget.getData();
+      if (scriptData == null) {
+        Menu subMenuUserScripts = ((MenuItem) event.widget).getParent();
+        fillUserScriptsItems(subMenuUserScripts);
+        return;
+      }
+
+      File script = (File) event.widget.getData();
+
+      TreeItem infobaseItem = items[0];
+      Map<String, String> params = fillParams(script, infobaseItem);
+      if (params.isEmpty()) {
+        Helper.showMessageBox("Params is empty");
+        return;
+      }
+
+      BackgroundTask task = new BackgroundTask(script, params);
+      addToTasksQueue(task);
+    }
+
+    public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
+      Map<String, String> params = new HashMap<>();
+
+      UUID clusterId = getClusterId(infobaseItem);
+      UUID infobaseId = getInfobaseId(infobaseItem);
+      Server server = getServer(infobaseItem);
+      if (server == null) {
+        LOGGER.error(
+            "Error get server info {}", //$NON-NLS-1$
+            script.getName());
+        return params;
+      }
+
+      String scriptText;
+      try {
+        scriptText = Files.readString(Path.of(script.getPath()));
+      } catch (IOException excp) {
+        LOGGER.error(
+            "Error read script {}", //$NON-NLS-1$
+            script.getName(),
+            excp);
+        return params;
+      }
+
+      Pattern p = Pattern.compile("\\%.+?\\%");
+      // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
+
+      Matcher m = p.matcher(scriptText);
+      while (m.find()) {
+        final String foundParam = m.group();
+        String paramValue;
+
+        switch (foundParam) {
+          case "%infobase%":
+            paramValue = server.getInfoBaseName(clusterId, infobaseId); // $NON-NLS-1$
+            break;
+
+          case "%serverName%":
+            paramValue = server.getAgentHost(); // $NON-NLS-1$
+            break;
+
+          case "%agentPort%":
+            paramValue = server.getAgentPortAsString(); // $NON-NLS-1$
+            break;
+
+          case "%managerPort%":
+            paramValue = server.getClusterMainPort(clusterId); // $NON-NLS-1$
+            break;
+
+          default:
+            LOGGER.error(
+                "Found unknown param {}", //$NON-NLS-1$
+                foundParam);
+            paramValue = ""; // $NON-NLS-1$
+            break;
+        }
+
+        String paramKey = foundParam.replace("%", "");
+        params.put(paramKey, paramValue);
+      }
+
+      // params.put("infobase", "dev1"); // $NON-NLS-1$
+      // params.put("serverName", "server123"); // $NON-NLS-1$
+      // params.put("managerPort", "4541"); // $NON-NLS-1$
+
+      return params;
+    }
+
+    public void addToTasksQueue(BackgroundTask task) {
+      TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
+      tableItem.setData(task);
+      tableItem.setChecked(false);
+
+      if (tableTasks.getSelection().length == 0 || BackgroundTask.getRunningCount() == 0) {
+        tableTasks.setSelection(tableItem);
+      }
+
+      task.run();
+
+      if (BackgroundTask.getRunningCount() == 0) {
+        taskTimer = new Timer(true);
+        taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
+      }
+    }
+  }
+
+  class RefreshTablesSelectionListener extends SelectionAdapter {
 
     private ToolItem mainButton;
     private Menu dropdownMenu;
     private int refreshRate = config.getListRrefreshRate();
 
-    public UpdateTablesSelectionListener(ToolItem mainButton) {
+    public RefreshTablesSelectionListener(ToolItem mainButton) {
       this.mainButton = mainButton;
       this.mainButton.addSelectionListener(this);
 
@@ -3146,48 +3165,55 @@ public class ViewerArea extends Composite {
       menuItem.setData(data);
       if (style == SWT.CHECK) {
         menuItem.setImage(updateAutoIcon24);
+        menuItem.addSelectionListener(checkItemListener);
       }
       if (style == SWT.RADIO) {
         menuItem.setSelection((int) data == refreshRate);
+        menuItem.addSelectionListener(radioItemListener);
       }
+    }
 
-      menuItem.addSelectionListener(
-          new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent event) {
-              MenuItem selected = (MenuItem) event.widget;
+    SelectionAdapter checkItemListener =
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent event) {
+            MenuItem selected = (MenuItem) event.widget;
 
-              switch (selected.getStyle()) {
-                case SWT.CHECK:
-                  if (selected.getSelection()) {
-                    updateListTimer = new Timer(true);
-                    updateListTimer.schedule(new UpdateListTimer(), 1000, refreshRate);
-                    mainButton.setImage(updateAutoIcon24);
-                  } else {
-                    updateListTimer.cancel();
-                    updateListTimer = null;
-                    mainButton.setImage(updateIcon24);
-                  }
-                  break;
+            if (selected.getStyle() != SWT.CHECK) {
+              return;
+            }
+            if (selected.getSelection()) {
+              updateListTimer = new Timer(true);
+              updateListTimer.schedule(new UpdateListTimer(), 1000, refreshRate);
+              mainButton.setImage(updateAutoIcon24);
+            } else {
+              updateListTimer.cancel();
+              updateListTimer = null;
+              mainButton.setImage(updateIcon24);
+            }
+          }
+        };
 
-                case SWT.RADIO:
-                  if (selected.getSelection()) {
-                    refreshRate = (int) selected.getData();
-                    config.setListRrefreshRate(refreshRate);
-                    if (updateListTimer != null) {
-                      updateListTimer.cancel();
-                      updateListTimer = new Timer(true);
-                      updateListTimer.schedule(new UpdateListTimer(), 1000, refreshRate);
-                    }
-                  }
-                  break;
+    SelectionAdapter radioItemListener =
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent event) {
+            MenuItem selected = (MenuItem) event.widget;
 
-                default:
-                  break;
+            if (selected.getStyle() != SWT.RADIO) {
+              return;
+            }
+            if (selected.getSelection()) {
+              refreshRate = (int) selected.getData();
+              config.setListRrefreshRate(refreshRate);
+              if (updateListTimer != null) {
+                updateListTimer.cancel();
+                updateListTimer = new Timer(true);
+                updateListTimer.schedule(new UpdateListTimer(), 1000, refreshRate);
               }
             }
-          });
-    }
+          }
+        };
 
     @Override
     public void widgetSelected(SelectionEvent event) {
@@ -3198,7 +3224,7 @@ public class ViewerArea extends Composite {
         dropdownMenu.setLocation(pt.x, pt.y + rect.height);
         dropdownMenu.setVisible(true);
       } else {
-        fillTabs();
+        refreshCurrentList();
       }
     }
   }
