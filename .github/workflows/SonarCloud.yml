@@ -1,0 +1,50 @@
+name: SonarCloud
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+  pull_request:
+
+jobs:
+  SonarCloud:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.event.repository.full_name
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: ''
+      - run: |
+          git fetch --prune --unshallow
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Download and install Libs
+        env:
+          GITHUB_TOKEN: ${{ secrets.ONES_IBIS_LIBS_TOKEN }}
+          LIBS_REPO: ${{ secrets.ONES_IBIS_LIBS_REPO }}
+        run: |
+          cd lib
+          gh release download --repo "$LIBS_REPO" 1.0
+          ls -lh
+          sh install-libs-lin.sh
+
+      - name: SonarCloud Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          cd clusterAdminLibrary
+
+          mvn -B verify sonar:sonar
+          -Dsonar.projectKey=YanSergey_OneS_ClusterAdmin
+          -Dsonar.projectName="OneS ClusterAdmin"
+          -Dsonar.organization=yansergey
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.login=$SONAR_TOKEN

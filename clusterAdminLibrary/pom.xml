@@ -242,15 +242,15 @@
 			</resource>
 			<resource>
 				<directory>${basedir}/src/main/java/ru/yanygin/clusterAdminLibrary</directory>
-        <filtering>true</filtering>
-				<targetPath>/ru/yanygin/clusterAdminLibrary</targetPath>
+				<filtering>true</filtering>
+				<targetPath>${basedir}/target/classes/ru/yanygin/clusterAdminLibrary</targetPath>
 				<includes>
 					<include>**/*.properties</include>
 				</includes>
 			</resource>
 			<resource>
 				<directory>${basedir}/src/main/java/ru/yanygin/clusterAdminLibraryUI</directory>
-				<targetPath>/ru/yanygin/clusterAdminLibraryUI</targetPath>
+				<targetPath>${basedir}/target/classes/ru/yanygin/clusterAdminLibraryUI</targetPath>
 				<includes>
 					<include>**/*.properties</include>
 				</includes>
