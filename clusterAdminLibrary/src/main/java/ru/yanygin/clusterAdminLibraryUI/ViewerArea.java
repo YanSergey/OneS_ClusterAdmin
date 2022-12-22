@@ -201,7 +201,7 @@ public class ViewerArea extends Composite {
    * @param menu - menu
    * @param toolBar - toolBar
    * @param clusterProvider - clusterProvider
-   * @param configPath - путь к файлу конфигурации
+   * @param config - путь к файлу конфигурации
    */
   public ViewerArea(
       Composite parent,
@@ -226,33 +226,39 @@ public class ViewerArea extends Composite {
     BaseInfoExtended.init();
     
     TabFolder mainTabFolder = new TabFolder(this, SWT.BOTTOM);
-	
-    TabItem tabMain = new TabItem(mainTabFolder, SWT.NONE);
-    tabMain.setText("Main");
+    initServersTab(mainTabFolder);
+    initTaskTab(mainTabFolder);
+
+    runAutonnectAllServers();
+  }
+
+  private void initServersTab(TabFolder mainTabFolder) {
+    TabItem tabServers = new TabItem(mainTabFolder, SWT.NONE);
+    tabServers.setText(Strings.MENU_SERVERS);
 
     // инициализация таблиц управления серверами
     SashForm sashServers = new SashForm(mainTabFolder, SWT.NONE);
-    tabMain.setControl(sashServers);
+    tabServers.setControl(sashServers);
 
     initServersTree(sashServers);
 
-    TabFolder tabFolderServers = new TabFolder(sashServers, SWT.NONE);
+    TabFolder tabFolderLists = new TabFolder(sashServers, SWT.NONE);
 
-    tabFolderServers.addSelectionListener(
+    tabFolderLists.addSelectionListener(
         new SelectionAdapter() {
 
           @Override
           public void widgetSelected(SelectionEvent evt) {
-            currentTab = tabFolderServers.getSelection()[0];
+            currentTab = tabFolderLists.getSelection()[0];
             refreshCurrentList();
           }
         });
 
-    tabSessions = initListTable(tabFolderServers, SessionInfoExtended.class, true);
-    tabConnections = initListTable(tabFolderServers, ConnectionInfoExtended.class, false);
-    tabLocks = initListTable(tabFolderServers, LockInfoExtended.class, false);
-    tabWorkingProcesses = initListTable(tabFolderServers, WorkingProcessInfoExtended.class, false);
-    tabWorkingServers = initListTable(tabFolderServers, WorkingServerInfoExtended.class, false);
+    tabSessions = initListTable(tabFolderLists, SessionInfoExtended.class, true);
+    tabConnections = initListTable(tabFolderLists, ConnectionInfoExtended.class, false);
+    tabLocks = initListTable(tabFolderLists, LockInfoExtended.class, false);
+    tabWorkingProcesses = initListTable(tabFolderLists, WorkingProcessInfoExtended.class, false);
+    tabWorkingServers = initListTable(tabFolderLists, WorkingServerInfoExtended.class, false);
     ////////////////////////////////////////////
 
     initMaps();
@@ -270,21 +276,6 @@ public class ViewerArea extends Composite {
 
     // Пропорции областей
     sashServers.setWeights(3, 10);
-
-    // Заполнение списка серверов
-    config
-        .getServers()
-        .forEach(
-            (serverKey, server) -> {
-              addServerItemInServersTree(server);
-            });
-    columnServer.pack();
-
-    runAutonnectAllServers();
-
-    // инициализация таблиц заданий
-    initTaskTab(mainTabFolder);
-
   }
 
   private void initTaskTab(TabFolder mainTabFolder) {
@@ -318,7 +309,7 @@ public class ViewerArea extends Composite {
   }
 
   private void initIcon() {
-    LOGGER.info("Start init icon"); //$NON-NLS-1$
+    LOGGER.debug("Start init icon"); //$NON-NLS-1$
 
     //    serverAdd48Icon = Helper.getImage("server_add_48.png"); //$NON-NLS-1$
     //    clusterAdd48Icon = Helper.getImage("cluster_add_48.png"); //$NON-NLS-1$
@@ -357,7 +348,7 @@ public class ViewerArea extends Composite {
     moveUpIcon = Helper.getImage("move_up.png"); //$NON-NLS-1$
     moveDownIcon = Helper.getImage("move_down.png"); //$NON-NLS-1$
 
-    LOGGER.info("Icon init succesfully"); //$NON-NLS-1$
+    LOGGER.debug("Icon init succesfully"); //$NON-NLS-1$
   }
 
   private void initToolbar(ToolBar toolBar) {
@@ -427,6 +418,14 @@ public class ViewerArea extends Composite {
     columnServer.setText(Strings.COLUMN_SERVER);
     columnServer.setWidth(350);
 
+    // Заполнение списка серверов
+    config
+        .getServers()
+        .forEach(
+            (serverKey, server) -> {
+              addServerItemInServersTree(server);
+            });
+    columnServer.pack();
   }
 
   private void initServersTreeContextMenu() {
@@ -673,6 +672,9 @@ public class ViewerArea extends Composite {
       String title = tableContextItemEdit.get(tab);
       addItemInMenu(tableMenu, title, editIcon16, editItemInTablesListener);
     }
+
+    addItemInMenu(
+        tableMenu, Strings.CONTEXT_MENU_COPY_CELL_VALUE, null, copyCellValueInTablesListener);
 
     if (killable) {
       String title = tableContextItemDelete.get(tab);
@@ -2730,6 +2732,22 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter copyCellValueInTablesListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+
+          TableItem[] selection = getCurrentTable().getSelection();
+          if (selection.length > 0) {
+            Clipboard clipboard = new Clipboard(Display.getDefault());
+            clipboard.setContents(
+                new Object[] {selection[0].getText(lastSelectColumn)},
+                new Transfer[] {TextTransfer.getInstance()});
+            clipboard.dispose();
+          }
+        }
+      };
+
   Listener switchWatchingListener =
       new Listener() {
         @Override
@@ -2773,7 +2791,7 @@ public class ViewerArea extends Composite {
       new MouseAdapter() {
         @Override
         public void mouseDown(MouseEvent event) {
-          if (event.button != 1) {
+          if (event.button != 1 && event.button != 3) {
             return;
           }
           Table currentTable = (Table) event.widget;
@@ -2826,15 +2844,7 @@ public class ViewerArea extends Composite {
 
             case keyC:
               if (e.stateMask == SWT.CTRL) {
-                TableItem[] selection = getCurrentTable().getSelection();
-
-                if (selection.length > 0) {
-                  Clipboard clipboard = new Clipboard(Display.getDefault());
-                  clipboard.setContents(
-                      new Object[] {selection[0].getText(lastSelectColumn)},
-                      new Transfer[] {TextTransfer.getInstance()});
-                  clipboard.dispose();
-                }
+                copyCellValueInTablesListener.widgetSelected(null);
               }
               break;
 
@@ -3252,6 +3262,8 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_CREATE = getString("ContextMenu.Create");
     static final String CONTEXT_MENU_EDIT = getString("ContextMenu.Edit");
     static final String CONTEXT_MENU_DELETE = getString("ContextMenu.Delete");
+    static final String CONTEXT_MENU_COPY_CELL_VALUE =
+        getString("ContextMenu.CopyCellValue").concat("\tCtrl+C");
     static final String CONTEXT_MENU_ADD_SERVER = getString("ContextMenu.AddServer");
     static final String CONTEXT_MENU_EDIT_SERVER = getString("ContextMenu.EditServer");
     static final String CONTEXT_MENU_MOVE_UP = getString("ContextMenu.MoveUp");
