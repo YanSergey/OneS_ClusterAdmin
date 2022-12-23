@@ -42,7 +42,7 @@ jobs:
         run: >
           cd clusterAdminLibrary
 
-          mvn -B verify sonar:sonar
+          mvn -B verify -DskipTests sonar:sonar
           -Dsonar.projectKey=YanSergey_OneS_ClusterAdmin
           -Dsonar.projectName="OneS ClusterAdmin"
           -Dsonar.organization=yansergey
