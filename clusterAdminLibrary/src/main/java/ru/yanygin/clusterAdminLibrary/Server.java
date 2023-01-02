@@ -30,6 +30,7 @@ import com._1c.v8.ibis.admin.client.IAgentAdminConnector;
 import com._1c.v8.ibis.admin.client.IAgentAdminConnectorFactory;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import java.lang.Runtime.Version;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,9 +80,9 @@ public class Server implements Comparable<Server> {
   @Expose
   private int localRasPort = 0;
 
-  @SerializedName("LocalRasV8version")
+  @SerializedName("V8Version")
   @Expose
-  private String localRasV8version = ""; //$NON-NLS-1$
+  private String v8version = ""; //$NON-NLS-1$
 
   @SerializedName("Autoconnect")
   @Expose
@@ -89,7 +90,7 @@ public class Server implements Comparable<Server> {
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("SaveCredentials")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private boolean saveCredentials = false;
 
   @SerializedName("SaveCredentialsVariant")
@@ -98,12 +99,12 @@ public class Server implements Comparable<Server> {
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("AgentUser")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private String agentUserName = ""; //$NON-NLS-1$
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("AgentPassword")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private String agentPassword = ""; //$NON-NLS-1$
 
   @SerializedName("AgentCredential")
@@ -112,7 +113,7 @@ public class Server implements Comparable<Server> {
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("ClustersCredentials")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private Map<UUID, String[]> clustersCredentialsOld = new HashMap<>();
 
   @SerializedName("ClustersCredentialsV3")
@@ -130,9 +131,10 @@ public class Server implements Comparable<Server> {
   private ServerState serverState = ServerState.DISCONNECT;
   private boolean available;
   private Process localRasProcess;
-  private String connectionError = ""; //$NON-NLS-1$;
+  private String connectionError = ""; //$NON-NLS-1$
   boolean silentConnectionMode = false;
-  //  private String agentVersion = ""; //$NON-NLS-1$
+
+  @Deprecated
   private String agentVersion = Messages.getString("Server.NotConnect"); //$NON-NLS-1$
 
   private IAgentAdminConnector agentConnector;
@@ -337,30 +339,21 @@ public class Server implements Comparable<Server> {
   }
 
   /**
-   * Получение версии v8 локального RAS.
+   * Получение версии платформы v8 1C-сервера.
    *
-   * @return версия v8 локального RAS
+   * @return версия платформы v8 1C-сервера
    */
-  public String getLocalRasV8version() {
-    return localRasV8version;
+  public String getV8Version() {
+    return this.v8version;
   }
 
   /**
-   * Установка версии v8 локального RAS.
+   * Установка версии платформы v8 1C-сервера.
    *
-   * @param localRasV8version - версия v8 локального RAS
+   * @param v8version - версия платформы v8 1C-сервера
    */
-  public void setLocalRasV8version(String localRasV8version) {
-    this.localRasV8version = localRasV8version;
-  }
-
-  /**
-   * Получение версии агента сервера.
-   *
-   * @return версия агента сервера
-   */
-  public String getAgentVersion() {
-    return agentVersion;
+  public void setV8Version(String v8version) {
+    this.v8version = v8version;
   }
 
   /**
@@ -405,7 +398,7 @@ public class Server implements Comparable<Server> {
             : ""; //$NON-NLS-1$
     var serverVersionPatternPart =
         commonConfig.isShowServerVersion()
-            ? String.format(" (%s)", agentVersion) //$NON-NLS-1$
+            ? String.format(" (%s)", v8version) //$NON-NLS-1$
             : ""; //$NON-NLS-1$
     var serverDescriptionPatternPart =
         commonConfig.isShowServerDescription() && !description.isBlank()
@@ -705,19 +698,57 @@ public class Server implements Comparable<Server> {
     return collator.compare(secondString, firstString);
   }
 
-  private void readAgentVersion() {
+  private void refreshAgentVersion() {
 
     if (!isConnected()) {
       return;
     }
-
+    
+    String newAgentVersionString = "";
     try {
-      agentVersion = agentConnection.getAgentVersion();
-      LOGGER.debug(
-          "Agent version of server <{}> is <{}>", this.getServerKey(), agentVersion); //$NON-NLS-1$
+      newAgentVersionString = agentConnection.getAgentVersion();
     } catch (Exception e) {
-      agentVersion = Messages.getString("Server.UnknownAgentVersion"); //$NON-NLS-1$
-      LOGGER.error("Unknown agent version of server <{}>", this.getServerKey()); //$NON-NLS-1$
+      // для платформы 8.3.10 и ниже agentConnection.getAgentVersion() бросает AgentAdminException
+      this.v8version = Messages.getString("Server.UnknownAgentVersion"); // $NON-NLS-1$
+      LOGGER.error("Unknown agent version of server <{}>", this.getServerKey()); // $NON-NLS-1$
+      return;
+    }
+
+    if (this.v8version.isEmpty()) {
+      this.v8version = newAgentVersionString;
+      LOGGER.debug(
+          "Set Server <{}> version is <{}>", this.getServerKey(), this.v8version); //$NON-NLS-1$
+      return;
+    }
+
+    // agentVersion = agentConnection.getAgentVersion() = [8, 3, 18, 1483]
+    // agentVersion.feature() = 8
+    // agentVersion.interim() = 3
+    // agentVersion.update() = 18
+    // agentVersion.patch() = 1483
+    // для платформы 8.3.15 и ниже agentVersion.patch() = 0 всегда
+
+    Version newAgentVersion = Version.parse(newAgentVersionString);
+    Version savedV8version = Version.parse(this.v8version);
+
+    boolean v8versionIsActual;
+
+    if (newAgentVersion.version().size() == 3) {
+      v8versionIsActual =
+          savedV8version.feature() != newAgentVersion.feature()
+              || savedV8version.interim() != newAgentVersion.interim()
+              || savedV8version.update() != newAgentVersion.update();
+
+    } else {
+      v8versionIsActual = savedV8version.equals(newAgentVersion);
+    }
+
+    if (!v8versionIsActual) {
+      this.v8version = newAgentVersionString;
+      LOGGER.debug(
+          "Refresh Server <{}> version is <{}>", //$NON-NLS-1$
+          this.getServerKey(),
+          this.v8version);
     }
   }
 
@@ -739,7 +770,7 @@ public class Server implements Comparable<Server> {
    * @return {@code true} если v8 версия 8.3.15 или выше
    */
   public boolean isFifteenOrMoreAgentVersion() {
-    return agentVersion.compareTo("8.3.15") >= 0; //$NON-NLS-1$
+    return v8version.compareTo("8.3.15") >= 0; //$NON-NLS-1$
   }
 
   /**
@@ -878,7 +909,7 @@ public class Server implements Comparable<Server> {
       return true;
     }
 
-    if (localRasV8version.isBlank() || localRasPort == 0) {
+    if (v8version.isBlank() || localRasPort == 0) {
       var message =
           String.format(
               Messages.getString("Server.LocalRasParamsIsEmpty"), //$NON-NLS-1$
@@ -892,7 +923,7 @@ public class Server implements Comparable<Server> {
     ///////////////////////////// пока только Windows
     var processBuilder = new ProcessBuilder();
     var processOutput = ""; //$NON-NLS-1$
-    var localRasPath = Helper.getInstalledV8Versions().get(localRasV8version);
+    var localRasPath = Helper.getInstalledV8Versions().get(v8version);
     if (localRasPath == null) {
       var message =
           String.format(
@@ -1030,7 +1061,7 @@ public class Server implements Comparable<Server> {
 
     available = true;
     connectionError = ""; //$NON-NLS-1$
-    readAgentVersion();
+    refreshAgentVersion();
 
     LOGGER.debug("Server <{}> is connected now", this.getServerKey()); //$NON-NLS-1$
   }
