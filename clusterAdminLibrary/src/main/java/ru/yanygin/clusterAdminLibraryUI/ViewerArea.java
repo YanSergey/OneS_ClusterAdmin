@@ -3094,19 +3094,23 @@ public class ViewerArea extends Composite {
 
         switch (foundParam) {
           case "%infobase%":
-            paramValue = server.getInfoBaseName(clusterId, infobaseId); // $NON-NLS-1$
+            paramValue = server.getInfoBaseName(clusterId, infobaseId);
             break;
 
           case "%serverName%":
-            paramValue = server.getAgentHost(); // $NON-NLS-1$
+            paramValue = server.getAgentHost();
             break;
 
           case "%agentPort%":
-            paramValue = server.getAgentPortAsString(); // $NON-NLS-1$
+            paramValue = server.getAgentPortAsString();
             break;
 
           case "%managerPort%":
-            paramValue = server.getClusterMainPort(clusterId); // $NON-NLS-1$
+            paramValue = server.getClusterMainPort(clusterId);
+            break;
+
+          case "%v8version%":
+            paramValue = server.getV8Version();
             break;
 
           default:
