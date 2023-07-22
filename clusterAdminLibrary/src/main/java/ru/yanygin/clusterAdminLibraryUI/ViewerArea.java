@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -3011,7 +3012,7 @@ public class ViewerArea extends Composite {
     }
 
     private List<File> readUserScripts() {
-      if (config.isWindows()) {
+      if (!config.isWindows()) {
         return new ArrayList<>();
       }
 
@@ -3051,17 +3052,13 @@ public class ViewerArea extends Composite {
 
       TreeItem infobaseItem = items[0];
       Map<String, String> params = fillParams(script, infobaseItem);
-      if (params.isEmpty()) {
-        Helper.showMessageBox("Params is empty");
-        return;
+      if (!params.isEmpty()) {
+        addToTasksQueue(new BackgroundTask(script, params));
       }
-
-      BackgroundTask task = new BackgroundTask(script, params);
-      addToTasksQueue(task);
     }
 
     public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
-      Map<String, String> params = new HashMap<>();
+      Map<String, String> params = new LinkedHashMap<>();
 
       UUID clusterId = getClusterId(infobaseItem);
       UUID infobaseId = getInfobaseId(infobaseItem);
@@ -3083,6 +3080,10 @@ public class ViewerArea extends Composite {
             excp);
         return params;
       }
+
+      boolean foundEmptyParams = false;
+      boolean foundUsernameParam = false;
+      boolean foundPasswordParam = false;
 
       Pattern p = Pattern.compile("\\%.+?\\%");
       // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
@@ -3113,21 +3114,44 @@ public class ViewerArea extends Composite {
             paramValue = server.getV8Version();
             break;
 
+          case "%username%":
+            foundUsernameParam = true;
+            foundEmptyParams = true;
+            continue;
+
+          case "%password%":
+            foundPasswordParam = true;
+            foundEmptyParams = true;
+            continue;
+
           default:
-            LOGGER.error(
-                "Found unknown param {}", //$NON-NLS-1$
-                foundParam);
-            paramValue = ""; // $NON-NLS-1$
+            LOGGER.info("Found unknown param {}", foundParam);
+            paramValue = "";
+            foundEmptyParams = true;
             break;
         }
 
         String paramKey = foundParam.replace("%", "");
         params.put(paramKey, paramValue);
       }
+      if (Boolean.TRUE.equals(foundUsernameParam)) {
+        params.put("username", "");
+      }
+      if (Boolean.TRUE.equals(foundPasswordParam)) {
+        params.put("password", "");
+      }
 
-      // params.put("infobase", "dev1"); // $NON-NLS-1$
-      // params.put("serverName", "server123"); // $NON-NLS-1$
-      // params.put("managerPort", "4541"); // $NON-NLS-1$
+      if (foundEmptyParams) {
+        BackgroundTaskParams taskParamsDialog =
+            new BackgroundTaskParams(
+                getShell(), params, script.getName(), server.getInfobasesCredentials());
+        int dialogResult = taskParamsDialog.open();
+        if (dialogResult != 0) {
+          return new HashMap<>();
+        }
+
+        params = taskParamsDialog.getParams();
+      }
 
       return params;
     }
