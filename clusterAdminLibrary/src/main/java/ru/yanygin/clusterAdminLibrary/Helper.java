@@ -2,6 +2,8 @@ package ru.yanygin.clusterAdminLibrary;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -70,10 +72,10 @@ public class Helper {
   /**
    * Возвращает список установленных версий платформы V8.
    *
-   * @param config - конфиг программы
+   * @param bitness - разрядность платформы
    * @return список установленных версий платформы V8
    */
-  public static Map<String, String> getInstalledV8Versions() {
+  public static Map<String, String> getInstalledV8Versions(String bitness) {
     LOGGER.debug("Get installed v8 platform versions"); //$NON-NLS-1$
 
     Map<String, String> versions = new HashMap<>();
@@ -82,50 +84,109 @@ public class Helper {
       return versions;
     }
 
-    File v8x64CommonPath = new File("C:\\Program Files\\1cv8"); //$NON-NLS-1$
-    File v8x86CommonPath = new File("C:\\Program Files (x86)\\1cv8"); //$NON-NLS-1$
+    final String filterWindows = "8.3.\\d\\d.\\d{4}"; // $NON-NLS-1$
+    final String filterLinux = "v8.3.\\d\\d.\\d{4}"; // $NON-NLS-1$
+    String filterCurrentOs;
 
-    FilenameFilter filter =
+    Path v8runtimeDir;
+    // Path v8runtimeDirX64;
+    // Path v8runtimeDirX86;
+
+    if (Config.currentConfig.isWindows()) {
+      filterCurrentOs = filterWindows;
+      // для 64-разрядной
+      // v8runtimeDirX64 = Paths.get(System.getenv("ProgramW6432"), "1cv8");
+      // v8runtimeDirX86 = Paths.get(System.getenv("ProgramFiles(x86)"), "1cv8");
+      // для 32-разрядной
+      // v8runtimeDirX86 = Paths.get(System.getenv("ProgramFiles"), "1cv8");
+
+      v8runtimeDir =
+          bitness.equals("x64")
+              ? Paths.get(System.getenv("ProgramW6432"), "1cv8")
+              : Paths.get(System.getenv("ProgramFiles(x86)"), "1cv8");
+
+    } else if (Config.currentConfig.isLinux()) {
+      // filterCurrentOs = filterLinux;
+      // v8runtimeDirX64 = Paths.get("/opt", "1C", "v8.3", "x86_64");
+      // v8runtimeDirX86 = Paths.get("/opt", "1C", "v8.3", "i386");
+      // v8runtimeDirX64 = Paths.get("/opt", "1cv8", "x86_64");
+      // v8runtimeDirX86 = Paths.get("/opt", "1cv8", "i386");
+
+      // v8runtimeDir = Paths.get("/opt", "1C");
+      return versions;
+
+    } else if (Config.currentConfig.isMacOs()) {
+      // v8runtimeDir = Paths.get("/opt", "1cv8");
+      return versions;
+    } else {
+      return versions;
+    }
+    LOGGER.debug("Current v8 runtime directory <{}>", v8runtimeDir); // $NON-NLS-1$
+
+    // File v8x64CommonPath = new File("C:\\Program Files\\1cv8"); // $NON-NLS-1$
+    // File v8x86CommonPath = new File("C:\\Program Files (x86)\\1cv8"); // $NON-NLS-1$
+
+    FilenameFilter filterVersion =
         new FilenameFilter() {
           @Override
           public boolean accept(File f, String name) {
-            return name.matches("8.3.\\d\\d.\\d{4}"); //$NON-NLS-1$
+            return Paths.get(f.getAbsolutePath(), name).toFile().isDirectory()
+                && name.matches(filterCurrentOs);
+          }
+        };
+
+    FilenameFilter filterBitnessLinux =
+        new FilenameFilter() {
+          @Override
+          public boolean accept(File f, String name) {
+            String bitnessPart = bitness.equals("x64") ? "x86_64" : "i386";
+            return Paths.get(f.getAbsolutePath(), name).toFile().isDirectory()
+                && Paths.get(f.getAbsolutePath(), name, bitnessPart).toFile().exists();
           }
         };
 
     try {
-      if (v8x64CommonPath.exists()) {
-        File[] v8x64dirs = v8x64CommonPath.listFiles(filter);
-        for (File dir : v8x64dirs) {
-          if (dir.isDirectory()) {
-            File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
-            if (ras.exists() && ras.isFile()) {
-              versions.put(dir.getName().concat(" (x86_64)"), ras.getAbsolutePath()); //$NON-NLS-1$
-            }
-          }
-        }
-      }
-    } catch (Exception excp) {
-      LOGGER.error("Error read dir <{}>", v8x64CommonPath.getAbsolutePath(), excp); //$NON-NLS-1$
-    }
+      if (v8runtimeDir.toFile().exists()) {
+        File[] versionDirs = v8runtimeDir.toFile().listFiles(filterVersion);
+        for (File dir : versionDirs) {
+          LOGGER.debug("Version dir <{}>", dir); // $NON-NLS-1$
 
-    try {
-      if (v8x86CommonPath.exists()) {
-        File[] v8x86dirs = v8x86CommonPath.listFiles(filter);
-        for (File dir : v8x86dirs) {
-          if (dir.isDirectory()) {
-            File ras = new File(dir.getAbsolutePath().concat("\\bin\\ras.exe")); //$NON-NLS-1$
-            if (ras.exists() && ras.isFile()) {
-              versions.put(dir.getName(), ras.getAbsolutePath()); //$NON-NLS-1$
-            }
+          if (Config.currentConfig.isWindows()) {
+            versions.put(dir.getName(), dir.getAbsolutePath());
+          } else if (dir.list(filterBitnessLinux).length > 0) {
+            versions.put(dir.getName(), dir.getAbsolutePath());
           }
         }
       }
     } catch (Exception excp) {
-      LOGGER.error("Error read dir <{}>", v8x64CommonPath.getAbsolutePath(), excp); //$NON-NLS-1$
+      LOGGER.error(
+          "Error read dir <{}>", v8runtimeDir.toFile().getAbsolutePath(), excp); // $NON-NLS-1$
     }
 
     return versions;
+  }
+
+  /**
+   * Возвращает путь к исполняемому файлу RAS.
+   *
+   * @param version - версия платформы
+   * @param bitness - разрядность версии
+   * @return путь к исполняемому файлу RAS
+   */
+  public static String pathToRas(String version, String bitness) {
+
+    String pathToVersion = getInstalledV8Versions(bitness).get(version);
+    String osPart;
+
+    if (Config.currentConfig.isWindows()) {
+      osPart = "bin";
+    } else if (Config.currentConfig.isLinux()) {
+      osPart = bitness.equals("x64") ? "x86_64" : "i386";
+    } else {
+      return null;
+    }
+
+    return Paths.get(pathToVersion, osPart, "ras").toFile().getAbsolutePath();
   }
 
   /**

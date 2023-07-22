@@ -923,7 +923,7 @@ public class Server implements Comparable<Server> {
     ///////////////////////////// пока только Windows
     var processBuilder = new ProcessBuilder();
     var processOutput = ""; //$NON-NLS-1$
-    var localRasPath = Helper.getInstalledV8Versions().get(v8version);
+    var localRasPath = Helper.pathToRas(v8version, "x64");
     if (localRasPath == null) {
       var message =
           String.format(

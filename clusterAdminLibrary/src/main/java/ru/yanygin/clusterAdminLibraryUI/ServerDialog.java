@@ -121,6 +121,12 @@ public class ServerDialog extends Dialog {
     GridLayout glConnectContainer = new GridLayout(2, false);
     connectContainer.setLayout(glConnectContainer);
 
+    btnAutoconnect = new Button(connectContainer, SWT.CHECK);
+    GridData gdbtnAutoconnect = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
+    gdbtnAutoconnect.horizontalIndent = 5;
+    btnAutoconnect.setLayoutData(gdbtnAutoconnect);
+    btnAutoconnect.setText(Strings.AUTOCONNECT_AT_STARTUP);
+
     Group grpDescription = new Group(connectContainer, SWT.NONE);
     grpDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
     grpDescription.setText(Strings.SERVER_DESCRIPTION);
@@ -166,13 +172,6 @@ public class ServerDialog extends Dialog {
     GridData gdtxtAgentPort = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
     gdtxtAgentPort.widthHint = 50;
     txtAgentPort.setLayoutData(gdtxtAgentPort);
-
-    btnAutoconnect = new Button(connectContainer, SWT.CHECK);
-    GridData gdbtnAutoconnect = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-    gdbtnAutoconnect.horizontalIndent = 5;
-    btnAutoconnect.setLayoutData(gdbtnAutoconnect);
-    btnAutoconnect.setText(Strings.AUTOCONNECT_AT_STARTUP);
-    new Label(connectContainer, SWT.NONE);
 
     Group grpConnectParameters = new Group(connectContainer, SWT.NONE);
     grpConnectParameters.setLayout(new GridLayout(3, false));
@@ -411,7 +410,7 @@ public class ServerDialog extends Dialog {
 
   private String[] getInstalledV8Versions() {
     List<String> installedV8Versions = new ArrayList<>();
-    Helper.getInstalledV8Versions().forEach((desc, path) -> installedV8Versions.add(desc));
+    Helper.getInstalledV8Versions("x64").forEach((desc, path) -> installedV8Versions.add(desc));
     installedV8Versions.sort(String.CASE_INSENSITIVE_ORDER);
     return installedV8Versions.toArray(new String[0]);
   }
