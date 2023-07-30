@@ -61,6 +61,7 @@ import org.eclipse.swt.widgets.Widget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibrary.BackgroundTask;
+import ru.yanygin.clusterAdminLibrary.BackgroundTask.V8ActionVariant;
 import ru.yanygin.clusterAdminLibrary.BaseInfoExtended;
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
 import ru.yanygin.clusterAdminLibrary.ColumnProperties;
@@ -291,7 +292,7 @@ public class ViewerArea extends Composite {
     tableTasks.setLinesVisible(true);
     tableTasks.addMouseListener(tableTaskMouseClickListener);
 
-    addTaskTableColumn(tableTasks, "Task", 140);
+    addTaskTableColumn(tableTasks, "Task", 200);
     addTaskTableColumn(tableTasks, "State", 50);
     addTaskTableColumn(tableTasks, "Start", 120, SWT.RIGHT);
     addTaskTableColumn(tableTasks, "End", 120);
@@ -306,7 +307,7 @@ public class ViewerArea extends Composite {
           }
         });
     // Пропорции областей
-    sashTasks.setWeights(5, 10);
+    sashTasks.setWeights(7, 10);
   }
 
   private void initIcon() {
@@ -618,7 +619,16 @@ public class ViewerArea extends Composite {
 
     Menu subMenuInfobaseActions = addItemGroupInMenu(infobaseMenu, "Действия с базой", null);
 
-    addItemInMenu(subMenuInfobaseActions, "Запустить конфигуратор", null, launchDesignerListener);
+    addItemInMenu(subMenuInfobaseActions, "Запустить конфигуратор", null, launchDesignerListener, V8ActionVariant.RUN_DESIGNER);
+    addItemInMenu(subMenuInfobaseActions, "Запустить предприятие", null, launchDesignerListener, V8ActionVariant.RUN_ENTERPRISE);
+
+    addMenuSeparator(subMenuInfobaseActions);
+    addItemInMenu(subMenuInfobaseActions, "Сохранить CF", null, launchDesignerListener, V8ActionVariant.SAVE_CF);
+    addItemInMenu(subMenuInfobaseActions, "Загрузить CF", null, launchDesignerListener, V8ActionVariant.LOAD_CF);
+
+    addMenuSeparator(subMenuInfobaseActions);
+    addItemInMenu(subMenuInfobaseActions, "Сохранить DT", null, launchDesignerListener, V8ActionVariant.SAVE_DT);
+    addItemInMenu(subMenuInfobaseActions, "Загрузить DT", null, launchDesignerListener, V8ActionVariant.LOAD_DT);
   }
 
   private TabItem initListTable(
@@ -1571,19 +1581,8 @@ public class ViewerArea extends Composite {
     deleteToolbarItem.setEnabled(toolbarDeleteListeners.get(currentHighlightingType) != null);
   }
 
-  public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
+  private Map<String, String> fillParams(BackgroundTask backgroundTask, TreeItem infobaseItem) {
     Map<String, String> params = new LinkedHashMap<>();
-
-    String scriptText;
-    try {
-      scriptText = Files.readString(Path.of(script.getPath()));
-    } catch (IOException excp) {
-      LOGGER.error(
-          "Error read script {}", //$NON-NLS-1$
-          script.getName(),
-          excp);
-      return params;
-    }
 
     UUID clusterId = getClusterId(infobaseItem);
     UUID infobaseId = getInfobaseId(infobaseItem);
@@ -1591,7 +1590,7 @@ public class ViewerArea extends Composite {
     if (server == null) {
       LOGGER.error(
           "Error get server info {}", //$NON-NLS-1$
-          script.getName());
+          backgroundTask.getScriptName());
       return params;
     }
 
@@ -1602,7 +1601,7 @@ public class ViewerArea extends Composite {
     Pattern p = Pattern.compile("\\%.+?\\%");
     // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
 
-    Matcher m = p.matcher(scriptText);
+    Matcher m = p.matcher(backgroundTask.getScriptText());
     while (m.find()) {
       final String foundParam = m.group();
       String paramValue;
@@ -1658,7 +1657,7 @@ public class ViewerArea extends Composite {
     if (foundEmptyParams) {
       BackgroundTaskParams taskParamsDialog =
           new BackgroundTaskParams(
-              getShell(), params, script.getName(), server.getInfobasesCredentials());
+              getShell(), params, backgroundTask.getScriptName(), server.getInfobasesCredentials());
       int dialogResult = taskParamsDialog.open();
       if (dialogResult != 0) {
         return new HashMap<>();
@@ -1670,105 +1669,7 @@ public class ViewerArea extends Composite {
     return params;
   }
 
-  public Map<String, String> fillParams(
-      String scriptText, String scriptName, TreeItem infobaseItem) {
-    Map<String, String> params = new LinkedHashMap<>();
-
-    // String scriptText;
-    // try {
-    // scriptText = Files.readString(Path.of(script.getPath()));
-    // } catch (IOException excp) {
-    // LOGGER.error("Error read script {}", //$NON-NLS-1$
-    // script.getName(), excp);
-    // return params;
-    // }
-
-    UUID clusterId = getClusterId(infobaseItem);
-    UUID infobaseId = getInfobaseId(infobaseItem);
-    Server server = getServer(infobaseItem);
-    if (server == null) {
-      LOGGER.error(
-          "Error get server info {}", //$NON-NLS-1$
-          scriptName);
-      return params;
-    }
-
-    boolean foundEmptyParams = false;
-    boolean foundUsernameParam = false;
-    boolean foundPasswordParam = false;
-
-    Pattern p = Pattern.compile("\\%.+?\\%");
-    // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
-
-    Matcher m = p.matcher(scriptText);
-    while (m.find()) {
-      final String foundParam = m.group();
-      String paramValue;
-
-      switch (foundParam) {
-        case "%infobase%":
-          paramValue = server.getInfoBaseName(clusterId, infobaseId);
-          break;
-
-        case "%serverName%":
-          paramValue = server.getAgentHost();
-          break;
-
-        case "%agentPort%":
-          paramValue = server.getAgentPortAsString();
-          break;
-
-        case "%managerPort%":
-          paramValue = server.getClusterMainPort(clusterId);
-          break;
-
-        case "%v8version%":
-          paramValue = server.getV8Version();
-          break;
-
-        case "%username%":
-          foundUsernameParam = true;
-          foundEmptyParams = true;
-          continue;
-
-        case "%password%":
-          foundPasswordParam = true;
-          foundEmptyParams = true;
-          continue;
-
-        default:
-          LOGGER.info("Found unknown param {}", foundParam);
-          paramValue = "";
-          foundEmptyParams = true;
-          break;
-      }
-
-      String paramKey = foundParam.replace("%", "");
-      params.put(paramKey, paramValue);
-    }
-    if (Boolean.TRUE.equals(foundUsernameParam)) {
-      params.put("v8username", "");
-    }
-    if (Boolean.TRUE.equals(foundPasswordParam)) {
-      params.put("v8password", "");
-    }
-
-    if (foundEmptyParams) {
-      BackgroundTaskParams taskParamsDialog =
-          new BackgroundTaskParams(
-              getShell(), params, scriptName, server.getInfobasesCredentials());
-      int dialogResult = taskParamsDialog.open();
-      if (dialogResult != 0) {
-        return new HashMap<>();
-      }
-
-      params = taskParamsDialog.getParams();
-    }
-
-    return params;
-  }
-
-  public void addToTasksQueue(BackgroundTask task) {
+  private void addToTasksQueue(BackgroundTask task) {
     TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
     tableItem.setData(task);
     tableItem.setChecked(false);
@@ -2629,20 +2530,15 @@ public class ViewerArea extends Composite {
           if (items.length == 0) {
             return;
           }
+
           TreeItem infobaseItem = items[0];
+          BackgroundTask backgroundTask =
+              new BackgroundTask((V8ActionVariant) event.widget.getData());
 
-          String script1 =
-              String.join(" ",
-                  "\"C:\\Program Files\\1cv8\\common\\1cestart.exe\"",
-                  "DESIGNER",
-                  "/S %serverName%:%managerPort%\\%infobase% /N%v8username% /P%v8password%");
-
-          String script =
-              "\"C:\\Program Files\\1cv8\\common\\1cestart.exe\" DESIGNER /S %serverName%:%managerPort%\\%infobase% /N%v8username% /P%v8password%";
-
-          Map<String, String> params = fillParams(script, "runDesigner", infobaseItem);
+          Map<String, String> params = fillParams(backgroundTask, infobaseItem);
           if (!params.isEmpty()) {
-            addToTasksQueue(new BackgroundTask(script, "runDesigner", params));
+            backgroundTask.setParams(params);
+            addToTasksQueue(backgroundTask);
           }
         }
       };
@@ -3295,15 +3191,16 @@ public class ViewerArea extends Composite {
         return;
       }
 
-      File script = (File) event.widget.getData();
-
       TreeItem infobaseItem = items[0];
-      Map<String, String> params = fillParams(script, infobaseItem);
+      File script = (File) scriptData;
+
+      BackgroundTask backgroundTask = new BackgroundTask(script);
+      Map<String, String> params = fillParams(backgroundTask, infobaseItem);
       if (!params.isEmpty()) {
-        addToTasksQueue(new BackgroundTask(script, params));
+        backgroundTask.setParams(params);
+        addToTasksQueue(backgroundTask);
       }
     }
-
   }
 
   class RefreshTablesSelectionListener extends SelectionAdapter {

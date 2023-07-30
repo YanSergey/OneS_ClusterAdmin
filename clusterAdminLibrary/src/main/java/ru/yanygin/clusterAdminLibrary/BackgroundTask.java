@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +21,14 @@ import org.slf4j.LoggerFactory;
 public class BackgroundTask {
 
   static final Logger LOGGER = LoggerFactory.getLogger(BackgroundTask.class.getSimpleName());
+
+  static final String starterPath = "\"C:\\Program Files\\1cv8\\common\\1cestart.exe\"";
+  static final String designerCommand = "DESIGNER";
+  static final String enterpriseCommand = "ENTERPRISE";
+  static final String logonCommand =
+      "/S%serverName%:%managerPort%\\%infobase% /N%v8username% /P%v8password%";
+  //  static final String logonComman1 = "/S%v8server%:%v8managerPort%\\%v8infobase% /N%v8username%
+  // /P%v8password%";
 
   static int countOfRunning = 0;
   static int countOfCompleted = 0;
@@ -57,6 +67,15 @@ public class BackgroundTask {
     V8ACTION
   }
 
+  public enum V8ActionVariant {
+    RUN_DESIGNER,
+    RUN_ENTERPRISE,
+    LOAD_CF,
+    SAVE_CF,
+    LOAD_DT,
+    SAVE_DT
+  }
+
   Thread thread;
 
   Date startDate;
@@ -66,40 +85,97 @@ public class BackgroundTask {
    * Инициализация задачи.
    *
    * @param script - файл скрипта
-   * @param params - Переменные окружения
    */
-  public BackgroundTask(File script, Map<String, String> params) {
+  public BackgroundTask(File script) {
     this.taskVariant = TaskVariant.USER_SCRIPT;
 
     this.script = script;
+
+    try {
+      this.scriptText = Files.readString(Path.of(script.getPath()));
+    } catch (IOException excp) {
+      LOGGER.error(
+          "Error read script {}", //$NON-NLS-1$
+          script.getName(),
+          excp);
+    }
+
     this.scriptName = script.getName();
-    this.params = params;
-    this.taskName = generateTaskName();
   }
 
   /**
    * Инициализация задачи.
    *
-   * @param scriptText - строка с командой для выполнения действия
-   * @param scriptName - имя команды
-   * @param params - Переменные окружения
+   * @param v8ActionVariant - Вариант команды 1С
    */
-  public BackgroundTask(String scriptText, String scriptName, Map<String, String> params) {
+  public BackgroundTask(V8ActionVariant v8ActionVariant) {
     this.taskVariant = TaskVariant.V8ACTION;
 
-    this.scriptText = scriptText;
-    this.scriptName = scriptName;
-    this.params = params;
-    this.taskName = generateTaskName();
+    if (v8ActionVariant == V8ActionVariant.RUN_ENTERPRISE) {
+      this.scriptText = String.join(" ", starterPath, enterpriseCommand, logonCommand);
+    } else {
+      this.scriptText = String.join(" ", starterPath, designerCommand, logonCommand);
+    }
+
+    switch (v8ActionVariant) {
+      case SAVE_CF:
+        this.scriptText = String.join(" ", this.scriptText, "/DumpCfg %v8FilePath%.cf");
+        break;
+      case LOAD_CF:
+        this.scriptText = String.join(" ", this.scriptText, "/LoadCfg %v8FilePath%.cf");
+        break;
+      case SAVE_DT:
+        this.scriptText = String.join(" ", this.scriptText, "/DumpIB %v8FilePath%.dt");
+        break;
+      case LOAD_DT:
+        this.scriptText = String.join(" ", this.scriptText, "/RestoreIB %v8FilePath%.dt");
+        break;
+
+      default:
+        break;
+    }
+
+    this.scriptName = v8ActionVariant.toString();
   }
 
-  private String generateTaskName() {
+  private void generateTaskName() {
 
     int taskNumber = taskNamesCounter.getOrDefault(scriptName, 0);
     taskNumber++;
     taskNamesCounter.put(scriptName, taskNumber);
 
-    return String.format("%s #%d", scriptName, taskNumber);
+    if (taskVariant == TaskVariant.USER_SCRIPT) {
+      this.taskName = String.format("%s (#%d)", scriptName, taskNumber);
+    } else {
+      this.taskName =
+          String.format(
+              "%s %s:%s/%s (#%d)",
+              scriptName,
+              params.get("serverName"),
+              params.get("managerPort"),
+              params.get("infobase"),
+              taskNumber);
+    }
+  }
+
+  /** Получить текст скрипта. */
+  public String getScriptText() {
+    return this.scriptText;
+  }
+
+  /** Получить имя скрипта. */
+  public String getScriptName() {
+    return this.scriptName;
+  }
+
+  /**
+   * Установка параметров задачи.
+   *
+   * @param params - Параметры задачи
+   */
+  public void setParams(Map<String, String> params) {
+    this.params = params;
+    generateTaskName();
   }
 
   /**
