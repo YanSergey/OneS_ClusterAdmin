@@ -29,21 +29,32 @@ public class BackgroundTask {
   static Image taskCompleted = Helper.getImage("taskCompleted.png"); //$NON-NLS-1$
   static Image taskError = Helper.getImage("taskError.png"); //$NON-NLS-1$
 
-  String taskName;
   File script;
+  String scriptText;
+
+  String scriptName;
+
+  String taskName;
   Map<String, String> params;
 
   Process scriptProcess;
-  String processOutput = ""; // $NON-NLS-1$
+  String processOutput = ""; //$NON-NLS-1$
   int exitCode;
 
   TaskState state;
   TaskState stateLast;
 
+  TaskVariant taskVariant;
+
   enum TaskState {
     RUNNUNG,
     DONE,
     ERROR
+  }
+
+  enum TaskVariant {
+    USER_SCRIPT,
+    V8ACTION
   }
 
   Thread thread;
@@ -58,15 +69,31 @@ public class BackgroundTask {
    * @param params - Переменные окружения
    */
   public BackgroundTask(File script, Map<String, String> params) {
-    
+    this.taskVariant = TaskVariant.USER_SCRIPT;
+
     this.script = script;
+    this.scriptName = script.getName();
     this.params = params;
     this.taskName = generateTaskName();
+  }
 
+  /**
+   * Инициализация задачи.
+   *
+   * @param scriptText - строка с командой для выполнения действия
+   * @param scriptName - имя команды
+   * @param params - Переменные окружения
+   */
+  public BackgroundTask(String scriptText, String scriptName, Map<String, String> params) {
+    this.taskVariant = TaskVariant.V8ACTION;
+
+    this.scriptText = scriptText;
+    this.scriptName = scriptName;
+    this.params = params;
+    this.taskName = generateTaskName();
   }
 
   private String generateTaskName() {
-    String scriptName = script.getName();
 
     int taskNumber = taskNamesCounter.getOrDefault(scriptName, 0);
     taskNumber++;
@@ -129,12 +156,12 @@ public class BackgroundTask {
             "Tasks (Run: %d, Completed: %d, Error: %d)",
             countOfRunning, countOfCompleted, countWithError);
 
-    //        countWithError == 0
-    //            ? String.format("Tasks (Run: %d, Completed: %d)", countOfRunning,
+    // countWithError == 0
+    // ? String.format("Tasks (Run: %d, Completed: %d)", countOfRunning,
     // countOfCompleted)
-    //            : String.format(
-    //                "Tasks (Run: %d, Completed: %d, Error: %d)",
-    //                countOfRunning, countOfCompleted, countWithError);
+    // : String.format(
+    // "Tasks (Run: %d, Completed: %d, Error: %d)",
+    // countOfRunning, countOfCompleted, countWithError);
 
     tab.setText(title);
     tab.setImage(countOfRunning == 0 ? taskCompleted : taskRunning);
@@ -170,10 +197,10 @@ public class BackgroundTask {
         break;
     }
 
-    //    String paramsAsString =
-    //        params.keySet().stream()
-    //            .map(key -> key + " = " + params.get(key))
-    //            .collect(Collectors.joining("\n"));
+    // String paramsAsString =
+    // params.keySet().stream()
+    // .map(key -> key + " = " + params.get(key))
+    // .collect(Collectors.joining("\n"));
 
     return new String[] {
       taskName,
@@ -270,10 +297,13 @@ public class BackgroundTask {
               // ).inheritIO();
               // processBuilder.command(script.getAbsolutePath());
 
+              String currentCommand =
+                  taskVariant == TaskVariant.USER_SCRIPT ? script.getAbsolutePath() : scriptText;
+
               processBuilder.command(
                   "cmd.exe", //$NON-NLS-1$
                   "/c", //$NON-NLS-1$
-                  script.getAbsolutePath());
+                  currentCommand); // script.getAbsolutePath());
 
               Map<String, String> env = processBuilder.environment();
               params.forEach(env::put);
@@ -281,15 +311,15 @@ public class BackgroundTask {
               try {
                 scriptProcess = processBuilder.start();
               } catch (Exception excp) {
-                LOGGER.error("Error launch user script <{}>", script.getName()); // $NON-NLS-1$
-                LOGGER.error("\t<{}>", processOutput, excp); // $NON-NLS-1$
+                LOGGER.error("Error launch user script <{}>", scriptName); //$NON-NLS-1$
+                LOGGER.error("\t<{}>", processOutput, excp); //$NON-NLS-1$
                 Helper.showMessageBox(excp.getLocalizedMessage());
                 return;
               }
               state = TaskState.RUNNUNG;
 
-              LOGGER.debug("Script process runnung = {}", scriptProcess.isAlive()); // $NON-NLS-1$
-              LOGGER.debug("Script process parent CMD pid={}", scriptProcess.pid()); // $NON-NLS-1$
+              LOGGER.debug("Script process runnung = {}", scriptProcess.isAlive()); //$NON-NLS-1$
+              LOGGER.debug("Script process parent CMD pid={}", scriptProcess.pid()); //$NON-NLS-1$
               Stream<ProcessHandle> subprocesses = scriptProcess.children();
               subprocesses.forEach(
                   subprocess ->
@@ -315,7 +345,7 @@ public class BackgroundTask {
                 exitCode = scriptProcess.waitFor();
 
               } catch (InterruptedException | IOException excp) {
-                LOGGER.error("Error: ", excp); // $NON-NLS-1$
+                LOGGER.error("Error: ", excp); //$NON-NLS-1$
               }
 
               state = exitCode == 0 ? TaskState.DONE : TaskState.ERROR;
@@ -324,5 +354,4 @@ public class BackgroundTask {
 
     thread.start();
   }
-
 }

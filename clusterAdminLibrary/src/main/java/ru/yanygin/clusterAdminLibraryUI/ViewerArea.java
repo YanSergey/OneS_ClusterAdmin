@@ -612,6 +612,13 @@ public class ViewerArea extends Composite {
         terminateUsersSessionsListener);
 
     new UserScriptRunner(infobaseMenu);
+
+    // Меню действий с базой
+    addMenuSeparator(infobaseMenu);
+
+    Menu subMenuInfobaseActions = addItemGroupInMenu(infobaseMenu, "Действия с базой", null);
+
+    addItemInMenu(subMenuInfobaseActions, "Запустить конфигуратор", null, launchDesignerListener);
   }
 
   private TabItem initListTable(
@@ -1564,6 +1571,220 @@ public class ViewerArea extends Composite {
     deleteToolbarItem.setEnabled(toolbarDeleteListeners.get(currentHighlightingType) != null);
   }
 
+  public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
+    Map<String, String> params = new LinkedHashMap<>();
+
+    String scriptText;
+    try {
+      scriptText = Files.readString(Path.of(script.getPath()));
+    } catch (IOException excp) {
+      LOGGER.error(
+          "Error read script {}", //$NON-NLS-1$
+          script.getName(),
+          excp);
+      return params;
+    }
+
+    UUID clusterId = getClusterId(infobaseItem);
+    UUID infobaseId = getInfobaseId(infobaseItem);
+    Server server = getServer(infobaseItem);
+    if (server == null) {
+      LOGGER.error(
+          "Error get server info {}", //$NON-NLS-1$
+          script.getName());
+      return params;
+    }
+
+    boolean foundEmptyParams = false;
+    boolean foundUsernameParam = false;
+    boolean foundPasswordParam = false;
+
+    Pattern p = Pattern.compile("\\%.+?\\%");
+    // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
+
+    Matcher m = p.matcher(scriptText);
+    while (m.find()) {
+      final String foundParam = m.group();
+      String paramValue;
+
+      switch (foundParam) {
+        case "%infobase%":
+          paramValue = server.getInfoBaseName(clusterId, infobaseId);
+          break;
+
+        case "%serverName%":
+          paramValue = server.getAgentHost();
+          break;
+
+        case "%agentPort%":
+          paramValue = server.getAgentPortAsString();
+          break;
+
+        case "%managerPort%":
+          paramValue = server.getClusterMainPort(clusterId);
+          break;
+
+        case "%v8version%":
+          paramValue = server.getV8Version();
+          break;
+
+        case "%username%":
+          foundUsernameParam = true;
+          foundEmptyParams = true;
+          continue;
+
+        case "%password%":
+          foundPasswordParam = true;
+          foundEmptyParams = true;
+          continue;
+
+        default:
+          LOGGER.info("Found unknown param {}", foundParam);
+          paramValue = "";
+          foundEmptyParams = true;
+          break;
+      }
+
+      String paramKey = foundParam.replace("%", "");
+      params.put(paramKey, paramValue);
+    }
+    if (Boolean.TRUE.equals(foundUsernameParam)) {
+      params.put("v8username", "");
+    }
+    if (Boolean.TRUE.equals(foundPasswordParam)) {
+      params.put("v8password", "");
+    }
+
+    if (foundEmptyParams) {
+      BackgroundTaskParams taskParamsDialog =
+          new BackgroundTaskParams(
+              getShell(), params, script.getName(), server.getInfobasesCredentials());
+      int dialogResult = taskParamsDialog.open();
+      if (dialogResult != 0) {
+        return new HashMap<>();
+      }
+
+      params = taskParamsDialog.getParams();
+    }
+
+    return params;
+  }
+
+  public Map<String, String> fillParams(
+      String scriptText, String scriptName, TreeItem infobaseItem) {
+    Map<String, String> params = new LinkedHashMap<>();
+
+    // String scriptText;
+    // try {
+    // scriptText = Files.readString(Path.of(script.getPath()));
+    // } catch (IOException excp) {
+    // LOGGER.error("Error read script {}", //$NON-NLS-1$
+    // script.getName(), excp);
+    // return params;
+    // }
+
+    UUID clusterId = getClusterId(infobaseItem);
+    UUID infobaseId = getInfobaseId(infobaseItem);
+    Server server = getServer(infobaseItem);
+    if (server == null) {
+      LOGGER.error(
+          "Error get server info {}", //$NON-NLS-1$
+          scriptName);
+      return params;
+    }
+
+    boolean foundEmptyParams = false;
+    boolean foundUsernameParam = false;
+    boolean foundPasswordParam = false;
+
+    Pattern p = Pattern.compile("\\%.+?\\%");
+    // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
+
+    Matcher m = p.matcher(scriptText);
+    while (m.find()) {
+      final String foundParam = m.group();
+      String paramValue;
+
+      switch (foundParam) {
+        case "%infobase%":
+          paramValue = server.getInfoBaseName(clusterId, infobaseId);
+          break;
+
+        case "%serverName%":
+          paramValue = server.getAgentHost();
+          break;
+
+        case "%agentPort%":
+          paramValue = server.getAgentPortAsString();
+          break;
+
+        case "%managerPort%":
+          paramValue = server.getClusterMainPort(clusterId);
+          break;
+
+        case "%v8version%":
+          paramValue = server.getV8Version();
+          break;
+
+        case "%username%":
+          foundUsernameParam = true;
+          foundEmptyParams = true;
+          continue;
+
+        case "%password%":
+          foundPasswordParam = true;
+          foundEmptyParams = true;
+          continue;
+
+        default:
+          LOGGER.info("Found unknown param {}", foundParam);
+          paramValue = "";
+          foundEmptyParams = true;
+          break;
+      }
+
+      String paramKey = foundParam.replace("%", "");
+      params.put(paramKey, paramValue);
+    }
+    if (Boolean.TRUE.equals(foundUsernameParam)) {
+      params.put("v8username", "");
+    }
+    if (Boolean.TRUE.equals(foundPasswordParam)) {
+      params.put("v8password", "");
+    }
+
+    if (foundEmptyParams) {
+      BackgroundTaskParams taskParamsDialog =
+          new BackgroundTaskParams(
+              getShell(), params, scriptName, server.getInfobasesCredentials());
+      int dialogResult = taskParamsDialog.open();
+      if (dialogResult != 0) {
+        return new HashMap<>();
+      }
+
+      params = taskParamsDialog.getParams();
+    }
+
+    return params;
+  }
+
+  public void addToTasksQueue(BackgroundTask task) {
+    TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
+    tableItem.setData(task);
+    tableItem.setChecked(false);
+
+    if (tableTasks.getSelection().length == 0 || BackgroundTask.getRunningCount() == 0) {
+      tableTasks.setSelection(tableItem);
+    }
+
+    task.run();
+
+    if (BackgroundTask.getRunningCount() == 0) {
+      taskTimer = new Timer(true);
+      taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
+    }
+  }
+
   //////////////////////////////////////////////////////////////////////////
   // LISTENERS
 
@@ -2400,6 +2621,32 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter launchDesignerListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          TreeItem[] items = serversTree.getSelection();
+          if (items.length == 0) {
+            return;
+          }
+          TreeItem infobaseItem = items[0];
+
+          String script1 =
+              String.join(" ",
+                  "\"C:\\Program Files\\1cv8\\common\\1cestart.exe\"",
+                  "DESIGNER",
+                  "/S %serverName%:%managerPort%\\%infobase% /N%v8username% /P%v8password%");
+
+          String script =
+              "\"C:\\Program Files\\1cv8\\common\\1cestart.exe\" DESIGNER /S %serverName%:%managerPort%\\%infobase% /N%v8username% /P%v8password%";
+
+          Map<String, String> params = fillParams(script, "runDesigner", infobaseItem);
+          if (!params.isEmpty()) {
+            addToTasksQueue(new BackgroundTask(script, "runDesigner", params));
+          }
+        }
+      };
+
   SelectionAdapter createWorkingServerListener =
       new SelectionAdapter() {
         @Override
@@ -3057,121 +3304,6 @@ public class ViewerArea extends Composite {
       }
     }
 
-    public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
-      Map<String, String> params = new LinkedHashMap<>();
-
-      UUID clusterId = getClusterId(infobaseItem);
-      UUID infobaseId = getInfobaseId(infobaseItem);
-      Server server = getServer(infobaseItem);
-      if (server == null) {
-        LOGGER.error(
-            "Error get server info {}", //$NON-NLS-1$
-            script.getName());
-        return params;
-      }
-
-      String scriptText;
-      try {
-        scriptText = Files.readString(Path.of(script.getPath()));
-      } catch (IOException excp) {
-        LOGGER.error(
-            "Error read script {}", //$NON-NLS-1$
-            script.getName(),
-            excp);
-        return params;
-      }
-
-      boolean foundEmptyParams = false;
-      boolean foundUsernameParam = false;
-      boolean foundPasswordParam = false;
-
-      Pattern p = Pattern.compile("\\%.+?\\%");
-      // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
-
-      Matcher m = p.matcher(scriptText);
-      while (m.find()) {
-        final String foundParam = m.group();
-        String paramValue;
-
-        switch (foundParam) {
-          case "%infobase%":
-            paramValue = server.getInfoBaseName(clusterId, infobaseId);
-            break;
-
-          case "%serverName%":
-            paramValue = server.getAgentHost();
-            break;
-
-          case "%agentPort%":
-            paramValue = server.getAgentPortAsString();
-            break;
-
-          case "%managerPort%":
-            paramValue = server.getClusterMainPort(clusterId);
-            break;
-
-          case "%v8version%":
-            paramValue = server.getV8Version();
-            break;
-
-          case "%username%":
-            foundUsernameParam = true;
-            foundEmptyParams = true;
-            continue;
-
-          case "%password%":
-            foundPasswordParam = true;
-            foundEmptyParams = true;
-            continue;
-
-          default:
-            LOGGER.info("Found unknown param {}", foundParam);
-            paramValue = "";
-            foundEmptyParams = true;
-            break;
-        }
-
-        String paramKey = foundParam.replace("%", "");
-        params.put(paramKey, paramValue);
-      }
-      if (Boolean.TRUE.equals(foundUsernameParam)) {
-        params.put("username", "");
-      }
-      if (Boolean.TRUE.equals(foundPasswordParam)) {
-        params.put("password", "");
-      }
-
-      if (foundEmptyParams) {
-        BackgroundTaskParams taskParamsDialog =
-            new BackgroundTaskParams(
-                getShell(), params, script.getName(), server.getInfobasesCredentials());
-        int dialogResult = taskParamsDialog.open();
-        if (dialogResult != 0) {
-          return new HashMap<>();
-        }
-
-        params = taskParamsDialog.getParams();
-      }
-
-      return params;
-    }
-
-    public void addToTasksQueue(BackgroundTask task) {
-      TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
-      tableItem.setData(task);
-      tableItem.setChecked(false);
-
-      if (tableTasks.getSelection().length == 0 || BackgroundTask.getRunningCount() == 0) {
-        tableTasks.setSelection(tableItem);
-      }
-
-      task.run();
-
-      if (BackgroundTask.getRunningCount() == 0) {
-        taskTimer = new Timer(true);
-        taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
-      }
-    }
   }
 
   class RefreshTablesSelectionListener extends SelectionAdapter {

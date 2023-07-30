@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.CellEditor;
@@ -36,7 +37,6 @@ public class BackgroundTaskParams extends Dialog {
   private Map<String, String> infobasesCredentials = new HashMap<>();
   private List<String> usernames = new ArrayList<>();
   private String currentUsernameValue = "";
-
   /**
    * Создание диалога ввода имени пользователя и пароля.
    *
@@ -92,7 +92,8 @@ public class BackgroundTaskParams extends Dialog {
     clmnParamKey.setMoveable(true);
     clmnParamKey.setWidth(120);
     clmnParamKey.setText(Strings.TITLE_PARAMNAME);
-    // tableViewerColumnParamKey.setEditingSupport(new TableViewerEditingSupport(tableViewer));
+    // tableViewerColumnParamKey.setEditingSupport(new
+    // TableViewerEditingSupport(tableViewer));
     tableViewerColumnParamKey.setLabelProvider(
         new ColumnLabelProvider() {
           @Override
@@ -131,6 +132,23 @@ public class BackgroundTaskParams extends Dialog {
   }
 
   /**
+   * Возвращает заполненные пользователем параметры запуска задачи.
+   *
+   * @return параметры запуска задачи
+   */
+  public void checkUsernameParam() {
+    String user = params.get("v8username");
+    //	    if (Objects.nonNull(user) && user.isBlank()) {
+    //	      params.remove("v8username");
+    //		  params.remove("v8password");
+    //		}
+    if (Objects.nonNull(user)) {
+      params.put("v8username", "\"" + params.get("v8username") + "\"");
+      params.put("v8password", "\"" + params.get("v8password") + "\"");
+    }
+  }
+
+  /**
    * Create contents of the button bar.
    *
    * @param parent - parent composite
@@ -143,6 +161,7 @@ public class BackgroundTaskParams extends Dialog {
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
+            checkUsernameParam();
             close();
           }
         });
@@ -151,11 +170,11 @@ public class BackgroundTaskParams extends Dialog {
   }
 
   protected boolean isUsernameParam(String e) {
-    return e.equals("username");
+    return e.equals("v8username");
   }
 
   protected boolean isPasswordParam(String e) {
-    return e.equals("password");
+    return e.equals("v8password");
   }
 
   class TableViewerEditingSupport extends EditingSupport {
@@ -226,7 +245,7 @@ public class BackgroundTaskParams extends Dialog {
           newParamValue = usernames.get(valueIndex);
           currentUsernameValue = newParamValue;
           // установка пароля
-          params.put("password", infobasesCredentials.getOrDefault(newParamValue, ""));
+          params.put("v8password", infobasesCredentials.getOrDefault(newParamValue, ""));
 
         } else if (isUsernameParam(paramKey) && valueIndex == -1) {
           // ввод нового логина вручную
@@ -253,7 +272,6 @@ public class BackgroundTaskParams extends Dialog {
     @Override
     public Object[] getElements(Object inputElement) {
       if (inputElement instanceof Map<?, ?>) {
-
 
         List<String[]> collection = new ArrayList<>();
         ((Map<String, String>) inputElement)
