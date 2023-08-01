@@ -31,12 +31,16 @@ import ru.yanygin.clusterAdminLibrary.UserPassPair;
 /** Диалог параметров фоновой задачи. */
 public class BackgroundTaskParams extends Dialog {
 
+  private static final String USERNAME_TITLE = "v8username";
+  private static final String PASSWORD_TITLE = "v8password";
+
   private Map<String, String> params;
   private String title;
   private Table tableParams;
   private Map<String, String> infobasesCredentials = new HashMap<>();
   private List<String> usernames = new ArrayList<>();
   private String currentUsernameValue = "";
+
   /**
    * Создание диалога ввода имени пользователя и пароля.
    *
@@ -131,20 +135,13 @@ public class BackgroundTaskParams extends Dialog {
     return params;
   }
 
-  /**
-   * Возвращает заполненные пользователем параметры запуска задачи.
-   *
-   * @return параметры запуска задачи
-   */
-  public void checkUsernameParam() {
-    String user = params.get("v8username");
-    //	    if (Objects.nonNull(user) && user.isBlank()) {
-    //	      params.remove("v8username");
-    //		  params.remove("v8password");
-    //		}
+  /** Экранирокание имени пользователя и пароля. */
+  private void checkUsernameParam() {
+    String user = params.get(USERNAME_TITLE);
+
     if (Objects.nonNull(user)) {
-      params.put("v8username", "\"" + params.get("v8username") + "\"");
-      params.put("v8password", "\"" + params.get("v8password") + "\"");
+      params.put(USERNAME_TITLE, "\"" + params.get(USERNAME_TITLE) + "\"");
+      params.put(PASSWORD_TITLE, "\"" + params.get(PASSWORD_TITLE) + "\"");
     }
   }
 
@@ -170,11 +167,11 @@ public class BackgroundTaskParams extends Dialog {
   }
 
   protected boolean isUsernameParam(String e) {
-    return e.equals("v8username");
+    return e.equals(USERNAME_TITLE);
   }
 
   protected boolean isPasswordParam(String e) {
-    return e.equals("v8password");
+    return e.equals(PASSWORD_TITLE);
   }
 
   class TableViewerEditingSupport extends EditingSupport {
@@ -245,7 +242,7 @@ public class BackgroundTaskParams extends Dialog {
           newParamValue = usernames.get(valueIndex);
           currentUsernameValue = newParamValue;
           // установка пароля
-          params.put("v8password", infobasesCredentials.getOrDefault(newParamValue, ""));
+          params.put(PASSWORD_TITLE, infobasesCredentials.getOrDefault(newParamValue, ""));
 
         } else if (isUsernameParam(paramKey) && valueIndex == -1) {
           // ввод нового логина вручную

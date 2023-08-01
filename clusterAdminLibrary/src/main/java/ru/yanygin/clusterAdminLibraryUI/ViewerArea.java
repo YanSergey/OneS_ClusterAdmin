@@ -617,18 +617,18 @@ public class ViewerArea extends Composite {
     // Меню действий с базой
     addMenuSeparator(infobaseMenu);
 
-    Menu subMenuInfobaseActions = addItemGroupInMenu(infobaseMenu, "Действия с базой", null);
+    Menu subMenuInfobaseActions = addItemGroupInMenu(infobaseMenu, Strings.CONTEXT_MENU_INFOBASE_ACTIONS, null);
 
-    addItemInMenu(subMenuInfobaseActions, "Запустить конфигуратор", null, launchDesignerListener, V8ActionVariant.RUN_DESIGNER);
-    addItemInMenu(subMenuInfobaseActions, "Запустить предприятие", null, launchDesignerListener, V8ActionVariant.RUN_ENTERPRISE);
-
-    addMenuSeparator(subMenuInfobaseActions);
-    addItemInMenu(subMenuInfobaseActions, "Сохранить CF", null, launchDesignerListener, V8ActionVariant.SAVE_CF);
-    addItemInMenu(subMenuInfobaseActions, "Загрузить CF", null, launchDesignerListener, V8ActionVariant.LOAD_CF);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_RUN_ENTERPRISE, null, launchV8ActionListener, V8ActionVariant.RUN_ENTERPRISE);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_RUN_DESIGNER, null, launchV8ActionListener, V8ActionVariant.RUN_DESIGNER);
 
     addMenuSeparator(subMenuInfobaseActions);
-    addItemInMenu(subMenuInfobaseActions, "Сохранить DT", null, launchDesignerListener, V8ActionVariant.SAVE_DT);
-    addItemInMenu(subMenuInfobaseActions, "Загрузить DT", null, launchDesignerListener, V8ActionVariant.LOAD_DT);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_SAVE_CF, null, launchV8ActionListener, V8ActionVariant.SAVE_CF);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_LOAD_CF, null, launchV8ActionListener, V8ActionVariant.LOAD_CF);
+
+    addMenuSeparator(subMenuInfobaseActions);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_SAVE_DT, null, launchV8ActionListener, V8ActionVariant.SAVE_DT);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_LOAD_DT, null, launchV8ActionListener, V8ActionVariant.LOAD_DT);
   }
 
   private TabItem initListTable(
@@ -1607,19 +1607,19 @@ public class ViewerArea extends Composite {
       String paramValue;
 
       switch (foundParam) {
-        case "%infobase%":
+        case "%v8infobase%":
           paramValue = server.getInfoBaseName(clusterId, infobaseId);
           break;
 
-        case "%serverName%":
+        case "%v8serverName%":
           paramValue = server.getAgentHost();
           break;
 
-        case "%agentPort%":
+        case "%v8agentPort%":
           paramValue = server.getAgentPortAsString();
           break;
 
-        case "%managerPort%":
+        case "%v8managerPort%":
           paramValue = server.getClusterMainPort(clusterId);
           break;
 
@@ -1627,12 +1627,12 @@ public class ViewerArea extends Composite {
           paramValue = server.getV8Version();
           break;
 
-        case "%username%":
+        case "%v8username%":
           foundUsernameParam = true;
           foundEmptyParams = true;
           continue;
 
-        case "%password%":
+        case "%v8password%":
           foundPasswordParam = true;
           foundEmptyParams = true;
           continue;
@@ -2522,7 +2522,7 @@ public class ViewerArea extends Composite {
         }
       };
 
-  SelectionAdapter launchDesignerListener =
+  SelectionAdapter launchV8ActionListener =
       new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent event) {
@@ -3372,6 +3372,14 @@ public class ViewerArea extends Composite {
         getString("ContextMenu.KillSession").concat("\tDEL");
     static final String CONTEXT_MENU_KILL_CONNECTION_DEL =
         getString("ContextMenu.KillConnection").concat("\tDEL");
+
+    static final String CONTEXT_MENU_INFOBASE_ACTIONS = getString("ContextMenu.InfobaseActions.Group");
+    static final String CONTEXT_MENU_RUN_DESIGNER = getString("ContextMenu.InfobaseActions.RunDesigner");
+    static final String CONTEXT_MENU_RUN_ENTERPRISE = getString("ContextMenu.InfobaseActions.RunEnterprise");
+    static final String CONTEXT_MENU_SAVE_CF = getString("ContextMenu.InfobaseActions.SaveCf");
+    static final String CONTEXT_MENU_LOAD_CF = getString("ContextMenu.InfobaseActions.LoadCf");
+    static final String CONTEXT_MENU_SAVE_DT = getString("ContextMenu.InfobaseActions.SaveDt");
+    static final String CONTEXT_MENU_LOAD_DT = getString("ContextMenu.InfobaseActions.LoadDt");
 
     static String getString(String key) {
       return Messages.getString("ViewerArea." + key); //$NON-NLS-1$

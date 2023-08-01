@@ -26,9 +26,7 @@ public class BackgroundTask {
   static final String designerCommand = "DESIGNER";
   static final String enterpriseCommand = "ENTERPRISE";
   static final String logonCommand =
-      "/S%serverName%:%managerPort%\\%infobase% /N%v8username% /P%v8password%";
-  //  static final String logonComman1 = "/S%v8server%:%v8managerPort%\\%v8infobase% /N%v8username%
-  // /P%v8password%";
+      "/S%v8serverName%:%v8managerPort%\\%v8infobase% /N%v8username% /P%v8password%";
 
   static int countOfRunning = 0;
   static int countOfCompleted = 0;
