@@ -1,5 +1,6 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ComboBoxCellEditor;
+import org.eclipse.jface.viewers.DialogCellEditor;
 import org.eclipse.jface.viewers.EditingSupport;
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.TableViewer;
@@ -23,6 +25,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -40,6 +43,8 @@ public class BackgroundTaskParams extends Dialog {
   private Map<String, String> infobasesCredentials = new HashMap<>();
   private List<String> usernames = new ArrayList<>();
   private String currentUsernameValue = "";
+  private String currentFilenameExt = "";
+  private String currentFilepath = "";
 
   /**
    * Создание диалога ввода имени пользователя и пароля.
@@ -174,11 +179,28 @@ public class BackgroundTaskParams extends Dialog {
     return e.equals(PASSWORD_TITLE);
   }
 
+  protected boolean isFilepathParam(String[] e) {
+
+    if (e[0].toLowerCase().contains("filepath.cf")) {
+      currentFilenameExt = "*.cf";
+      currentFilepath = e[1];
+      return true;
+    }
+    if (e[0].toLowerCase().contains("filepath.dt")) {
+      currentFilenameExt = "*.dt";
+      currentFilepath = e[1];
+      return true;
+    }
+
+    return false;
+  }
+
   class TableViewerEditingSupport extends EditingSupport {
 
     private TableViewer viewer;
     private TextCellEditor textEditor;
     private ComboBoxCellEditor usernameEditor;
+    private DialogCellEditor filenameEditor;
 
     public TableViewerEditingSupport(TableViewer viewer) {
       super(viewer);
@@ -187,6 +209,30 @@ public class BackgroundTaskParams extends Dialog {
       usernameEditor =
           new ComboBoxCellEditor(
               viewer.getTable(), usernames.toArray(new String[0]), SWT.SINGLE | SWT.BORDER);
+
+      filenameEditor =
+          new DialogCellEditor(viewer.getTable()) {
+            @Override
+            protected Object openDialogBox(Control cellEditorWindow) {
+
+              final String[] filterNames = {String.format(Strings.FILTER_NAME, currentFilenameExt)};
+              final String[] filterExt = {currentFilenameExt};
+
+              FileDialog dialog = new FileDialog(cellEditorWindow.getShell(), SWT.OPEN);
+              if (currentFilepath.isBlank()) {
+                dialog.setFileName(currentFilenameExt);
+              } else {
+                File file = new File(currentFilepath);
+                dialog.setFileName(file.getName());
+                dialog.setFilterPath(file.getPath());
+              }
+              dialog.setText(Strings.TITLE_FILEDIALOG);
+              dialog.setFilterNames(filterNames);
+              dialog.setFilterExtensions(filterExt);
+
+              return dialog.open();
+            }
+          };
 
       this.viewer = viewer;
     }
@@ -206,6 +252,8 @@ public class BackgroundTaskParams extends Dialog {
 
       if (isUsernameParam(e[0])) {
         return usernameEditor;
+      } else if (isFilepathParam(e)) {
+        return filenameEditor;
       } else {
         return textEditor;
       }
@@ -293,6 +341,9 @@ public class BackgroundTaskParams extends Dialog {
     static final String TITLE_WINDOW = getString("Title");
     static final String TITLE_PARAMNAME = getString("ParamName");
     static final String TITLE_PARAMVALUE = getString("ParamValue");
+
+    static final String TITLE_FILEDIALOG = getString("TitleFileDialog");
+    static final String FILTER_NAME = getString("FilterName");
 
     static String getString(String key) {
       return Messages.getString("BackgroundTaskParams." + key);

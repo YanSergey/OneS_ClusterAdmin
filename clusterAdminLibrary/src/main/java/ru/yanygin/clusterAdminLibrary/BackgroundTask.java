@@ -117,16 +117,16 @@ public class BackgroundTask {
 
     switch (v8ActionVariant) {
       case SAVE_CF:
-        this.scriptText = String.join(" ", this.scriptText, "/DumpCfg %v8FilePath%.cf");
+        this.scriptText = String.join(" ", this.scriptText, "/DumpCfg %v8FilePath.cf%");
         break;
       case LOAD_CF:
-        this.scriptText = String.join(" ", this.scriptText, "/LoadCfg %v8FilePath%.cf");
+        this.scriptText = String.join(" ", this.scriptText, "/LoadCfg %v8FilePath.cf%");
         break;
       case SAVE_DT:
-        this.scriptText = String.join(" ", this.scriptText, "/DumpIB %v8FilePath%.dt");
+        this.scriptText = String.join(" ", this.scriptText, "/DumpIB %v8FilePath.dt%");
         break;
       case LOAD_DT:
-        this.scriptText = String.join(" ", this.scriptText, "/RestoreIB %v8FilePath%.dt");
+        this.scriptText = String.join(" ", this.scriptText, "/RestoreIB %v8FilePath.dt%");
         break;
 
       default:
