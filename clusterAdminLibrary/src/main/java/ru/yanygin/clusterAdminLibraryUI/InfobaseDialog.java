@@ -5,7 +5,9 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.UUID;
 import org.eclipse.jface.dialogs.Dialog;
@@ -16,10 +18,12 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.DateTime;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
@@ -66,6 +70,10 @@ public class InfobaseDialog extends Dialog {
   private Button btnSheduledJobsDenied;
   private Button btnAllowDistributeLicense;
   private Button btnExternalSessionManagerRequired;
+  private DateTime deniedFrom_Date;
+  private DateTime deniedFrom_Time;
+  private Button btnDeniedStartEdit;
+  private Button btnDeniedStartClear;
 
   /**
    * Create the dialog.
@@ -192,10 +200,53 @@ public class InfobaseDialog extends Dialog {
     lblDeniedFrom.setText(Strings.SESSIONS_DENIED_FROM);
 
     Composite compositeDeniedFrom = new Composite(container, SWT.NONE);
-    compositeDeniedFrom.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
-    compositeDeniedFrom.setLayout(new FillLayout(SWT.HORIZONTAL));
+    compositeDeniedFrom.setLayout(new RowLayout(SWT.HORIZONTAL));
 
-    deniedFromDate = new Text(compositeDeniedFrom, SWT.BORDER | SWT.DATE | SWT.DROP_DOWN);
+    deniedFromDate = new Text(compositeDeniedFrom, SWT.BORDER);
+
+    deniedFrom_Date = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.DROP_DOWN);
+    deniedFrom_Date.addSelectionListener(
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent e) {
+
+            Calendar calendar =
+                new GregorianCalendar(
+                    deniedFrom_Date.getYear(),
+                    deniedFrom_Date.getMonth(),
+                    deniedFrom_Date.getDay(),
+                    deniedFrom_Time.getHours(),
+                    deniedFrom_Time.getMinutes(),
+                    deniedFrom_Time.getSeconds());
+
+            deniedFromDate.setText(Helper.dateToStringReverse(calendar.getTime()));
+          }
+        });
+    deniedFrom_Time = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.TIME);
+
+    btnDeniedStartEdit = new Button(compositeDeniedFrom, SWT.NONE);
+    btnDeniedStartEdit.addSelectionListener(
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent e) {
+            deniedFrom_Date.setVisible(true);
+            deniedFrom_Time.setVisible(true);
+            deniedFromDate.setVisible(false);
+          }
+        });
+    btnDeniedStartEdit.setText("...");
+
+    btnDeniedStartClear = new Button(compositeDeniedFrom, SWT.NONE);
+    btnDeniedStartClear.addSelectionListener(
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent e) {
+            deniedFrom_Date.setVisible(false);
+            deniedFrom_Time.setVisible(false);
+            deniedFromDate.setVisible(true);
+          }
+        });
+    btnDeniedStartClear.setText("x");
 
     Label lblDeniedTo = new Label(container, SWT.NONE);
     lblDeniedTo.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -292,7 +343,25 @@ public class InfobaseDialog extends Dialog {
 
       // Lock properties
       btnSessionsDenied.setSelection(infoBaseInfo.isSessionsDenied());
+
+      boolean dateIsEmpty = infoBaseInfo.getDeniedFrom().equals(emptyDate);
+
+      deniedFromDate.setVisible(dateIsEmpty);
+      deniedFrom_Date.setVisible(!dateIsEmpty);
+      deniedFrom_Time.setVisible(!dateIsEmpty);
+
       deniedFromDate.setText(convertDateToString(infoBaseInfo.getDeniedFrom()));
+      if (!dateIsEmpty) {
+        deniedFrom_Date.setDate(
+            infoBaseInfo.getDeniedFrom().getYear(),
+            infoBaseInfo.getDeniedFrom().getMonth(),
+            infoBaseInfo.getDeniedFrom().getDay());
+        deniedFrom_Time.setTime(
+            infoBaseInfo.getDeniedFrom().getHours(),
+            infoBaseInfo.getDeniedFrom().getMinutes(),
+            infoBaseInfo.getDeniedFrom().getSeconds());
+      }
+
       deniedToDate.setText(convertDateToString(infoBaseInfo.getDeniedTo()));
 
       txtDeniedMessage.setText(infoBaseInfo.getDeniedMessage());
