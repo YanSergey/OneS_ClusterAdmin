@@ -1,5 +1,7 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
@@ -20,7 +22,8 @@ import java.lang.module.ModuleDescriptor.Version;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,8 +37,6 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibrary.ColumnProperties.RowSortDirection;
 import ru.yanygin.clusterAdminLibrary.InfoBaseInfoShortExt.InfobasesSortDirection;
@@ -134,6 +135,10 @@ public class Config {
   @SerializedName("Servers")
   @Expose
   private Map<String, Server> servers = new HashMap<>();
+
+  @SerializedName("IbasesPath")
+  @Expose
+  private String ibasesPath = "";
 
   @SerializedName("SessionColumnProperties")
   @Expose
@@ -473,11 +478,11 @@ public class Config {
    * @param newServers - список новых серверов
    * @return список серверов, которые были реально добавлены
    */
-  public List<String> addNewServers(List<String> newServers) {
+  public Map<String, Server> addNewServers(List<String> newServers) {
     // Пакетное добавление серверов в список, предполагается для механизма импорта из списка
     // информационных баз
 
-    List<String> addedServers = new ArrayList<>();
+    Map<String, Server> addedServers = new HashMap<>();
 
     // Имя сервера, которое приходит сюда не равно Представлению сервера, выводимому в списке
     // Имя сервера. оно же Key в map и json, строка вида Server:1541, с обязательным указанием порта
@@ -485,11 +490,16 @@ public class Config {
     // если порт менеджера не задан - ставим стандартный 1541
     // переделать
     for (String serverName : newServers) {
-      if (!servers.containsKey(serverName)) {
-        Server serverConfig = new Server(serverName);
-        servers.put(serverName, serverConfig);
+      String[] adr = serverName.split(":"); // $NON-NLS-1$
+      String agentHost = adr[0];
+      int agentPort = Integer.parseInt(adr[1]) - 1;
+      String serverNameAgentPort = agentHost.concat(":").concat(Integer.toString(agentPort));
 
-        addedServers.add(serverName);
+      if (!servers.containsKey(serverNameAgentPort)) {
+        Server serverConfig = new Server(serverName);
+        servers.put(serverNameAgentPort, serverConfig);
+
+        addedServers.put(serverNameAgentPort, serverConfig);
       }
     }
 
@@ -905,6 +915,19 @@ public class Config {
    */
   public void setListRrefreshRate(int refreshRate) {
     this.listRefreshRate = refreshRate;
+  }
+
+  /**
+   * Получить путь к файлу со списком информационных баз.
+   *
+   * @return Путь к списку информационных баз
+   */
+  public Path getIbasesPath() {
+    if (ibasesPath.isBlank()) {
+      return Paths.get(System.getenv("USERPROFILE"), "appdata\\roaming\\1c\\1cestart\\ibases.v8i");
+    } else {
+      return Paths.get(ibasesPath);
+    }
   }
 
   /**

@@ -387,8 +387,7 @@ public class ViewerArea extends Composite {
     }
 
     Menu serversGroup = addItemGroupInMenu(mainMenu, Strings.MENU_SERVERS, null);
-    addItemInMenu(serversGroup, Strings.MENU_FIND_SERVERS, null, findNewServersListener)
-        .setEnabled(false);
+    addItemInMenu(serversGroup, Strings.MENU_FIND_SERVERS, null, findNewServersListener);
     addItemInMenu(serversGroup, Strings.MENU_CONNECT_ALL_SERVERS, null, connectAllServersListener);
     addItemInMenu(
         serversGroup, Strings.MENU_DISCONNECT_ALL_SERVERS, null, disconnectAllServersListener);
@@ -1160,10 +1159,6 @@ public class ViewerArea extends Composite {
     Arrays.stream(serverItem.getItems()).forEach(Widget::dispose);
   }
 
-  private void fillServersList() {
-    // TODO Auto-generated method stub
-  }
-
   private void updateClustersInTree(TreeItem serverItem) {
 
     Server server = getServer(serverItem);
@@ -1630,9 +1625,12 @@ public class ViewerArea extends Composite {
       new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent e) {
-          List<String> newServers = clusterProvider.findNewServers();
+          Map<String, Server> newServers = Helper.findNewServers();
           if (!newServers.isEmpty()) {
-            fillServersList();
+            newServers.forEach(
+                (serverKey, server) -> {
+                  addServerItemInServersTree(server);
+                });
           }
         }
       };

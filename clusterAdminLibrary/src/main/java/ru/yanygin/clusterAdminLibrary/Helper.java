@@ -1,15 +1,22 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
@@ -284,5 +291,50 @@ public class Helper {
 
     DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); // $NON-NLS-1$
     return dateFormat.format(date);
+  }
+
+  /** Ищет новые сервера в файле списка инфобаз v8i. */
+  public static Map<String, Server> findNewServers() {
+    List<String> foundServers = new ArrayList<>();
+
+    Path ibasesPath = Config.currentConfig.getIbasesPath();
+    String ibasesText = "";
+
+    if (ibasesPath.toFile().exists()) {
+      try (BufferedReader br = new BufferedReader(new FileReader(ibasesPath.toFile()))) {
+        StringBuilder sb = new StringBuilder();
+        String line = br.readLine();
+        while (line != null) {
+          sb.append(line);
+          sb.append(System.lineSeparator());
+          line = br.readLine();
+        }
+        ibasesText = sb.toString();
+      } catch (IOException excp) {
+        LOGGER.error("Error: ", excp); // $NON-NLS-1$
+        return new HashMap<>();
+      }
+    }
+
+    Pattern p = Pattern.compile("Srvr=\"(.*?)\";Ref");
+    Matcher m = p.matcher(ibasesText);
+    while (m.find()) {
+      String serverAddress = m.group(1).toLowerCase();
+
+      String[] adr = serverAddress.split(":"); // $NON-NLS-1$
+      String agentHost = adr[0];
+
+      int agentPort;
+      if (adr.length == 1) {
+        agentPort = 1541;
+        serverAddress = agentHost.concat(":").concat(Integer.toString(agentPort));
+      }
+
+      if (!foundServers.contains(serverAddress)) {
+        foundServers.add(serverAddress);
+      }
+    }
+
+    return Config.currentConfig.addNewServers(foundServers);
   }
 }
