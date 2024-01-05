@@ -924,7 +924,7 @@ public class Config {
    */
   public Path getIbasesPath() {
     if (ibasesPath.isBlank()) {
-      return Paths.get(System.getenv("USERPROFILE"), "appdata\\roaming\\1c\\1cestart\\ibases.v8i");
+      return Paths.get(System.getenv("APPDATA"), "1c\\1cestart\\ibases.v8i");
     } else {
       return Paths.get(ibasesPath);
     }

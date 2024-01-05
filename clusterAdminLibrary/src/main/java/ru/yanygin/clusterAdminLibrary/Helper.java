@@ -297,11 +297,63 @@ public class Helper {
   public static Map<String, Server> findNewServers() {
     List<String> foundServers = new ArrayList<>();
 
+    // Читаем файл со списком инфобаз стартера
     Path ibasesPath = Config.currentConfig.getIbasesPath();
-    String ibasesText = "";
+    String ibasesText = readTextFile(ibasesPath);
 
-    if (ibasesPath.toFile().exists()) {
-      try (BufferedReader br = new BufferedReader(new FileReader(ibasesPath.toFile()))) {
+    if (!ibasesText.isBlank()) {
+
+      Pattern p = Pattern.compile("Srvr=\"(.*?)\";Ref");
+      Matcher m = p.matcher(ibasesText);
+      while (m.find()) {
+        String serverAddress = m.group(1).toLowerCase();
+
+        String[] adr = serverAddress.split(":"); // $NON-NLS-1$
+        String agentHost = adr[0];
+
+        int agentPort;
+        if (adr.length == 1) {
+          agentPort = 1541;
+          serverAddress = agentHost.concat(":").concat(Integer.toString(agentPort));
+        }
+
+        if (!foundServers.contains(serverAddress)) {
+          foundServers.add(serverAddress);
+        }
+      }
+    }
+
+    // читаем файл со списком серверов зарегистрированных в штатной консоли
+    Path srvPath = Paths.get(System.getenv("LOCALAPPDATA"), "1c\\1cv8\\appsrvrs.lst");
+    String srvText = readTextFile(srvPath);
+
+    if (!srvText.isBlank()) {
+      Pattern p = Pattern.compile("\\{\"tcp\",(.*,.*?),.*\\}");
+      Matcher m = p.matcher(srvText);
+      while (m.find()) {
+        String serverAddress = m.group(1).toLowerCase();
+
+        String[] adr = serverAddress.split(","); // $NON-NLS-1$
+        String agentHost = adr[0].replace("\"", "");
+        int agentPort = Integer.parseInt(adr[1]) + 1;
+        serverAddress = agentHost.concat(":").concat(Integer.toString(agentPort));
+
+        if (!foundServers.contains(serverAddress)) {
+          foundServers.add(serverAddress);
+        }
+      }
+    }
+    
+    if (foundServers.isEmpty()) {
+      return new HashMap<>();
+    }
+
+    return Config.currentConfig.addNewServers(foundServers);
+  }
+
+  private static String readTextFile(Path textFile) {
+    if (textFile.toFile().exists()) {
+      try (BufferedReader br = new BufferedReader(new FileReader(textFile.toFile()))) {
         StringBuilder sb = new StringBuilder();
         String line = br.readLine();
         while (line != null) {
@@ -309,32 +361,13 @@ public class Helper {
           sb.append(System.lineSeparator());
           line = br.readLine();
         }
-        ibasesText = sb.toString();
+        return sb.toString();
       } catch (IOException excp) {
         LOGGER.error("Error: ", excp); // $NON-NLS-1$
-        return new HashMap<>();
+        return "";
       }
     }
-
-    Pattern p = Pattern.compile("Srvr=\"(.*?)\";Ref");
-    Matcher m = p.matcher(ibasesText);
-    while (m.find()) {
-      String serverAddress = m.group(1).toLowerCase();
-
-      String[] adr = serverAddress.split(":"); // $NON-NLS-1$
-      String agentHost = adr[0];
-
-      int agentPort;
-      if (adr.length == 1) {
-        agentPort = 1541;
-        serverAddress = agentHost.concat(":").concat(Integer.toString(agentPort));
-      }
-
-      if (!foundServers.contains(serverAddress)) {
-        foundServers.add(serverAddress);
-      }
-    }
-
-    return Config.currentConfig.addNewServers(foundServers);
+    
+    return "";
   }
 }
