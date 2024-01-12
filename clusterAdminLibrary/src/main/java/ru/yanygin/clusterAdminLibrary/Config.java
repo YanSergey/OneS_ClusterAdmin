@@ -131,6 +131,10 @@ public class Config {
   @Expose
   private String loggerLevel = "error";
 
+  @SerializedName("ShowCurrentDateAsTime")
+  @Expose
+  private boolean showCurrentDateAsTime = false;
+
   @SerializedName("Servers")
   @Expose
   private Map<String, Server> servers = new HashMap<>();
@@ -522,6 +526,24 @@ public class Config {
    */
   public void setCheckingUpdate(boolean checkingUpdate) {
     this.checkingUpdate = checkingUpdate;
+  }
+
+  /**
+   * Показывать только время в текущей дате.
+   *
+   * @return текущее значение
+   */
+  public boolean showCurrentDateAsTime() {
+    return showCurrentDateAsTime;
+  }
+
+  /**
+   * Установка отображения только времени в текущей дате.
+   *
+   * @param showCurrentDateAsTime - новое значение
+   */
+  public void setShowCurrentDateAsTime(boolean showCurrentDateAsTime) {
+    this.showCurrentDateAsTime = showCurrentDateAsTime;
   }
 
   /**

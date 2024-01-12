@@ -44,6 +44,7 @@ public class SettingsDialog extends Dialog {
   private Button btnShadowSleepSessions;
   private Button btnReadClipboard;
   private Button btnCheckUpdate;
+  private Button btnShowCurrentDateAsTime;
   private Button btnRowSortAsPrevious;
   private Button btnRowSortAsc;
   private Button btnRowSortDesc;
@@ -235,6 +236,9 @@ public class SettingsDialog extends Dialog {
 
     btnCheckUpdate = new Button(grpOther, SWT.CHECK);
     btnCheckUpdate.setText(Strings.CHECK_UPDATE);
+
+    btnShowCurrentDateAsTime = new Button(grpOther, SWT.CHECK);
+    btnShowCurrentDateAsTime.setText(Strings.SHOW_CURRENT_DATE_AS_TIME);
     new Label(container, SWT.NONE);
 
     initProperties();
@@ -263,6 +267,7 @@ public class SettingsDialog extends Dialog {
     btnShadowSleepSessions.setSelection(config.isShadeSleepingSessions());
     btnReadClipboard.setSelection(config.isReadClipboard());
     btnCheckUpdate.setSelection(config.checkingUpdate());
+    btnShowCurrentDateAsTime.setSelection(config.showCurrentDateAsTime());
 
     final String locale = config.getLocale();
     if (locale == null) {
@@ -306,6 +311,7 @@ public class SettingsDialog extends Dialog {
     config.setShadowSleepSessions(btnShadowSleepSessions.getSelection());
     config.setReadClipboard(btnReadClipboard.getSelection());
     config.setCheckingUpdate(btnCheckUpdate.getSelection());
+    config.setShowCurrentDateAsTime(btnShowCurrentDateAsTime.getSelection());
 
     if (btnLocaleSystem.getSelection()) {
       config.setLocale(null);
@@ -402,7 +408,8 @@ public class SettingsDialog extends Dialog {
 
     static final String READ_CLIPBOARD = getString("ReadClipboard");
     static final String CHECK_UPDATE = getString("CheckUpdate");
-    
+    static final String SHOW_CURRENT_DATE_AS_TIME = getString("ShowCurrentDateAsTime");
+
     static final String LOGGER_LEVEL_TITLE = getString("LoggerLevelTitle");
 
     static String getString(String key) {

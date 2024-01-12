@@ -24,6 +24,11 @@ public class Helper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
 
+  private static final DateFormat normalDateFormat =
+      new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); // $NON-NLS-1$
+  private static final DateFormat currentDayDateFormat =
+      new SimpleDateFormat("HH:mm:ss"); // $NON-NLS-1$
+
   /** Пустой UUID. */
   public static final UUID EMPTY_UUID =
       UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
@@ -282,7 +287,10 @@ public class Helper {
       return "";
     }
 
-    DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); // $NON-NLS-1$
-    return dateFormat.format(date);
+    if (Config.currentConfig.showCurrentDateAsTime()) {
+      return currentDayDateFormat.format(date);
+    } else {
+      return normalDateFormat.format(date);
+    }
   }
 }
