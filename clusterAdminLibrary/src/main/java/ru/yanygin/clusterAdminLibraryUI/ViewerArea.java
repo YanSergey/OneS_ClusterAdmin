@@ -674,6 +674,7 @@ public class ViewerArea extends Composite {
       addItemInMenu(tableMenu, title, editIcon16, editItemInTablesListener);
     }
 
+    addItemInMenu(tableMenu, Strings.CONTEXT_MENU_WATCH_SESSION, null, switchWatchingMenuListener);
     addItemInMenu(
         tableMenu, Strings.CONTEXT_MENU_COPY_CELL_VALUE, null, copyCellValueInTablesListener);
 
@@ -2749,6 +2750,21 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter switchWatchingMenuListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+
+          TableItem[] selection = getCurrentTable().getSelection();
+          if (selection.length > 0) {
+            TableItem item = selection[0];
+            item.setChecked(!item.getChecked());
+            SessionInfoExtended ext = (SessionInfoExtended) item.getData(EXTENDED_INFO);
+            ext.switchWatching(item, item.getChecked());
+          }
+        }
+      };
+
   Listener switchWatchingListener =
       new Listener() {
         @Override
@@ -3290,6 +3306,7 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_CREATE = getString("ContextMenu.Create");
     static final String CONTEXT_MENU_EDIT = getString("ContextMenu.Edit");
     static final String CONTEXT_MENU_DELETE = getString("ContextMenu.Delete");
+    static final String CONTEXT_MENU_WATCH_SESSION = getString("ContextMenu.WatchSession");
     static final String CONTEXT_MENU_COPY_CELL_VALUE =
         getString("ContextMenu.CopyCellValue").concat("\tCtrl+C");
     static final String CONTEXT_MENU_ADD_SERVER = getString("ContextMenu.AddServer");
