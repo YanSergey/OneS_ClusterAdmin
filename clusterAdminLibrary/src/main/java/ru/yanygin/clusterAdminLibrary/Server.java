@@ -1013,8 +1013,8 @@ public class Server implements Comparable<Server> {
       String[] rightStrings = { // TODO проверить английские варианты
         "Недостаточно прав пользователя на управление центральным сервером",
         "Администратор центрального сервера не аутентифицирован",
-        "The user's rights to manage the central server are insufficient",
-        "The administrator of the central server is not authenticated"
+        "The user's rights to manage the central server are insufficient", // не проверено
+        "Main server administrator is not authenticated"
       };
       for (String rightString : rightStrings) {
         if (excp.getLocalizedMessage().contains(rightString)) {
@@ -1175,8 +1175,8 @@ public class Server implements Comparable<Server> {
       String[] rightStrings = { // TODO проверить английские варианты
         "Недостаточно прав пользователя на управление кластером",
         "Администратор кластера не аутентифицирован",
-        "Insufficient user rights to manage the cluster",
-        "The cluster administrator is not authenticated"
+        "Insufficient user rights to manage cluster",
+        "The cluster administrator is not authenticated" // не проверено
       };
       for (String rightString : rightStrings) {
         if (excp.getLocalizedMessage().toLowerCase().contains(rightString.toLowerCase())) {
