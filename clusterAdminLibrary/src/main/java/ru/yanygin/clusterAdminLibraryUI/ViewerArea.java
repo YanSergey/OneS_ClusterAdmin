@@ -509,6 +509,8 @@ public class ViewerArea extends Composite {
     addMenuSeparator(clusterMenu);
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_DELETE_CLUSTER, deleteIcon16, deleteClusterListener);
+
+    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_ADMINS, null, editClusterAdminsListener);
   }
 
   private void initWorkingServerMenu() {
@@ -2093,6 +2095,33 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter editClusterAdminsListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          TreeItem[] item = serversTree.getSelection();
+          if (item.length == 0) {
+            return;
+          }
+
+          Server server = getServer(item[0]);
+          UUID clusterId = getClusterId(item[0]);
+
+          AdminsDialog dialog;
+          try {
+            dialog = new AdminsDialog(getParent().getDisplay().getActiveShell(), server, clusterId);
+          } catch (Exception excp) {
+            LOGGER.error(
+                "Error init AdminsDialog for cluster id {}", //$NON-NLS-1$
+                clusterId,
+                excp);
+            return;
+          }
+
+          dialog.open();
+        }
+      };
+
   SelectionAdapter createInfobaseListener =
       // TODO вызывается из контекстного меню и из тулбара
       // нет ли ошибки serversTree.getSelection() при вызове из тулбара
@@ -3302,6 +3331,7 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_CREATE_CLUSTER = getString("ContextMenu.CreateCluster");
     static final String CONTEXT_MENU_EDIT_CLUSTER = getString("ContextMenu.EditCluster");
     static final String CONTEXT_MENU_DELETE_CLUSTER = getString("ContextMenu.DeleteCluster");
+    static final String CONTEXT_MENU_ADMINS = getString("ContextMenu.Admins");
 
     static final String CONTEXT_MENU_CREATE_WORKING_SERVER =
         getString("ContextMenu.CreateWorkingServer");

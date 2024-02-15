@@ -1634,16 +1634,71 @@ public class Server implements Comparable<Server> {
    * @param clusterId - ID кластера
    * @return список администраторов кластера
    */
-  private List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
+  public List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
     LOGGER.debug(
-        "Gets the list of cluster administrators in the cluster <{}>", //$NON-NLS-1$
+        "Gets the list administrators in the cluster <{}>", //$NON-NLS-1$
         clusterId);
+
     if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
       return new ArrayList<>();
     }
 
-    // TODO
-    return null;
+    if (!checkAutenticateAgent()) {
+      return new ArrayList<>();
+    }
+
+    List<IRegUserInfo> clusterAdmins;
+    try {
+      clusterAdmins = agentConnection.getClusterAdmins(clusterId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error get cluster admins", //$NON-NLS-1$
+          excp);
+      return new ArrayList<>();
+    }
+
+    return clusterAdmins;
+  }
+  
+  /**
+   * Регистрация нового или изменение существующего администратора кластера.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param info - информация о администраторе
+   * @return {@code true} в случае успешной регистрации
+   */
+  public boolean regClusterAdmin(UUID clusterId, IRegUserInfo info) {
+    LOGGER.debug(
+        "Registration administrator in the cluster <{}>", //$NON-NLS-1$
+        clusterId);
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
+      return false;
+    }
+
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.regClusterAdmin(clusterId, info);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registration cluster admin", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -1652,18 +1707,34 @@ public class Server implements Comparable<Server> {
    * <p>Требует аутентификации в кластере
    *
    * @param clusterId - ID кластера
-   * @param name - имя администратора
+   * @param username - имя администратора
    */
-  private void unregClusterAdmin(UUID clusterId, String name) {
+  public boolean unregClusterAdmin(UUID clusterId, String username) {
     LOGGER.debug(
         "Deletes a cluster administrator in the cluster <{}>", //$NON-NLS-1$
         clusterId);
     if (!isConnected()) {
-      return;
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
+      return false;
     }
 
-    // TODO
-    return;
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregClusterAdmin(clusterId, username);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistration cluster admin", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
   }
 
   /**
