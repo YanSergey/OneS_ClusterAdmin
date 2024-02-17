@@ -483,6 +483,11 @@ public class ViewerArea extends Composite {
     addItemInMenu(serverMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateServerListener);
 
     addMenuSeparator(serverMenu);
+    MenuItem adminsItem =
+        addItemInMenu(serverMenu, Strings.CONTEXT_MENU_ADMINS, null, editAdminsListener);
+    adminsItem.setData("disconnectItem", true);
+
+    addMenuSeparator(serverMenu);
 
     addItemInMenu(serverMenu, Strings.CONTEXT_MENU_MOVE_UP, moveUpIcon, serversMoveUpListener);
     addItemInMenu(
@@ -505,12 +510,15 @@ public class ViewerArea extends Composite {
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_CREATE_CLUSTER, addIcon16, createClusterListener);
     addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_EDIT_CLUSTER, editIcon16, editClusterListener);
+    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_ADMINS, null, editAdminsListener);
+
+    addMenuSeparator(clusterMenu);
     addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateClusterListener);
+    
     addMenuSeparator(clusterMenu);
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_DELETE_CLUSTER, deleteIcon16, deleteClusterListener);
 
-    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_ADMINS, null, editClusterAdminsListener);
   }
 
   private void initWorkingServerMenu() {
@@ -2095,7 +2103,7 @@ public class ViewerArea extends Composite {
         }
       };
 
-  SelectionAdapter editClusterAdminsListener =
+  SelectionAdapter editAdminsListener =
       new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent event) {
@@ -2103,9 +2111,15 @@ public class ViewerArea extends Composite {
           if (item.length == 0) {
             return;
           }
+          TreeItem treeItem = item[0];
+          TreeItemType treeItemType = getTreeItemType(treeItem);
+          if (treeItemType != TreeItemType.SERVER && treeItemType != TreeItemType.CLUSTER) {
+            LOGGER.error("Invalid item type for AdminsDialog"); // $NON-NLS-1$
+            return;
+          }
 
-          Server server = getServer(item[0]);
-          UUID clusterId = getClusterId(item[0]);
+          Server server = getServer(treeItem);
+          UUID clusterId = getClusterId(treeItem);
 
           AdminsDialog dialog;
           try {
@@ -2117,7 +2131,6 @@ public class ViewerArea extends Composite {
                 excp);
             return;
           }
-
           dialog.open();
         }
       };

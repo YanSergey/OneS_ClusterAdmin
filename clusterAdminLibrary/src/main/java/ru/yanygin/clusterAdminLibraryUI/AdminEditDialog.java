@@ -63,9 +63,9 @@ public class AdminEditDialog extends Dialog {
     super.configureShell(newShell);
 
     if (userInfo == null) {
-      newShell.setText(Strings.TITLE_NEW);
+      newShell.setText(clusterId == null ? Strings.TITLE_SERVER_NEW : Strings.TITLE_CLUSTER_NEW);
     } else {
-      newShell.setText(Strings.TITLE_EDIT);
+      newShell.setText(clusterId == null ? Strings.TITLE_SERVER_EDIT : Strings.TITLE_CLUSTER_EDIT);
     }
   }
 
@@ -209,7 +209,12 @@ public class AdminEditDialog extends Dialog {
       userInfo.setSysUserName(txtSysUsername.getText());
     }
 
-    return server.regClusterAdmin(clusterId, userInfo);
+    boolean unregOk =
+        clusterId == null
+            ? server.regAgentAdmin(userInfo)
+            : server.regClusterAdmin(clusterId, userInfo);
+
+    return unregOk;
   }
 
   /**
@@ -236,8 +241,10 @@ public class AdminEditDialog extends Dialog {
 
   private static class Strings {
 
-    static final String TITLE_EDIT = getString("TitleEdit");
-    static final String TITLE_NEW = getString("TitleNew");
+    static final String TITLE_CLUSTER_EDIT = getString("TitleClusterEdit");
+    static final String TITLE_CLUSTER_NEW = getString("TitleClusterNew");
+    static final String TITLE_SERVER_EDIT = getString("TitleServerEdit");
+    static final String TITLE_SERVER_NEW = getString("TitleServerNew");
 
     static final String NAME = getString("Name");
     static final String DESCRIPTION = getString("Description");

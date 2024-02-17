@@ -1636,7 +1636,7 @@ public class Server implements Comparable<Server> {
    */
   public List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
     LOGGER.debug(
-        "Gets the list administrators in the cluster <{}>", //$NON-NLS-1$
+        "Getting a list of cluster administrators <{}>", //$NON-NLS-1$
         clusterId);
 
     if (!isConnected()) {
@@ -1646,7 +1646,7 @@ public class Server implements Comparable<Server> {
       return new ArrayList<>();
     }
 
-    if (!checkAutenticateAgent()) {
+    if (!checkAutenticateCluster(clusterId)) {
       return new ArrayList<>();
     }
 
@@ -1655,7 +1655,7 @@ public class Server implements Comparable<Server> {
       clusterAdmins = agentConnection.getClusterAdmins(clusterId);
     } catch (Exception excp) {
       LOGGER.error(
-          "Error get cluster admins", //$NON-NLS-1$
+          "Error getting the list of cluster administrators", //$NON-NLS-1$
           excp);
       return new ArrayList<>();
     }
@@ -1674,7 +1674,7 @@ public class Server implements Comparable<Server> {
    */
   public boolean regClusterAdmin(UUID clusterId, IRegUserInfo info) {
     LOGGER.debug(
-        "Registration administrator in the cluster <{}>", //$NON-NLS-1$
+        "Administrator registration on the cluster <{}>", //$NON-NLS-1$
         clusterId);
 
     if (!isConnected()) {
@@ -1684,7 +1684,7 @@ public class Server implements Comparable<Server> {
       return false;
     }
 
-    if (!checkAutenticateAgent()) {
+    if (!checkAutenticateCluster(clusterId)) {
       return false;
     }
 
@@ -1692,7 +1692,7 @@ public class Server implements Comparable<Server> {
       agentConnection.regClusterAdmin(clusterId, info);
     } catch (Exception excp) {
       LOGGER.error(
-          "Error registration cluster admin", //$NON-NLS-1$
+          "Error registering the administrator of the cluster", //$NON-NLS-1$
           excp);
       Helper.showMessageBox(excp.getLocalizedMessage());
       return false;
@@ -1711,7 +1711,7 @@ public class Server implements Comparable<Server> {
    */
   public boolean unregClusterAdmin(UUID clusterId, String username) {
     LOGGER.debug(
-        "Deletes a cluster administrator in the cluster <{}>", //$NON-NLS-1$
+        "Deletes the cluster administrator in the cluster <{}>", //$NON-NLS-1$
         clusterId);
     if (!isConnected()) {
       LOGGER.debug(
@@ -1720,7 +1720,7 @@ public class Server implements Comparable<Server> {
       return false;
     }
 
-    if (!checkAutenticateAgent()) {
+    if (!checkAutenticateCluster(clusterId)) {
       return false;
     }
 
@@ -1728,7 +1728,115 @@ public class Server implements Comparable<Server> {
       agentConnection.unregClusterAdmin(clusterId, username);
     } catch (Exception excp) {
       LOGGER.error(
-          "Error unregistration cluster admin", //$NON-NLS-1$
+          "Error unregistration cluster administrator", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Получение списка администраторов центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @return список администраторов кластера
+   */
+  public List<IRegUserInfo> getAgentAdmins() {
+    LOGGER.debug(
+        "Getting the list of administrators on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return new ArrayList<>();
+    }
+
+    if (!checkAutenticateAgent()) {
+      return new ArrayList<>();
+    }
+
+    List<IRegUserInfo> clusterAdmins;
+    try {
+      clusterAdmins = agentConnection.getAgentAdmins();
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error getting the list of administrators of the main server", //$NON-NLS-1$
+          excp);
+      return new ArrayList<>();
+    }
+
+    return clusterAdmins;
+  }
+
+  /**
+   * Регистрация нового или изменение существующего администратора центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @param info - информация о администраторе
+   * @return {@code true} в случае успешной регистрации
+   */
+  public boolean regAgentAdmin(IRegUserInfo info) {
+    LOGGER.debug(
+        "Administrator registration on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return false;
+    }
+
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.regAgentAdmin(info);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registering the administrator of the main server", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Удаление администратора центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @param username - имя администратора
+   */
+  public boolean unregAgentAdmin(String username) {
+    LOGGER.debug(
+        "Deleting an administrator on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return false;
+    }
+
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregAgentAdmin(username);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistration of the main server administrator", //$NON-NLS-1$
           excp);
       Helper.showMessageBox(excp.getLocalizedMessage());
       return false;

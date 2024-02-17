@@ -1,6 +1,7 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
 import com._1c.v8.ibis.admin.IRegUserInfo;
+import java.util.List;
 import java.util.UUID;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -145,14 +146,15 @@ public class AdminsDialog extends Dialog {
   private void fillTableAdmins() {
 
     tableAdmins.removeAll();
-    server
-        .getClusterAdmins(clusterId)
-        .forEach(
-            (userInfo) -> {
-              TableItem adminItem = new TableItem(tableAdmins, SWT.NONE);
-              adminItem.setText(getTableAdminsItemText(userInfo));
-              adminItem.setData(userInfo);
-            });
+    List<IRegUserInfo> admins =
+        clusterId == null ? server.getAgentAdmins() : server.getClusterAdmins(clusterId);
+
+    admins.forEach(
+        (userInfo) -> {
+          TableItem adminItem = new TableItem(tableAdmins, SWT.NONE);
+          adminItem.setText(getTableAdminsItemText(userInfo));
+          adminItem.setData(userInfo);
+        });
     tableAdmins.pack();
   }
 
@@ -213,6 +215,7 @@ public class AdminsDialog extends Dialog {
       TableItem adminItem = new TableItem(tableAdmins, SWT.NONE);
       adminItem.setText(getTableAdminsItemText(userInfo));
       adminItem.setData(userInfo);
+      getShell().pack();
     }
   }
 
@@ -242,15 +245,21 @@ public class AdminsDialog extends Dialog {
       return;
     }
 
-    int answer = Helper.showQuestionBox(Messages.getString("Удалить ?"));
+    int answer = Helper.showQuestionBox(Strings.ANSWER_DELETE);
     if (answer == SWT.YES) {
       for (TableItem adminItem : admins) {
 
         IRegUserInfo userInfo = (IRegUserInfo) adminItem.getData();
-        if (server.unregClusterAdmin(clusterId, userInfo.getName())) {
+        boolean unregOk =
+            clusterId == null
+                ? server.unregAgentAdmin(userInfo.getName())
+                : server.unregClusterAdmin(clusterId, userInfo.getName());
+
+        if (unregOk) {
           adminItem.dispose();
         }
       }
+      getShell().pack();
     }
   }
 
@@ -263,9 +272,11 @@ public class AdminsDialog extends Dialog {
     static final String SYS_AUTH_ALLOWED = getString("SysAuthAllowed");
     static final String SYS_USERNAME = getString("SysUsername");
 
+    static final String ANSWER_DELETE = getString("AnswerDelete");
+
     static final String TOOLBAR_ADD = Messages.getString("ViewerArea.ContextMenu.Create");
-    static final String TOOLBAR_EDIT = getString("ViewerArea.ContextMenu.Edit");
-    static final String TOOLBAR_DELETE = getString("ViewerArea.ContextMenu.Delete");
+    static final String TOOLBAR_EDIT = Messages.getString("ViewerArea.ContextMenu.Edit");
+    static final String TOOLBAR_DELETE = Messages.getString("ViewerArea.ContextMenu.Delete");
 
     static String getString(String key) {
       return Messages.getString("AdminDialog." + key);
