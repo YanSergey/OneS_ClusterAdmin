@@ -735,9 +735,9 @@ public class Server implements Comparable<Server> {
 
     if (newAgentVersion.version().size() == 3) {
       v8versionIsActual =
-          savedV8version.feature() != newAgentVersion.feature()
-              || savedV8version.interim() != newAgentVersion.interim()
-              || savedV8version.update() != newAgentVersion.update();
+          savedV8version.feature() == newAgentVersion.feature()
+              && savedV8version.interim() == newAgentVersion.interim()
+              && savedV8version.update() == newAgentVersion.update();
 
     } else {
       v8versionIsActual = savedV8version.equals(newAgentVersion);
@@ -910,13 +910,21 @@ public class Server implements Comparable<Server> {
     }
 
     if (v8version.isBlank() || localRasPort == 0) {
-      var message =
+      connectionError =
           String.format(
-              Messages.getString("Server.LocalRasParamsIsEmpty"), //$NON-NLS-1$
+              Messages.getString("Server.LocalRasParamsIsEmpty"), // $NON-NLS-1$
               this.getServerKey());
-      LOGGER.error(message);
-      Helper.showMessageBox(message);
+      LOGGER.error(connectionError);
+      return false;
+    }
 
+    Version savedV8version = Version.parse(v8version);
+    if (savedV8version.version().size() == 3) {
+      connectionError =
+          String.format(
+              Messages.getString("Server.LocalRasParamsIsInvalid"), // $NON-NLS-1$
+              v8version);
+      LOGGER.error(connectionError);
       return false;
     }
 
@@ -925,12 +933,10 @@ public class Server implements Comparable<Server> {
     var processOutput = ""; //$NON-NLS-1$
     var localRasPath = Helper.pathToRas(v8version, "x64");
     if (localRasPath == null) {
-      var message =
+      connectionError =
           String.format(
-              Messages.getString("Server.LocalRasNotFound"), this.getServerKey()); //$NON-NLS-1$
-      LOGGER.error(message);
-      Helper.showMessageBox(message);
-
+              Messages.getString("Server.LocalRasNotFound"), this.getServerKey()); // $NON-NLS-1$
+      LOGGER.error(connectionError);
       return false;
     }
 
@@ -956,8 +962,7 @@ public class Server implements Comparable<Server> {
     } catch (Exception excp) {
       LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey()); //$NON-NLS-1$
       LOGGER.error("Error: <{}>", processOutput, excp); //$NON-NLS-1$
-      Helper.showMessageBox(excp.getLocalizedMessage());
-      
+      connectionError = excp.getLocalizedMessage();
       return false;
     }
 
@@ -984,8 +989,6 @@ public class Server implements Comparable<Server> {
       connectionError =
           String.format("Local RAS <%s> is shutdown", this.getServerKey()); //$NON-NLS-1$
       LOGGER.error(connectionError);
-      Helper.showMessageBox(connectionError);
-
       return false;
     }
   }

@@ -178,6 +178,11 @@ public class Helper {
     String pathToVersion = getInstalledV8Versions(bitness).get(version);
     String osPart;
 
+    if (pathToVersion == null) {
+      // указанная версия не обнаружена среди установленных
+      return null;
+    }
+
     if (Config.currentConfig.isWindows()) {
       osPart = "bin";
     } else if (Config.currentConfig.isLinux()) {
