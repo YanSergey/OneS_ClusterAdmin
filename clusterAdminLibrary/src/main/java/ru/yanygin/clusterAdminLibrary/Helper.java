@@ -6,7 +6,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -286,8 +288,12 @@ public class Helper {
     if (date == null || date.equals(emptyDate)) {
       return "";
     }
+    Calendar calendar = new GregorianCalendar();
+    calendar.set(Calendar.HOUR, 0);
+    calendar.set(Calendar.MINUTE, 0);
+    calendar.set(Calendar.SECOND, 0);
 
-    if (Config.currentConfig.showCurrentDateAsTime()) {
+    if (Config.currentConfig.showCurrentDateAsTime() && date.after(calendar.getTime())) {
       return currentDayDateFormat.format(date);
     } else {
       return normalDateFormat.format(date);
