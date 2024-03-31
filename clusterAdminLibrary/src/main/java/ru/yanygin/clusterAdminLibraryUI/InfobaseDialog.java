@@ -54,8 +54,6 @@ public class InfobaseDialog extends Dialog {
   private UUID infoBaseId;
   private boolean creationMode = false;
   private boolean deniedFriendlyEditMode = false;
-  private boolean deniedFromIsEmpty = true;
-  private boolean deniedToIsEmpty = true;
 
   private final Image tumblerOn = Helper.getImage("tumblerOn.png");
   private final Image tumblerOff = Helper.getImage("tumblerOff.png");
@@ -82,18 +80,10 @@ public class InfobaseDialog extends Dialog {
   private Button btnExternalSessionManagerRequired;
 
   private Text txtDeniedMessage;
-  private Text txtDeniedFromDate;
-  private DateTime deniedFromDate;
-  private DateTime deniedFromTime;
-  private Text txtDeniedToDate;
   private Button btnDeniedSwitchMode;
-  private Button btnDeniedFromClear;
-  private DateTime deniedToDate;
-  private DateTime deniedToTime;
-  private Button btnDeniedToClear;
-  private Combo comboDeniedFrom;
-  private Combo comboDeniedTo;
-  private Button btnPutDeniedMessage;
+
+  private DateTimeCombo deniedFromCombined;
+  private DateTimeCombo deniedToCombined;
 
   /**
    * Create the dialog.
@@ -110,7 +100,9 @@ public class InfobaseDialog extends Dialog {
     this.server = server;
     this.clusterId = clusterId;
     this.infoBaseId = infoBaseId;
-    
+
+    dateFormat.setLenient(false);
+
     // три варианта открытия окна:
     //  - существующая база
     //  - новая база
@@ -220,36 +212,29 @@ public class InfobaseDialog extends Dialog {
     lblDeniedFrom.setText(Strings.SESSIONS_DENIED_FROM);
 
     Composite compositeDeniedFrom = new Composite(container, SWT.NONE);
+    compositeDeniedFrom.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1));
     compositeDeniedFrom.setLayout(null);
 
-    txtDeniedFromDate = new Text(compositeDeniedFrom, SWT.BORDER);
+    Text txtDeniedFromDate = new Text(compositeDeniedFrom, SWT.BORDER);
     txtDeniedFromDate.setBounds(0, 1, 185, 21);
-    txtDeniedFromDate.addModifyListener(
-        new ModifyListener() {
-          public void modifyText(ModifyEvent e) {
-            Date deniedFrom = convertStringToDate(txtDeniedFromDate.getText());
-            setValueOnDateTimeFields(deniedFrom, deniedFromDate, deniedFromTime);
-            comboDeniedFrom.select(deniedFromTime.getHours() * 4);
-          }
-        });
 
-    deniedFromDate = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.DROP_DOWN);
-    deniedFromDate.setBounds(0, 1, 91, 21);
-    deniedFromDate.addSelectionListener(
+    DateTime deniedFromDate = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.DROP_DOWN);
+    deniedFromDate.setBounds(0, 0, 91, 23);
+
+    DateTime deniedFromTime = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.TIME);
+    deniedFromTime.setBounds(96, 0, 70, 23);
+
+    Combo comboDeniedFrom = new Combo(compositeDeniedFrom, SWT.READ_ONLY);
+    comboDeniedFrom.setBounds(96, 0, 90, 21);
+
+    Button btnDeniedFromClear = new Button(compositeDeniedFrom, SWT.NONE);
+    btnDeniedFromClear.setText("X");
+    btnDeniedFromClear.setBounds(184, -1, 23, 25);
+    btnDeniedFromClear.addSelectionListener(
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
-            convertDeniedFromDateToClassicTextField();
-          }
-        });
-
-    deniedFromTime = new DateTime(compositeDeniedFrom, SWT.BORDER | SWT.TIME);
-    deniedFromTime.setBounds(96, 1, 70, 21);
-    deniedFromTime.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            convertDeniedFromDateToClassicTextField();
+            deniedFromCombined.clear();
           }
         });
 
@@ -261,42 +246,7 @@ public class InfobaseDialog extends Dialog {
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
-            deniedFriendlyEditMode = !deniedFriendlyEditMode;
-            Config.currentConfig.setInfobaseDeniedFriendlyEditMode(deniedFriendlyEditMode);
-            setDeniedFieldsState();
-            setImageOnDeniedSwitchButton();
-          }
-        });
-
-    btnDeniedFromClear = new Button(compositeDeniedFrom, SWT.NONE);
-    btnDeniedFromClear.setText("x");
-    btnDeniedFromClear.setBounds(190, 1, 21, 21);
-    btnDeniedFromClear.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            deniedFromIsEmpty = true;
-            setDeniedFieldsState();
-            txtDeniedFromDate.setText("");
-          }
-        });
-
-    comboDeniedFrom = new Combo(compositeDeniedFrom, SWT.READ_ONLY);
-    comboDeniedFrom.setBounds(95, 0, 90, 21);
-    comboDeniedFrom.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-
-            int curTimeIndex = comboDeniedFrom.getSelectionIndex();
-            int curHourIndex = curTimeIndex - (curTimeIndex % 4);
-            String curHour = comboDeniedFrom.getItem(curHourIndex).substring(0, 2);
-
-            deniedFromTime.setHours(Integer.parseInt(curHour));
-            deniedFromTime.setMinutes(15 * (curTimeIndex % 4));
-            deniedFromTime.setSeconds(0);
-
-            convertDeniedFromDateToClassicTextField();
+            switchDeniedEditMode();
           }
         });
 
@@ -308,82 +258,40 @@ public class InfobaseDialog extends Dialog {
     compositeDeniedTo.setLayout(null);
     compositeDeniedTo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 
-    txtDeniedToDate = new Text(compositeDeniedTo, SWT.BORDER);
+    Text txtDeniedToDate = new Text(compositeDeniedTo, SWT.BORDER);
     txtDeniedToDate.setBounds(0, 1, 185, 21);
-    txtDeniedToDate.addModifyListener(
-        new ModifyListener() {
-          public void modifyText(ModifyEvent e) {
-            Date deniedTo = convertStringToDate(txtDeniedToDate.getText());
-            setValueOnDateTimeFields(deniedTo, deniedToDate, deniedToTime);
-            comboDeniedTo.select(deniedToTime.getHours() * 4);
-          }
-        });
 
-    deniedToDate = new DateTime(compositeDeniedTo, SWT.BORDER | SWT.DROP_DOWN);
-    deniedToDate.setBounds(0, 1, 91, 21);
-    deniedToDate.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            convertDeniedToToClassicTextField();
-          }
-        });
+    DateTime deniedToDate = new DateTime(compositeDeniedTo, SWT.BORDER | SWT.DROP_DOWN);
+    deniedToDate.setBounds(0, 0, 91, 23);
 
-    deniedToTime = new DateTime(compositeDeniedTo, SWT.BORDER | SWT.TIME);
-    deniedToTime.setBounds(95, 1, 70, 21);
-    deniedToTime.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            convertDeniedToToClassicTextField();
-          }
-        });
+    DateTime deniedToTime = new DateTime(compositeDeniedTo, SWT.BORDER | SWT.TIME);
+    deniedToTime.setBounds(96, 0, 70, 23);
 
-    comboDeniedTo = new Combo(compositeDeniedTo, SWT.READ_ONLY);
-    comboDeniedTo.setBounds(95, 0, 90, 23);
-    // comboDeniedTo.select(0);
-    comboDeniedTo.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
+    Combo comboDeniedTo = new Combo(compositeDeniedTo, SWT.READ_ONLY);
+    comboDeniedTo.setBounds(96, 0, 90, 23);
 
-            int curTimeIndex = comboDeniedTo.getSelectionIndex();
-            int curHourIndex = curTimeIndex - (curTimeIndex % 4);
-            String curHour = comboDeniedTo.getItem(curHourIndex).substring(0, 2);
-
-            deniedToTime.setHours(Integer.parseInt(curHour));
-            deniedToTime.setMinutes(15 * (curTimeIndex % 4));
-            deniedToTime.setSeconds(0);
-
-            convertDeniedToToClassicTextField();
-          }
-        });
-
-    btnDeniedToClear = new Button(compositeDeniedTo, SWT.NONE);
-    btnDeniedToClear.setText("x");
-    btnDeniedToClear.setBounds(190, 1, 21, 21);
+    Button btnDeniedToClear = new Button(compositeDeniedTo, SWT.NONE);
+    btnDeniedToClear.setText("X");
+    btnDeniedToClear.setBounds(184, -1, 23, 25);
     btnDeniedToClear.addSelectionListener(
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
-            deniedToIsEmpty = true;
-            setDeniedFieldsState();
-            txtDeniedToDate.setText("");
+            deniedToCombined.clear();
           }
         });
 
     Label lblDeniedMessage = new Label(container, SWT.NONE);
     lblDeniedMessage.setText(Strings.SESSIONS_DENIED_MESSAGE);
 
-    btnPutDeniedMessage = new Button(container, SWT.READ_ONLY);
+    Button btnPutDeniedMessage = new Button(container, SWT.READ_ONLY);
     btnPutDeniedMessage.setText(Strings.PUT_SESSIONS_DENIED_MESSAGE);
     btnPutDeniedMessage.addSelectionListener(
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
-
-            Date deniedFrom = getDeniedDate(deniedFromDate, deniedFromTime);
-            Date deniedTo = getDeniedDate(deniedToDate, deniedToTime);
+            Date deniedFrom = deniedFromCombined.getDate(); // надо учесть пустую дату
+            Date deniedTo = deniedToCombined.getDate();
 
             String deniedMessage =
                 String.format(
@@ -454,19 +362,10 @@ public class InfobaseDialog extends Dialog {
             getParentShell().getDisplay(), fontData.getName(), fontData.getHeight(), SWT.NORMAL);
     fontMicro = new Font(getParentShell().getDisplay(), fontData.getName(), 1, SWT.NORMAL);
 
-    for (int i = 0; i < 24; i++) {
-      comboDeniedFrom.add(String.format("%02d:00:00", i));
-      comboDeniedFrom.add("     15:00");
-      comboDeniedFrom.add("     30:00");
-      comboDeniedFrom.add("     45:00");
-
-      comboDeniedTo.add(String.format("%02d:00:00", i));
-      comboDeniedTo.add("     15:00");
-      comboDeniedTo.add("     30:00");
-      comboDeniedTo.add("     45:00");
-    }
-    comboDeniedFrom.select(0);
-    comboDeniedTo.select(0);
+    deniedFromCombined =
+        new DateTimeCombo(txtDeniedFromDate, deniedFromDate, deniedFromTime, comboDeniedFrom);
+    deniedToCombined =
+        new DateTimeCombo(txtDeniedToDate, deniedToDate, deniedToTime, comboDeniedTo);
 
     initProperties();
 
@@ -500,35 +399,11 @@ public class InfobaseDialog extends Dialog {
       btnSessionsDenied.setSelection(infoBaseInfo.isSessionsDenied());
 
       deniedFriendlyEditMode = Config.currentConfig.getInfobaseDeniedFriendlyEditMode();
-      setImageOnDeniedSwitchButton();
+      setActiveDeniedFields();
 
-      // Дата запрета входа Начальная
-      Date deniedFrom = infoBaseInfo.getDeniedFrom();
-      deniedFromIsEmpty = deniedFrom.equals(emptyDate);
-
-      if (deniedFromIsEmpty) {
-        deniedFromTime.setTime(deniedFromTime.getHours(), 0, 0);
-      } else {
-        txtDeniedFromDate.setText(convertDateToString(deniedFrom));
-        setValueOnDateTimeFields(deniedFrom, deniedFromDate, deniedFromTime);
-      }
-      comboDeniedFrom.select(deniedFromTime.getHours() * 4);
-      // Дата запрета входа начальная
-
-      // Дата запрета входа Конечная
-      Date deniedTo = infoBaseInfo.getDeniedTo();
-      deniedToIsEmpty = deniedTo.equals(emptyDate);
-
-      if (deniedToIsEmpty) {
-        deniedToTime.setTime(deniedToTime.getHours() + 1, 0, 0);
-      } else {
-        txtDeniedToDate.setText(convertDateToString(deniedTo));
-        setValueOnDateTimeFields(deniedTo, deniedToDate, deniedToTime);
-      }
-      comboDeniedTo.select(deniedToTime.getHours() * 4);
-      // Дата запрета входа Конечная
-
-      setDeniedFieldsState();
+      // Даты запрета входа
+      deniedFromCombined.setDate(infoBaseInfo.getDeniedFrom(), true);
+      deniedToCombined.setDate(infoBaseInfo.getDeniedTo(), true);
 
       txtDeniedMessage.setText(infoBaseInfo.getDeniedMessage());
       txtPermissionCode.setText(infoBaseInfo.getPermissionCode());
@@ -567,18 +442,13 @@ public class InfobaseDialog extends Dialog {
       }
     }
 
-    List<Text> checksDateControls = new ArrayList<>();
-    checksDateControls.add(txtDeniedFromDate);
-    checksDateControls.add(txtDeniedToDate);
+    List<DateTimeCombo> checksDateControls = new ArrayList<>();
+    checksDateControls.add(deniedFromCombined);
+    checksDateControls.add(deniedToCombined);
 
-    for (Text control : checksDateControls) {
-      if (control.getText().isBlank()) {
-        control.setBackground(Helper.getWhiteColor());
-      } else {
-        if (convertStringToDate(control.getText()).equals(emptyDate)) {
-          control.setBackground(Helper.getPinkColor());
-          existsError = true;
-        }
+    for (DateTimeCombo control : checksDateControls) {
+      if (!control.valueIsValid()) {
+        existsError = true;
       }
     }
 
@@ -588,6 +458,7 @@ public class InfobaseDialog extends Dialog {
   private boolean saveInfobaseProperties() {
 
     if (checkVariablesFromControls()) {
+      Helper.showMessageBox(Strings.SAVE_ERROR);
       return false;
     }
 
@@ -611,8 +482,8 @@ public class InfobaseDialog extends Dialog {
 
     // Lock properties
     infoBaseInfo.setSessionsDenied(btnSessionsDenied.getSelection());
-    infoBaseInfo.setDeniedFrom(convertStringToDate(txtDeniedFromDate.getText()));
-    infoBaseInfo.setDeniedTo(convertStringToDate(txtDeniedToDate.getText()));
+    infoBaseInfo.setDeniedFrom(deniedFromCombined.getDate());
+    infoBaseInfo.setDeniedTo(deniedToCombined.getDate());
 
     infoBaseInfo.setDeniedMessage(txtDeniedMessage.getText());
     infoBaseInfo.setPermissionCode(txtPermissionCode.getText());
@@ -638,87 +509,27 @@ public class InfobaseDialog extends Dialog {
     }
 
     Date convertDate;
-    
+
     try {
       convertDate = dateFormat.parse(date);
     } catch (ParseException excp) {
-      excp.printStackTrace();
-      convertDate = emptyDate;
+      convertDate = null;
     }
 
     return convertDate;
   }
 
-  private String convertDateToString(Date date) {
+  private void switchDeniedEditMode() {
+    deniedFriendlyEditMode = !deniedFriendlyEditMode;
+    Config.currentConfig.setInfobaseDeniedFriendlyEditMode(deniedFriendlyEditMode);
 
-    return date.equals(emptyDate) ? EMPTY_STRING : dateFormat.format(date);
+    setActiveDeniedFields();
   }
 
-  private void setValueOnDateTimeFields(Date date, DateTime dateField, DateTime timeField) {
-    dateField.setDate(date.getYear() + 1900, date.getMonth(), date.getDate());
-    timeField.setTime(date.getHours(), date.getMinutes(), date.getSeconds());
-  }
+  private void setActiveDeniedFields() {
+    deniedFromCombined.setEditMode();
+    deniedToCombined.setEditMode();
 
-  private void setDeniedFieldsState() {
-
-    if (deniedFromIsEmpty) {
-      deniedFromDate.setFont(fontMicro);
-      deniedFromTime.setFont(fontMicro);
-    } else {
-      deniedFromDate.setFont(fontNormal);
-      deniedFromTime.setFont(fontNormal);
-    }
-
-    if (deniedToIsEmpty) {
-      deniedToDate.setFont(fontMicro);
-      deniedToTime.setFont(fontMicro);
-    } else {
-      deniedToDate.setFont(fontNormal);
-      deniedToTime.setFont(fontNormal);
-    }
-
-    deniedFromDate.setVisible(deniedFriendlyEditMode);
-    deniedFromTime.setVisible(deniedFriendlyEditMode);
-    comboDeniedFrom.setVisible(deniedFriendlyEditMode);
-    txtDeniedFromDate.setVisible(!deniedFriendlyEditMode);
-
-    deniedToDate.setVisible(deniedFriendlyEditMode);
-    deniedToTime.setVisible(deniedFriendlyEditMode);
-    comboDeniedTo.setVisible(deniedFriendlyEditMode);
-    txtDeniedToDate.setVisible(!deniedFriendlyEditMode);
-  }
-
-  private void convertDeniedFromDateToClassicTextField() {
-
-    deniedFromIsEmpty = false;
-    setDeniedFieldsState();
-
-    Date deniedDate = getDeniedDate(deniedFromDate, deniedFromTime);
-    txtDeniedFromDate.setText(Helper.dateToStringReverse(deniedDate));
-  }
-
-  private void convertDeniedToToClassicTextField() {
-
-    deniedToIsEmpty = false;
-    setDeniedFieldsState();
-
-    Date deniedDate = getDeniedDate(deniedToDate, deniedToTime);
-    txtDeniedToDate.setText(Helper.dateToStringReverse(deniedDate));
-  }
-
-  private Date getDeniedDate(DateTime date, DateTime time) {
-    Calendar calendar =
-        new GregorianCalendar(
-            date.getYear(),
-            date.getMonth(),
-            date.getDay(),
-            time.getHours(),
-            time.getMinutes(),
-            time.getSeconds());
-    return calendar.getTime();
-  }
-
-  private void setImageOnDeniedSwitchButton() {
     btnDeniedSwitchMode.setImage(deniedFriendlyEditMode ? tumblerOn : tumblerOff);
   }
 
@@ -753,6 +564,177 @@ public class InfobaseDialog extends Dialog {
         });
   }
 
+  private class DateTimeCombo {
+    Text textField;
+    DateTime dateField;
+    DateTime timeField;
+    Combo comboField;
+
+    boolean dateIsEmpty = false;
+    boolean deniedModifyEventOff = false;
+
+    public DateTimeCombo(Text textField, DateTime dateField, DateTime timeField, Combo comboField) {
+      this.textField = textField;
+      this.dateField = dateField;
+      this.timeField = timeField;
+      this.comboField = comboField;
+
+      for (int i = 0; i < 24; i++) {
+        this.comboField.add(String.format("%02d:00:00", i));
+        this.comboField.add("     15:00");
+        this.comboField.add("     30:00");
+        this.comboField.add("     45:00");
+      }
+
+      // установка обработчиков
+      this.textField.addModifyListener(
+          new ModifyListener() {
+            public void modifyText(ModifyEvent e) {
+              if (deniedModifyEventOff) {
+                deniedModifyEventOff = false;
+                return;
+              }
+              parseTextDate();
+            }
+          });
+      this.dateField.addSelectionListener(
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              update();
+            }
+          });
+      this.timeField.addSelectionListener(
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              update();
+            }
+          });
+      this.comboField.addSelectionListener(
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              updateTime();
+            }
+          });
+    }
+
+    private void parseTextDate() {
+      Date date = convertStringToDate(textField.getText());
+      if (date != null) {
+        setDate(date, false);
+      }
+    }
+
+    private void setDate(Date dateValue, boolean modifyTextField) {
+      dateIsEmpty = dateValue.equals(emptyDate);
+      updateEmptyState();
+
+      if (dateIsEmpty) {
+        timeField.setTime(timeField.getHours(), 0, 0);
+        comboField.select(timeField.getHours() * 4);
+      } else {
+        if (modifyTextField) {
+          deniedModifyEventOff = true;
+          textField.setText(convertDateToString(dateValue));
+        }
+
+        dateField.setDate(dateValue.getYear() + 1900, dateValue.getMonth(), dateValue.getDate());
+        timeField.setTime(dateValue.getHours(), dateValue.getMinutes(), dateValue.getSeconds());
+        comboField.select(timeField.getHours() * 4);
+      }
+    }
+
+    private void update() {
+      comboField.select(timeField.getHours() * 4);
+
+      dateIsEmpty = false;
+      updateEmptyState();
+
+      Date deniedDate = getDate();
+      deniedModifyEventOff = true;
+      textField.setText(Helper.dateToStringReverse(deniedDate)); // TODO = convertDateToString???
+    }
+
+    private void updateTime() {
+      int newMinutesIndex = comboField.getSelectionIndex();
+      int newHourIndex = newMinutesIndex - (newMinutesIndex % 4);
+      String newHour = comboField.getItem(newHourIndex).substring(0, 2);
+
+      timeField.setHours(Integer.parseInt(newHour));
+      timeField.setMinutes(15 * (newMinutesIndex % 4));
+      timeField.setSeconds(0);
+
+      update();
+    }
+
+    private void updateEmptyState() {
+      if (dateIsEmpty) {
+        dateField.setFont(fontMicro);
+        timeField.setFont(fontMicro);
+      } else {
+        dateField.setFont(fontNormal);
+        timeField.setFont(fontNormal);
+      }
+    }
+
+    private void clear() {
+      dateIsEmpty = true;
+      updateEmptyState();
+      deniedModifyEventOff = true;
+      textField.setText("");
+
+      Date curDate = Calendar.getInstance().getTime();
+
+      dateField.setDate(curDate.getYear() + 1900, curDate.getMonth(), curDate.getDate());
+      timeField.setTime(curDate.getHours(), 0, 0);
+      comboField.select(curDate.getHours() * 4);
+    }
+
+    private Date getDate() {
+      if (dateIsEmpty) {
+        return emptyDate;
+      }
+      Calendar calendar =
+          new GregorianCalendar(
+              dateField.getYear(),
+              dateField.getMonth(),
+              dateField.getDay(),
+              timeField.getHours(),
+              timeField.getMinutes(),
+              timeField.getSeconds());
+      return calendar.getTime();
+    }
+
+    private String convertDateToString(Date date) {
+
+      return date.equals(emptyDate) ? EMPTY_STRING : dateFormat.format(date);
+    }
+
+    private boolean valueIsValid() {
+      if (deniedFriendlyEditMode) {
+        return true;
+      }
+      if (textField.getText().isBlank()) {
+        textField.setBackground(Helper.getWhiteColor());
+      } else if (convertStringToDate(textField.getText()) == null) {
+        textField.setBackground(Helper.getPinkColor());
+        return false;
+      } else {
+        textField.setBackground(Helper.getWhiteColor());
+      }
+      return true;
+    }
+
+    private void setEditMode() {
+      textField.setVisible(!deniedFriendlyEditMode);
+      dateField.setVisible(deniedFriendlyEditMode);
+      timeField.setVisible(deniedFriendlyEditMode);
+      comboField.setVisible(deniedFriendlyEditMode);
+    }
+  }
+
   private static class Strings {
 
     static final String TITLE_WINDOW = getString("TitleDialog");
@@ -783,6 +765,7 @@ public class InfobaseDialog extends Dialog {
         getString("RequiredUseOfExternalManagement");
     static final String SECURITY_PROFILE = getString("SecurityProfile");
     static final String SAFE_MODE_SECURITY_PROFILE = getString("SafeModeSecurityProfile");
+    static final String SAVE_ERROR = getString("SaveError");
 
     static final String APPLY = Messages.getString("Dialogs.Apply");
 
