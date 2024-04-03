@@ -290,14 +290,12 @@ public class InfobaseDialog extends Dialog {
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
-            Date deniedFrom = deniedFromCombined.getDate(); // надо учесть пустую дату
-            Date deniedTo = deniedToCombined.getDate();
 
             String deniedMessage =
                 String.format(
                     Config.currentConfig.getInfobaseDeniedMessagePattern(),
-                    dateDeniedFormat.format(deniedFrom),
-                    dateDeniedFormat.format(deniedTo));
+                    deniedFromCombined.getDeniedTime(),
+                    deniedToCombined.getDeniedTime());
 
             txtDeniedMessage.setText(deniedMessage);
           }
@@ -705,6 +703,13 @@ public class InfobaseDialog extends Dialog {
               timeField.getMinutes(),
               timeField.getSeconds());
       return calendar.getTime();
+    }
+
+    private String getDeniedTime() {
+      if (dateIsEmpty) {
+        return "-";
+      }
+      return dateDeniedFormat.format(getDate());
     }
 
     private String convertDateToString(Date date) {
