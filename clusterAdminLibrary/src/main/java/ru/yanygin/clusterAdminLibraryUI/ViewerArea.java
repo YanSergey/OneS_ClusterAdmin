@@ -121,6 +121,7 @@ public class ViewerArea extends Composite {
   Image sortIcon;
   Image moveUpIcon;
   Image moveDownIcon;
+  Image watchSession;
 
   Tree serversTree;
   TreeItem currentTreeItem;
@@ -348,6 +349,8 @@ public class ViewerArea extends Composite {
     sortIcon = Helper.getImage("sort.png"); //$NON-NLS-1$
     moveUpIcon = Helper.getImage("move_up.png"); //$NON-NLS-1$
     moveDownIcon = Helper.getImage("move_down.png"); //$NON-NLS-1$
+
+    watchSession = Helper.getImage("watch.png"); // $NON-NLS-1$
 
     LOGGER.debug("Icon init succesfully"); //$NON-NLS-1$
   }
@@ -674,7 +677,8 @@ public class ViewerArea extends Composite {
       addItemInMenu(tableMenu, title, editIcon16, editItemInTablesListener);
     }
 
-    addItemInMenu(tableMenu, Strings.CONTEXT_MENU_WATCH_SESSION, null, switchWatchingMenuListener);
+    addItemInMenu(
+        tableMenu, Strings.CONTEXT_MENU_WATCH_SESSION, watchSession, switchWatchingMenuListener);
     addItemInMenu(
         tableMenu, Strings.CONTEXT_MENU_COPY_CELL_VALUE, null, copyCellValueInTablesListener);
 
