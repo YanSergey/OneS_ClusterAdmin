@@ -43,8 +43,8 @@ public class InfobaseDialog extends Dialog {
   private static final String DBMS_TYPE_ORACLEDATABASE = "OracleDatabase"; //$NON-NLS-1$
   private static final String EMPTY_STRING = ""; //$NON-NLS-1$
 
-  private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); //$NON-NLS-1$
-  private final DateFormat dateDeniedFormat = new SimpleDateFormat("H:mm"); // $NON-NLS-1$
+  private final DateFormat dateReverseFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  private final DateFormat dateDeniedFormat = new SimpleDateFormat("H:mm");
   private final Date emptyDate = new Date(0);
   private Font fontNormal;
   private Font fontMicro;
@@ -101,7 +101,7 @@ public class InfobaseDialog extends Dialog {
     this.clusterId = clusterId;
     this.infoBaseId = infoBaseId;
 
-    dateFormat.setLenient(false);
+    dateReverseFormat.setLenient(false);
 
     // три варианта открытия окна:
     //  - существующая база
@@ -509,7 +509,7 @@ public class InfobaseDialog extends Dialog {
     Date convertDate;
 
     try {
-      convertDate = dateFormat.parse(date);
+      convertDate = dateReverseFormat.parse(date);
     } catch (ParseException excp) {
       convertDate = null;
     }
@@ -635,7 +635,7 @@ public class InfobaseDialog extends Dialog {
       } else {
         if (modifyTextField) {
           deniedModifyEventOff = true;
-          textField.setText(convertDateToString(dateValue));
+          textField.setText(convertDateToReverseString(dateValue));
         }
 
         dateField.setDate(dateValue.getYear() + 1900, dateValue.getMonth(), dateValue.getDate());
@@ -652,7 +652,7 @@ public class InfobaseDialog extends Dialog {
 
       Date deniedDate = getDate();
       deniedModifyEventOff = true;
-      textField.setText(Helper.dateToStringReverse(deniedDate)); // TODO = convertDateToString???
+      textField.setText(convertDateToReverseString(deniedDate));
     }
 
     private void updateTime() {
@@ -712,9 +712,15 @@ public class InfobaseDialog extends Dialog {
       return dateDeniedFormat.format(getDate());
     }
 
-    private String convertDateToString(Date date) {
+    /**
+     * Преобразует дату к строке ("yyyy-MM-dd hh:MM:ss").
+     *
+     * @param date - Дата
+     * @return Дата строкой
+     */
+    private String convertDateToReverseString(Date date) {
 
-      return date.equals(emptyDate) ? EMPTY_STRING : dateFormat.format(date);
+      return date.equals(emptyDate) ? EMPTY_STRING : dateReverseFormat.format(date);
     }
 
     private boolean valueIsValid() {

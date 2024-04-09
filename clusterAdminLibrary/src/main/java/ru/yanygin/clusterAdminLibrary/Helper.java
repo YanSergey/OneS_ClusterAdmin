@@ -24,7 +24,6 @@ public class Helper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
   private static final DateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-  private static final DateFormat reverseDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
   /** Пустой UUID. */
   public static final UUID EMPTY_UUID =
@@ -286,17 +285,4 @@ public class Helper {
     return simpleDateFormat.format(date);
   }
 
-  /**
-   * Преобразует дату к строке ("yyyy-MM-dd hh:MM:ss").
-   *
-   * @param date - Дата
-   * @return Дата строкой
-   */
-  public static String dateToStringReverse(Date date) {
-    Date emptyDate = new Date(0);
-    if (date == null || date.equals(emptyDate)) {
-      return "";
-    }
-    return reverseDateFormat.format(date);
-  }
 }
