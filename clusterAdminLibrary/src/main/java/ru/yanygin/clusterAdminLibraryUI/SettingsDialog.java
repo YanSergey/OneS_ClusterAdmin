@@ -54,6 +54,7 @@ public class SettingsDialog extends Dialog {
   private Button btnLoggerLevelDebug;
 
   private static final String LOCALE_RU = "ru-RU"; //$NON-NLS-1$
+  private Text txtIbasesFilePath;
 
   /**
    * Создание диалога настроек сервера.
@@ -235,6 +236,12 @@ public class SettingsDialog extends Dialog {
 
     btnCheckUpdate = new Button(grpOther, SWT.CHECK);
     btnCheckUpdate.setText(Strings.CHECK_UPDATE);
+
+    Label lblIbasesFilePath = new Label(grpOther, SWT.NONE);
+    lblIbasesFilePath.setText(Strings.IBASES_PATH_TITLE);
+
+    txtIbasesFilePath = new Text(grpOther, SWT.BORDER);
+    txtIbasesFilePath.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
     new Label(container, SWT.NONE);
 
     initProperties();
@@ -283,6 +290,8 @@ public class SettingsDialog extends Dialog {
     btnLoggerLevelWarning.setSelection(loggerLevel.equals(btnLoggerLevelWarning.getText()));
     btnLoggerLevelInfo.setSelection(loggerLevel.equals(btnLoggerLevelInfo.getText()));
     btnLoggerLevelDebug.setSelection(loggerLevel.equals(btnLoggerLevelDebug.getText()));
+
+    txtIbasesFilePath.setText(config.getIbasesStringPath());
   }
 
   private void saveProperties() {
@@ -340,6 +349,8 @@ public class SettingsDialog extends Dialog {
       loggerLevel = btnLoggerLevelOff.getText();
     }
     config.setLoggerLevel(loggerLevel);
+
+    config.setIbasesPath(txtIbasesFilePath.getText());
   }
 
   /**
@@ -404,6 +415,8 @@ public class SettingsDialog extends Dialog {
     static final String CHECK_UPDATE = getString("CheckUpdate");
     
     static final String LOGGER_LEVEL_TITLE = getString("LoggerLevelTitle");
+
+    static final String IBASES_PATH_TITLE = getString("IbasesFilePathTitle");
 
     static String getString(String key) {
       return Messages.getString("SettingsDialog." + key); //$NON-NLS-1$

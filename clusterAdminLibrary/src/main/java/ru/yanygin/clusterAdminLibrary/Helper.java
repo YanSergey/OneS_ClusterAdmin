@@ -343,7 +343,7 @@ public class Helper {
         }
       }
     }
-    
+
     if (foundServers.isEmpty()) {
       return new HashMap<>();
     }
@@ -367,7 +367,7 @@ public class Helper {
         return "";
       }
     }
-    
+
     return "";
   }
 }

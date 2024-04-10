@@ -931,6 +931,28 @@ public class Config {
   }
 
   /**
+   * Получить установленный пользователем путь к файлу со списком информационных баз.
+   *
+   * @return Путь к списку информационных баз в виде строки
+   */
+  public String getIbasesStringPath() {
+    if (ibasesPath.isBlank()) {
+      return "";
+    } else {
+      return ibasesPath;
+    }
+  }
+
+  /**
+   * Установить путь к файлу со списком информационных баз.
+   *
+   * @param ibasesPath - путь к файлу со списком информационных баз
+   */
+  public void setIbasesPath(String ibasesPath) {
+    this.ibasesPath = ibasesPath;
+  }
+
+  /**
    * Получение свойства колонок списков.
    *
    * @param clazz - имя класса, идентифицирующее список-кладелец колонок
