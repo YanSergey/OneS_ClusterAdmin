@@ -429,7 +429,6 @@ public class InfobaseDialog extends Dialog {
     checksTextControls.add(txtInfobaseName);
     checksTextControls.add(txtServerDbName);
     checksTextControls.add(txtDatabaseDbName);
-    checksTextControls.add(txtDatabaseDbUser);
 
     for (Text control : checksTextControls) {
       if (control.getText().isBlank()) {
