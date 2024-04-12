@@ -510,15 +510,14 @@ public class ViewerArea extends Composite {
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_CREATE_CLUSTER, addIcon16, createClusterListener);
     addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_EDIT_CLUSTER, editIcon16, editClusterListener);
+    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateClusterListener);
+
+    addMenuSeparator(clusterMenu);
     addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_ADMINS, null, editAdminsListener);
 
     addMenuSeparator(clusterMenu);
-    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateClusterListener);
-    
-    addMenuSeparator(clusterMenu);
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_DELETE_CLUSTER, deleteIcon16, deleteClusterListener);
-
   }
 
   private void initWorkingServerMenu() {
