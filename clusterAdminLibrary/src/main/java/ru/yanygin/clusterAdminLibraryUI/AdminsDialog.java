@@ -128,17 +128,17 @@ public class AdminsDialog extends Dialog {
     // установить активность контекстного меню
 
     MenuItem addMenuItem = new MenuItem(tableMenu, SWT.NONE);
-    addMenuItem.setText(Strings.TOOLBAR_ADD);
+    addMenuItem.setText(Strings.CONTEXT_MENU_ADD);
     addMenuItem.setImage(addIcon16);
     addMenuItem.addSelectionListener(addAdminListener);
 
     MenuItem editMenuItem = new MenuItem(tableMenu, SWT.NONE);
-    editMenuItem.setText(Strings.TOOLBAR_EDIT);
+    editMenuItem.setText(Strings.CONTEXT_MENU_EDIT);
     editMenuItem.setImage(editIcon16);
     editMenuItem.addSelectionListener(editAdminListener);
 
     MenuItem delMenuItem = new MenuItem(tableMenu, SWT.NONE);
-    delMenuItem.setText(Strings.TOOLBAR_DELETE);
+    delMenuItem.setText(Strings.CONTEXT_MENU_DELETE);
     delMenuItem.setImage(deleteIcon16);
     delMenuItem.addSelectionListener(delAdminListener);
   }
@@ -320,6 +320,9 @@ public class AdminsDialog extends Dialog {
     static final String TOOLBAR_ADD = Messages.getString("ViewerArea.ContextMenu.Create");
     static final String TOOLBAR_EDIT = Messages.getString("ViewerArea.ContextMenu.Edit");
     static final String TOOLBAR_DELETE = Messages.getString("ViewerArea.ContextMenu.Delete");
+    static final String CONTEXT_MENU_ADD = TOOLBAR_ADD.concat("\tIns");
+    static final String CONTEXT_MENU_EDIT = TOOLBAR_EDIT.concat("\tF2");
+    static final String CONTEXT_MENU_DELETE = TOOLBAR_DELETE.concat("\tDel");
 
     static String getString(String key) {
       return Messages.getString("AdminDialog." + key);
