@@ -287,7 +287,7 @@ public class Helper {
       return "";
     }
     Calendar startCurrentDay = new GregorianCalendar();
-    startCurrentDay.set(Calendar.HOUR, 0);
+    startCurrentDay.set(Calendar.HOUR_OF_DAY, 0);
     startCurrentDay.set(Calendar.MINUTE, 0);
     startCurrentDay.set(Calendar.SECOND, 0);
 
