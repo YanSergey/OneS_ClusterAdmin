@@ -17,6 +17,8 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -31,7 +33,7 @@ public class AdminsDialog extends Dialog {
 
   private Server server;
   private UUID clusterId;
-  
+
   private Table tableAdmins;
 
   final Image addIcon16 = Helper.getImage("add_16.png"); // $NON-NLS-1$
@@ -74,35 +76,17 @@ public class AdminsDialog extends Dialog {
     ToolItem toolBarAdd = new ToolItem(toolBar, SWT.NONE);
     toolBarAdd.setImage(addIcon16);
     toolBarAdd.setText(Strings.TOOLBAR_ADD);
-    toolBarAdd.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            addAdmin();
-          }
-        });
+    toolBarAdd.addSelectionListener(addAdminListener);
 
     ToolItem toolBarEdit = new ToolItem(toolBar, SWT.NONE);
     toolBarEdit.setImage(editIcon16);
     toolBarEdit.setText(Strings.TOOLBAR_EDIT);
-    toolBarEdit.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            editAdmin();
-          }
-        });
+    toolBarEdit.addSelectionListener(editAdminListener);
 
     ToolItem toolBarDelete = new ToolItem(toolBar, SWT.NONE);
     toolBarDelete.setImage(deleteIcon16);
     toolBarDelete.setText(Strings.TOOLBAR_DELETE);
-    toolBarDelete.addSelectionListener(
-        new SelectionAdapter() {
-          @Override
-          public void widgetSelected(SelectionEvent e) {
-            delAdmin();
-          }
-        });
+    toolBarDelete.addSelectionListener(delAdminListener);
 
     tableAdmins = new Table(container, SWT.BORDER | SWT.CHECK | SWT.FULL_SELECTION | SWT.MULTI);
     tableAdmins.setHeaderVisible(true);
@@ -130,11 +114,33 @@ public class AdminsDialog extends Dialog {
     tcSysUsername.setWidth(120);
     tcSysUsername.setText(Strings.SYS_USERNAME);
 
+    initContextMenu();
     initProperties();
 
     parent.pack();
 
     return container;
+  }
+
+  private void initContextMenu() {
+    Menu tableMenu = new Menu(tableAdmins);
+    tableAdmins.setMenu(tableMenu);
+    // установить активность контекстного меню
+
+    MenuItem addMenuItem = new MenuItem(tableMenu, SWT.NONE);
+    addMenuItem.setText(Strings.TOOLBAR_ADD);
+    addMenuItem.setImage(addIcon16);
+    addMenuItem.addSelectionListener(addAdminListener);
+
+    MenuItem editMenuItem = new MenuItem(tableMenu, SWT.NONE);
+    editMenuItem.setText(Strings.TOOLBAR_EDIT);
+    editMenuItem.setImage(editIcon16);
+    editMenuItem.addSelectionListener(editAdminListener);
+
+    MenuItem delMenuItem = new MenuItem(tableMenu, SWT.NONE);
+    delMenuItem.setText(Strings.TOOLBAR_DELETE);
+    delMenuItem.setImage(deleteIcon16);
+    delMenuItem.addSelectionListener(delAdminListener);
   }
 
   private void initProperties() {
@@ -167,7 +173,7 @@ public class AdminsDialog extends Dialog {
       userInfo.getSysUserName()
     };
   }
-  
+
   /**
    * Create contents of the button bar.
    *
@@ -190,8 +196,21 @@ public class AdminsDialog extends Dialog {
       new KeyAdapter() {
         @Override
         public void keyPressed(KeyEvent e) {
-          if (e.keyCode == SWT.DEL) {
-            delAdmin();
+          switch (e.keyCode) {
+            case SWT.INSERT:
+              addAdmin();
+              break;
+
+            case SWT.F2:
+              editAdmin();
+              break;
+
+            case SWT.DEL:
+              delAdmin();
+              break;
+
+            default:
+              break;
           }
         }
       };
@@ -201,6 +220,30 @@ public class AdminsDialog extends Dialog {
         @Override
         public void mouseDoubleClick(MouseEvent e) {
           editAdmin();
+        }
+      };
+
+  private SelectionAdapter addAdminListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          addAdmin();
+        }
+      };
+
+  private SelectionAdapter editAdminListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          editAdmin();
+        }
+      };
+
+  private SelectionAdapter delAdminListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          delAdmin();
         }
       };
 
