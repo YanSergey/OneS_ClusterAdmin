@@ -294,7 +294,7 @@ public class Helper {
   }
 
   /** Ищет новые сервера в файле списка инфобаз v8i. */
-  public static Map<String, Server> findNewServers() {
+  public static List<String> findNewServers() {
     List<String> foundServers = new ArrayList<>();
 
     // Читаем файл со списком инфобаз стартера
@@ -343,12 +343,7 @@ public class Helper {
         }
       }
     }
-
-    if (foundServers.isEmpty()) {
-      return new HashMap<>();
-    }
-
-    return Config.currentConfig.addNewServers(foundServers);
+    return foundServers;
   }
 
   private static String readTextFile(Path textFile) {

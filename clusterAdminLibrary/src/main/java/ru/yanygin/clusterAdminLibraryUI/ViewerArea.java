@@ -1625,12 +1625,27 @@ public class ViewerArea extends Composite {
       new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent e) {
-          Map<String, Server> newServers = Helper.findNewServers();
-          if (!newServers.isEmpty()) {
-            newServers.forEach(
-                (serverKey, server) -> {
-                  addServerItemInServersTree(server);
-                });
+          NewServersChoiseDialog dialog;
+          try {
+            dialog = new NewServersChoiseDialog(getParent().getDisplay().getActiveShell());
+          } catch (Exception excp) {
+            LOGGER.error("Error init NewServersChoiseDialog", excp); // $NON-NLS-1$
+            return;
+          }
+
+          if (dialog.open() == 0) {
+            List<String> s = dialog.getNewServers();
+            if (s.isEmpty()) {
+              return;
+            }
+
+            Map<String, Server> newServers = Config.currentConfig.addNewServers(s);
+            if (!newServers.isEmpty()) {
+              newServers.forEach(
+                  (serverKey, server) -> {
+                    addServerItemInServersTree(server);
+                  });
+            }
           }
         }
       };
