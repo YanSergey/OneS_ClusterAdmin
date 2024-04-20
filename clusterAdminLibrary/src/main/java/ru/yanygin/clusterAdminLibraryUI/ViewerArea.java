@@ -1634,18 +1634,13 @@ public class ViewerArea extends Composite {
           }
 
           if (dialog.open() == 0) {
-            List<String> s = dialog.getNewServers();
+            List<Server> s = dialog.getNewServers();
             if (s.isEmpty()) {
               return;
             }
 
-            Map<String, Server> newServers = Config.currentConfig.addNewServers(s);
-            if (!newServers.isEmpty()) {
-              newServers.forEach(
-                  (serverKey, server) -> {
-                    addServerItemInServersTree(server);
-                  });
-            }
+            Config.currentConfig.addNewServers(s);
+            s.forEach((server) -> addServerItemInServersTree(server));
           }
         }
       };

@@ -16,11 +16,12 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import ru.yanygin.clusterAdminLibrary.Helper;
+import ru.yanygin.clusterAdminLibrary.Server;
 
 /** Форма для выбора, какие найденные сервера добавлять в список. */
 public class NewServersChoiseDialog extends Dialog {
   private Table table;
-  private List<String> newServers;
+  private List<Server> newServers;
 
   /**
    * Create the dialog.
@@ -56,10 +57,15 @@ public class NewServersChoiseDialog extends Dialog {
     table.setHeaderVisible(true);
     table.setLinesVisible(true);
 
-    TableColumn tblcolumn = new TableColumn(table, SWT.LEFT);
-    tblcolumn.setResizable(false);
-    tblcolumn.setWidth(200);
-    tblcolumn.setText(Strings.SERVER_ADDRESS);
+    TableColumn columnHost = new TableColumn(table, SWT.LEFT);
+    columnHost.setResizable(false);
+    columnHost.setWidth(200);
+    columnHost.setText(Strings.HOST);
+
+    TableColumn columnAgentPort = new TableColumn(table, SWT.LEFT);
+    columnAgentPort.setResizable(false);
+    columnAgentPort.setWidth(100);
+    columnAgentPort.setText(Strings.PORT);
 
     newServers = Helper.findNewServers();
 
@@ -67,10 +73,13 @@ public class NewServersChoiseDialog extends Dialog {
     newServers.forEach(
         (serv) -> {
           TableItem item = new TableItem(table, SWT.NONE);
-          item.setText(serv);
+          item.setText(0, serv.getAgentHost());
+          item.setText(1, serv.getAgentPortAsString());
+          item.setData(serv);
         });
 
-    tblcolumn.pack();
+    columnHost.pack();
+    columnAgentPort.pack();
 
     return container;
   }
@@ -80,7 +89,7 @@ public class NewServersChoiseDialog extends Dialog {
 
     for (TableItem tableItem : items) {
       if (!tableItem.getChecked()) {
-        newServers.remove(tableItem.getText());
+        newServers.remove(tableItem.getData());
       }
     }
   }
@@ -90,7 +99,7 @@ public class NewServersChoiseDialog extends Dialog {
    *
    * @return список новых серверов
    */
-  public List<String> getNewServers() {
+  public List<Server> getNewServers() {
     return newServers;
   }
 
@@ -115,11 +124,12 @@ public class NewServersChoiseDialog extends Dialog {
   }
 
   private static class Strings {
-    static final String TITLE_WINDOW = getString("TitleDialog");
-    static final String SERVER_ADDRESS = getString("ServerAddress");
+    static final String TITLE_WINDOW = Messages.getString("NewServersDialog.TitleDialog");
+    static final String HOST = getString("Host");
+    static final String PORT = getString("Port");
 
     static String getString(String key) {
-      return Messages.getString("NewServersDialog." + key); // $NON-NLS-1$
+      return Messages.getString("ServerDialog." + key); // $NON-NLS-1$
     }
   }
 }

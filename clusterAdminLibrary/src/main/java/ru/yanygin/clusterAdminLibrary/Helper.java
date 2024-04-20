@@ -294,8 +294,10 @@ public class Helper {
   }
 
   /** Ищет новые сервера в файле списка инфобаз v8i. */
-  public static List<String> findNewServers() {
-    List<String> foundServers = new ArrayList<>();
+  public static List<Server> findNewServers() {
+    List<String> foundServersKey = new ArrayList<>();
+    List<Server> foundServers = new ArrayList<>();
+    Map<String, Server> currentServers = Config.currentConfig.getServers();
 
     // Читаем файл со списком инфобаз стартера
     Path ibasesPath = Config.currentConfig.getIbasesPath();
@@ -310,15 +312,14 @@ public class Helper {
 
         String[] adr = serverAddress.split(":"); // $NON-NLS-1$
         String agentHost = adr[0];
+        int agentPort = (adr.length == 1) ? 1540 : Integer.valueOf(adr[1]) - 1;
 
-        int agentPort;
-        if (adr.length == 1) {
-          agentPort = 1541;
-          serverAddress = agentHost.concat(":").concat(Integer.toString(agentPort));
-        }
+        Server server = new Server(agentHost, agentPort);
+        String serverKey = server.getServerKey();
 
-        if (!foundServers.contains(serverAddress)) {
-          foundServers.add(serverAddress);
+        if (!foundServersKey.contains(serverKey) && currentServers.get(serverKey) == null) {
+          foundServersKey.add(serverKey);
+          foundServers.add(server);
         }
       }
     }
@@ -335,14 +336,18 @@ public class Helper {
 
         String[] adr = serverAddress.split(","); // $NON-NLS-1$
         String agentHost = adr[0].replace("\"", "");
-        int agentPort = Integer.parseInt(adr[1]) + 1;
-        serverAddress = agentHost.concat(":").concat(Integer.toString(agentPort));
+        int agentPort = Integer.parseInt(adr[1]);
 
-        if (!foundServers.contains(serverAddress)) {
-          foundServers.add(serverAddress);
+        Server server = new Server(agentHost, agentPort);
+        String serverKey = server.getServerKey();
+
+        if (!foundServersKey.contains(serverKey) && currentServers.get(serverKey) == null) {
+          foundServersKey.add(serverKey);
+          foundServers.add(server);
         }
       }
     }
+
     return foundServers;
   }
 

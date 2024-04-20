@@ -428,7 +428,6 @@ public class Config {
    * @return новый сервер
    */
   public Server createNewServer() {
-    Server newServer = null;
 
     if (isReadClipboard()) {
       Clipboard clipboard = new Clipboard(Display.getDefault());
@@ -438,16 +437,11 @@ public class Config {
       if (clip != null && clip.startsWith("Srvr=")) { //$NON-NLS-1$
         String[] srvrPart = clip.split(";"); //$NON-NLS-1$
         String srvr = srvrPart[0].substring(6, srvrPart[0].length() - 1);
-        newServer = new Server(srvr);
-      } else {
-        newServer = new Server("Server:1541"); //$NON-NLS-1$
+        return new Server(srvr);
       }
-    } else {
-      newServer = new Server("Server:1541"); //$NON-NLS-1$
     }
-    // servers.put(newServer.getServerKey(), newServer);
-    // TODO по идее еще рано добавлять в список серверов эту заготовку
-    return newServer;
+
+    return new Server();
   }
 
   public void addNewServer(Server server) {
@@ -476,34 +470,12 @@ public class Config {
    * Добавление новых серверов в конфиг.
    *
    * @param newServers - список новых серверов
-   * @return список серверов, которые были реально добавлены
    */
-  public Map<String, Server> addNewServers(List<String> newServers) {
-    // Пакетное добавление серверов в список, предполагается для механизма импорта из списка
-    // информационных баз
-
-    Map<String, Server> addedServers = new HashMap<>();
-
-    // Имя сервера, которое приходит сюда не равно Представлению сервера, выводимому в списке
-    // Имя сервера. оно же Key в map и json, строка вида Server:1541, с обязательным указанием порта
-    // менеджера, к которому подключаемся
-    // если порт менеджера не задан - ставим стандартный 1541
-    // переделать
-    for (String serverName : newServers) {
-      String[] adr = serverName.split(":"); // $NON-NLS-1$
-      String agentHost = adr[0];
-      int agentPort = Integer.parseInt(adr[1]) - 1;
-      String serverNameAgentPort = agentHost.concat(":").concat(Integer.toString(agentPort));
-
-      if (!servers.containsKey(serverNameAgentPort)) {
-        Server serverConfig = new Server(serverName);
-        servers.put(serverNameAgentPort, serverConfig);
-
-        addedServers.put(serverNameAgentPort, serverConfig);
-      }
+  public void addNewServers(List<Server> newServers) {
+    // Пакетное добавление серверов в список
+    for (Server server : newServers) {
+      servers.put(server.getServerKey(), server);
     }
-
-    return addedServers;
   }
 
   /** Подключиться ко всем серверам в тихом режиме. */
