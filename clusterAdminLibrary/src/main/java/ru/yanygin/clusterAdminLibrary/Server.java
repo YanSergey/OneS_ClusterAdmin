@@ -380,7 +380,7 @@ public class Server implements Comparable<Server> {
    * @return ключ сервера
    */
   public String getServerKey() {
-    return agentHost.concat(":").concat(Integer.toString(agentPort)); //$NON-NLS-1$
+    return agentHost.toLowerCase().concat(":").concat(Integer.toString(agentPort)); // $NON-NLS-1$
   }
 
   /**
