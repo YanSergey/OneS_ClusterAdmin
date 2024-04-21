@@ -476,6 +476,7 @@ public class Config {
     for (Server server : newServers) {
       servers.put(server.getServerKey(), server);
     }
+    saveConfig();
   }
 
   /** Подключиться ко всем серверам в тихом режиме. */
