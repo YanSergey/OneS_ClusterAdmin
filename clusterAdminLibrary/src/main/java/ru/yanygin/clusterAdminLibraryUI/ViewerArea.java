@@ -2113,6 +2113,8 @@ public class ViewerArea extends Composite {
             return;
           }
 
+          server.checkAutenticateAgent();
+
           Thread thread =
               new Thread(
                   () -> {
@@ -2128,7 +2130,8 @@ public class ViewerArea extends Composite {
                     clusterInfo.setExpirationTimeout(20);
 
                     if (!server.regCluster(clusterInfo)) {
-                      Helper.showMessageBox("Error edit cluster");
+                      Helper.showMessageBox("Error setting temporary properties for the cluster");
+                      return;
                     }
 
                     // подождать 10 секунд и вернуть все назад
@@ -2139,12 +2142,11 @@ public class ViewerArea extends Composite {
                     }
 
                     clusterInfo.setLifeTimeLimit(oldLifeTimeLimit);
-
                     clusterInfo.setClusterRecyclingKillProblemProcesses(oldRecyclingKillProcesses);
                     clusterInfo.setExpirationTimeout(oldExpirationTimeout);
 
                     if (!server.regCluster(clusterInfo)) {
-                      Helper.showMessageBox("Error edit cluster");
+                      Helper.showMessageBox("Error returning cluster properties");
                     }
                   });
 

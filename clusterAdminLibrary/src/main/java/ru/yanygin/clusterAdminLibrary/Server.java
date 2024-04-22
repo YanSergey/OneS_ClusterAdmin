@@ -997,7 +997,7 @@ public class Server implements Comparable<Server> {
    * @param clusterId - ID кластера
    * @return boolean истекла/не истекла
    */
-  private boolean checkAutenticateAgent() {
+  public boolean checkAutenticateAgent() {
 
     var needAuthenticate = false;
     try {
