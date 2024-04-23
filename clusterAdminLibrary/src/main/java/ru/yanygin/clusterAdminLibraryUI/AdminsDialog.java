@@ -317,7 +317,7 @@ public class AdminsDialog extends Dialog {
 
     static final String ANSWER_DELETE = getString("AnswerDelete");
 
-    static final String TOOLBAR_ADD = Messages.getString("ViewerArea.ContextMenu.Create");
+    static final String TOOLBAR_ADD = Messages.getString("ViewerArea.ContextMenu.Add");
     static final String TOOLBAR_EDIT = Messages.getString("ViewerArea.ContextMenu.Edit");
     static final String TOOLBAR_DELETE = Messages.getString("ViewerArea.ContextMenu.Delete");
     static final String CONTEXT_MENU_ADD = TOOLBAR_ADD.concat("\tIns");
