@@ -26,6 +26,7 @@ public class AboutDialog extends Dialog {
       "https://github.com/YanSergey/OneS_ClusterAdmin"; //$NON-NLS-1$
   private static final String TELEGRAM_LINK = "https://t.me/YanSergey"; //$NON-NLS-1$
   private static final String EMAIL_LINK = "mailto:yanyginsa@gmail.com"; //$NON-NLS-1$
+  private static final String BOOSTY_LINK = "https://boosty.to/YanSergeyCoder"; // $NON-NLS-1$
 
   Config config = Config.currentConfig;
 
@@ -90,6 +91,10 @@ public class AboutDialog extends Dialog {
     Link linkEmail = new Link(container, 0);
     linkEmail.setText(Strings.EMAIL_DESCRIPTION);
     linkEmail.addSelectionListener(goToLinkListener);
+
+    Link linkBoosty = new Link(container, 0);
+    linkBoosty.setText(Strings.BOOSTY_DESCRIPTION);
+    linkBoosty.addSelectionListener(goToLinkListener);
 
     return container;
   }
@@ -166,6 +171,8 @@ public class AboutDialog extends Dialog {
         String.format(getString("Telegram_Description"), TELEGRAM_LINK);
     static final String EMAIL_DESCRIPTION =
         String.format(getString("Email_Description"), EMAIL_LINK);
+    static final String BOOSTY_DESCRIPTION =
+        String.format(getString("Boosty_Description"), BOOSTY_LINK);
 
     static String getString(String key) {
       return Messages.getString("AboutDialog." + key); //$NON-NLS-1$
@@ -174,6 +181,6 @@ public class AboutDialog extends Dialog {
 
   @Override
   protected Point getInitialSize() {
-    return new Point(500, 380);
+    return new Point(500, 418);
   }
 }
