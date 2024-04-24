@@ -1,5 +1,6 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import com._1c.v8.ibis.admin.IAssignmentRuleInfo;
 import com._1c.v8.ibis.admin.IClusterInfo;
 import com._1c.v8.ibis.admin.IInfoBaseInfo;
 import com._1c.v8.ibis.admin.IWorkingProcessInfo;
@@ -22,11 +23,17 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.eclipse.jface.viewers.TableViewer;
+import org.eclipse.jface.viewers.TableViewerColumn;
+import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerComparator;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseAdapter;
@@ -41,6 +48,7 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
@@ -60,6 +68,8 @@ import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.swt.widgets.Widget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.yanygin.clusterAdminLibrary.AssignmentRuleContentProvider;
+import ru.yanygin.clusterAdminLibrary.AssignmentRuleLabelProvider;
 import ru.yanygin.clusterAdminLibrary.BackgroundTask;
 import ru.yanygin.clusterAdminLibrary.BaseInfoExtended;
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
@@ -109,6 +119,7 @@ public class ViewerArea extends Composite {
   Image addIcon16;
   Image editIcon16;
   Image deleteIcon16;
+  Image viewIcon16;
   Image updateIcon16;
 
   Image addIcon24;
@@ -133,13 +144,13 @@ public class ViewerArea extends Composite {
   Menu infobaseNodeMenu;
   Menu infobaseMenu;
 
-  TabItem tabSessions;
-  TabItem tabConnections;
-  TabItem tabLocks;
-  TabItem tabWorkingProcesses;
-  TabItem tabWorkingServers;
-  TabItem currentTab;
-  
+  Table tableSessions;
+  Table tableConnections;
+  Table tableLocks;
+  Table tableWorkingProcesses;
+  Table tableWorkingServers;
+  Table currentTable;
+
   Table tableTasks;
   TabItem tabTask;
   Text tableTaskLog;
@@ -147,6 +158,7 @@ public class ViewerArea extends Composite {
   ToolItem addToolbarItem;
   ToolItem editToolbarItem;
   ToolItem deleteToolbarItem;
+  TableViewer tnfTableViewer;
 
   TreeColumn columnServer;
 
@@ -178,10 +190,7 @@ public class ViewerArea extends Composite {
   Map<TreeItemType, SelectionAdapter> toolbarCreateListeners = new EnumMap<>(TreeItemType.class);
   Map<TreeItemType, SelectionAdapter> toolbarEditListeners = new EnumMap<>(TreeItemType.class);
   Map<TreeItemType, SelectionAdapter> toolbarDeleteListeners = new EnumMap<>(TreeItemType.class);
-  Map<TabItem, String> tableContextItemEdit = new HashMap<>();
-  Map<TabItem, String> tableContextItemDelete = new HashMap<>();
   Map<TreeItemType, Menu> serversTreeContextMenus = new EnumMap<>(TreeItemType.class);
-  Map<TabItem, Class<? extends BaseInfoExtended>> linksTablesToExtendedClass = new HashMap<>();
 
   // List<File> userScripts = new ArrayList<>();
   Timer taskTimer;
@@ -243,35 +252,59 @@ public class ViewerArea extends Composite {
 
     initServersTree(sashServers);
 
-    TabFolder tabFolderLists = new TabFolder(sashServers, SWT.NONE);
-
-    tabFolderLists.addSelectionListener(
+    TabFolder tabFolder = new TabFolder(sashServers, SWT.NONE);
+    tabFolder.addSelectionListener(
         new SelectionAdapter() {
-
           @Override
           public void widgetSelected(SelectionEvent evt) {
-            currentTab = tabFolderLists.getSelection()[0];
+            TabItem currentTab = tabFolder.getSelection()[0];
+            currentTable = getTable(currentTab);
             refreshCurrentList();
           }
         });
 
-    tabSessions = initListTable(tabFolderLists, SessionInfoExtended.class, true);
-    tabConnections = initListTable(tabFolderLists, ConnectionInfoExtended.class, false);
-    tabLocks = initListTable(tabFolderLists, LockInfoExtended.class, false);
-    tabWorkingProcesses = initListTable(tabFolderLists, WorkingProcessInfoExtended.class, false);
-    tabWorkingServers = initListTable(tabFolderLists, WorkingServerInfoExtended.class, false);
-    ////////////////////////////////////////////
+    // Таблица сеансов
+    TabItem tabSessions = new TabItem(tabFolder, SWT.NONE);
+    tableSessions = initTable(tabFolder, SessionInfoExtended.class);
+    tabSessions.setControl(tableSessions);
+    BaseInfoExtended.linkTabItem(SessionInfoExtended.class, tabSessions);
+    tableSessions.setFocus();
 
-    initMaps();
+    // Таблица соединений
+    TabItem tabConnections = new TabItem(tabFolder, SWT.NONE);
+    tableConnections = initTable(tabFolder, ConnectionInfoExtended.class);
+    tabConnections.setControl(tableConnections);
+    BaseInfoExtended.linkTabItem(ConnectionInfoExtended.class, tabConnections);
 
-    initTableContextMenu(tabSessions, true, false, true, true);
-    initTableContextMenu(tabConnections, true, false, false, true);
-    initTableContextMenu(tabLocks, true, false, false, false);
-    initTableContextMenu(tabWorkingProcesses, true, false, false, false);
-    initTableContextMenu(tabWorkingServers, true, true, true, true);
-    //////////////////////////////////////////////
+    // Таблица блокировок
+    TabItem tabLocks = new TabItem(tabFolder, SWT.NONE);
+    tableLocks = initTable(tabFolder, LockInfoExtended.class);
+    tabLocks.setControl(tableLocks);
+    BaseInfoExtended.linkTabItem(LockInfoExtended.class, tabLocks);
 
-    clearTabs();
+    // Таблица рабочих процессов
+    TabItem tabWorkingProcesses = new TabItem(tabFolder, SWT.NONE);
+    tableWorkingProcesses = initTable(tabFolder, WorkingProcessInfoExtended.class);
+    tabWorkingProcesses.setControl(tableWorkingProcesses);
+    BaseInfoExtended.linkTabItem(WorkingProcessInfoExtended.class, tabWorkingProcesses);
+
+    // Таблица рабочих серверов
+    TabItem tabWorkingServers = new TabItem(tabFolder, SWT.NONE);
+
+    SashForm sashWorkingServers = new SashForm(tabFolder, SWT.VERTICAL);
+
+    tableWorkingServers = initTable(sashWorkingServers, WorkingServerInfoExtended.class);
+
+    initAssRuleTable(sashWorkingServers);
+    BaseInfoExtended.linkTabItem(WorkingServerInfoExtended.class, tabWorkingServers);
+
+    tabWorkingServers.setControl(sashWorkingServers);
+    sashWorkingServers.setWeights(5, 10); // Пропорции областей
+
+    initTableContextMenu(tnfTableViewer.getTable(), IAssignmentRuleInfo.class);
+
+    initToolbarListeners();
+    clearTabs(false); // TODO тут вроде не нужно
     BaseInfoExtended.resetTabsTextCount();
     setEnableToolbarItems();
 
@@ -336,6 +369,7 @@ public class ViewerArea extends Composite {
     editIcon16 = Helper.getImage("edit_16.png"); // $NON-NLS-1$
     addIcon16 = Helper.getImage("add_16.png"); // $NON-NLS-1$
     deleteIcon16 = Helper.getImage("delete_16.png"); // $NON-NLS-1$
+    viewIcon16 = Helper.getImage("view_16.png"); // $NON-NLS-1$
     updateIcon16 = Helper.getImage("update_16.png"); // $NON-NLS-1$
 
     editIcon24 = Helper.getImage("edit_24.png"); // $NON-NLS-1$
@@ -361,7 +395,7 @@ public class ViewerArea extends Composite {
     toolBar.setSize(-1, 48);
 
     addToolbarItem =
-        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_CREATE, addIcon24, toolbarListener);
+        addItemInToolbar(toolBar, Strings.CONTEXT_MENU_ADD, addIcon24, toolbarListener);
     editToolbarItem =
         addItemInToolbar(toolBar, Strings.CONTEXT_MENU_EDIT, editIcon24, toolbarListener);
     deleteToolbarItem =
@@ -431,20 +465,26 @@ public class ViewerArea extends Composite {
 
   private void initServersTreeContextMenu() {
 
-    // Server Menu
-    serverMenu = new Menu(serversTree);
-
     initServerMenu();
     initClusterMenu();
     initWorkingServerMenu();
     initInfobaseNodeMenu();
     initInfobaseMenu();
 
+    // соответствие контекстных меню дерева серверов
+    serversTreeContextMenus.put(TreeItemType.SERVER, serverMenu);
+    serversTreeContextMenus.put(TreeItemType.CLUSTER, clusterMenu);
+    serversTreeContextMenus.put(TreeItemType.INFOBASE_NODE, infobaseNodeMenu);
+    serversTreeContextMenus.put(TreeItemType.INFOBASE, infobaseMenu);
+    serversTreeContextMenus.put(TreeItemType.WORKINGSERVER, workingServerMenu);
+
     // set active menu
     serversTree.setMenu(serverMenu);
   }
 
   private void initServerMenu() {
+
+    serverMenu = new Menu(serversTree);
 
     // установка активности элементов контекстного меню
     serverMenu.addListener(SWT.Show, setActiveConnectActionListener);
@@ -478,8 +518,8 @@ public class ViewerArea extends Composite {
 
     addMenuSeparator(serverMenu);
 
-    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_ADD_SERVER, addIcon16, addServerListener);
-    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_EDIT_SERVER, editIcon16, editServerListener);
+    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_ADD, addIcon16, addServerListener);
+    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_EDIT, editIcon16, editServerListener);
     addItemInMenu(serverMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateServerListener);
 
     addMenuSeparator(serverMenu);
@@ -491,8 +531,7 @@ public class ViewerArea extends Composite {
 
     addMenuSeparator(serverMenu);
 
-    addItemInMenu(
-        serverMenu, Strings.CONTEXT_MENU_REMOVE_SERVER, deleteIcon16, deleteServerListener);
+    addItemInMenu(serverMenu, Strings.CONTEXT_MENU_DELETE, deleteIcon16, deleteServerListener);
 
     // TODO это для отладки без запуска сервера - удалить
     new UserScriptRunner(serverMenu);
@@ -509,6 +548,12 @@ public class ViewerArea extends Composite {
     addMenuSeparator(clusterMenu);
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_DELETE_CLUSTER, deleteIcon16, deleteClusterListener);
+
+    addMenuSeparator(clusterMenu);
+    addItemInMenu(
+        clusterMenu, Strings.CONTEXT_MENU_APPLY_PARTIAL_RULE, null, applyAssignmentRuleListener, 0);
+    addItemInMenu(
+        clusterMenu, Strings.CONTEXT_MENU_APPLY_FULL_RULE, null, applyAssignmentRuleListener, 1);
   }
 
   private void initWorkingServerMenu() {
@@ -614,28 +659,35 @@ public class ViewerArea extends Composite {
     new UserScriptRunner(infobaseMenu);
   }
 
-  private TabItem initListTable(
-      TabFolder tabFolder, Class<? extends BaseInfoExtended> clazz, boolean checkable) {
-
-    TabItem newTab = new TabItem(tabFolder, SWT.NONE);
+  private Table initTable(Composite composite, Class<?> clazz) {
 
     int style =
-        checkable
+        clazz == SessionInfoExtended.class
             ? SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.CHECK
             : SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI;
 
-    Table table = new Table(tabFolder, style);
-    newTab.setControl(table);
+    Table table = new Table(composite, style);
+    // tabItem.setControl(table);
+    table.setData(clazz);
     table.setHeaderVisible(true);
     table.setLinesVisible(true);
 
     table.addKeyListener(tableKeyPressedListener);
     table.addMouseListener(tablesMouseClickListener);
-    if (checkable) {
+    if (clazz == SessionInfoExtended.class) {
       table.addListener(SWT.Selection, switchWatchingListener);
     }
+    table.addFocusListener(
+        new FocusAdapter() {
+          @Override
+          public void focusGained(FocusEvent e) {
+            currentTable = table;
+            // currentTable = (Table) e.widget;
+            LOGGER.debug("currentTable = {}", currentTable.getData().toString());
+          }
+        });
 
-    ColumnProperties columnProperties = getColumnProperties(clazz);
+    final ColumnProperties columnProperties = getColumnProperties(clazz);
 
     String[] columnNameList = columnProperties.getColumnsDescription();
     for (String columnName : columnNameList) {
@@ -647,43 +699,243 @@ public class ViewerArea extends Composite {
       table.setColumnOrder(columnOrder);
     }
 
-    BaseInfoExtended.linkTabItem(clazz, newTab);
-    return newTab;
+    if (clazz != IAssignmentRuleInfo.class) {
+      initTableContextMenu(table, clazz);
+    }
+
+    // BaseInfoExtended.linkTabItem(clazz, tabItem);
+    return table;
   }
 
-  private void initTableContextMenu(
-      TabItem tab, boolean updatable, boolean creatable, boolean editable, boolean killable) {
-    Table table = getTable(tab);
+  private void initAssRuleTable(SashForm sashWorkingServers) { // таблица с ТНФ
+    tnfTableViewer =
+        new TableViewer(sashWorkingServers, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
+    tnfTableViewer.setContentProvider(new AssignmentRuleContentProvider());
+
+    tnfTableViewer.setComparator(
+        new ViewerComparator() {
+          public int compare(Viewer viewer, Object e1, Object e2) {
+
+            Table table = ((TableViewer) viewer).getTable();
+            TableColumn sortColumn = table.getSortColumn();
+            if (sortColumn == null) {
+              return 0;
+            }
+            int numColumn = (int) sortColumn.getData();
+            TableViewerColumn tableViewerColumn =
+                (TableViewerColumn) sortColumn.getData("org.eclipse.jface.columnViewer");
+            //TableViewerColumn.class.toString()
+
+            AssignmentRuleLabelProvider labelProvider =
+                (AssignmentRuleLabelProvider)
+                    tableViewerColumn.getViewer().getLabelProvider(numColumn);
+
+            final Object first;
+            final Object second;
+            switch (table.getSortDirection()) {
+              case SWT.UP:
+                first = labelProvider.getValue(e1);
+                second = labelProvider.getValue(e2);
+                break;
+
+              case SWT.DOWN:
+                first = labelProvider.getValue(e2);
+                second = labelProvider.getValue(e1);
+                break;
+
+              case SWT.NONE:
+              default:
+                return 0;
+            }
+            if (first instanceof Integer) {
+              return Integer.compare((int) first, (int) second);
+            }
+            if (first instanceof String) {
+              return ((String) first).compareTo((String) second);
+            }
+            return 0;
+          }
+        });
+
+    Table table = tnfTableViewer.getTable();
+
+    table.setData(IAssignmentRuleInfo.class);
+    table.setHeaderVisible(true);
+    table.setLinesVisible(true);
+
+    // tableTnf.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
+    table.addKeyListener(tableKeyPressedListener);
+    table.addMouseListener(tablesMouseClickListener);
+    table.addFocusListener(
+        new FocusAdapter() {
+          @Override
+          public void focusGained(FocusEvent e) {
+            currentTable = table;
+            // currentTable = (Table) e.widget;
+            LOGGER.debug("currentTable = {}", currentTable.getData().toString());
+          }
+        });
+
+    final ColumnProperties columnProperties = getColumnProperties(IAssignmentRuleInfo.class);
+
+    String[] columnNameList = columnProperties.getColumnsName(); // TODO
+    String[] columnDescList = columnProperties.getColumnsDescription();
+
+    for (int i = 0; i < columnNameList.length; i++) {
+      addTableViewerColumn(tnfTableViewer, columnNameList[i], columnDescList[i], columnProperties);
+    }
+
+    int[] columnOrder = columnProperties.getOrder();
+    if (columnOrder != null && table.getColumnCount() == columnOrder.length) {
+      table.setColumnOrder(columnOrder);
+    }
+
+  }
+
+  private void initTableContextMenu(Table table, Class<?> clazz) {
+
+    // Table table = getTable(tab);
+
     Menu tableMenu = new Menu(table);
     table.setMenu(tableMenu);
 
-    if (updatable) {
-      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_UPDATE_F5, updateIcon16, refreshTablesListener);
+    // установка активности элементов контекстного меню
+
+    Listener setActiveContextMenuListener =
+        new Listener() {
+          @Override
+          public void handleEvent(Event event) {
+
+            TableItem[] items = currentTable.getSelection();
+            boolean selected = (items.length != 0);
+
+            MenuItem[] menuItems = ((Menu) event.widget).getItems();
+
+            for (MenuItem menuItem : menuItems) {
+              if (!menuItem.getText().equals(Strings.CONTEXT_MENU_UPDATE_F5)
+                  && !menuItem.getText().equals(Strings.CONTEXT_MENU_ADD_HOTKEY)) {
+                menuItem.setEnabled(selected);
+              }
+            }
+          }
+        };
+    tableMenu.addListener(SWT.Show, setActiveContextMenuListener);
+
+    final SelectionAdapter refreshListener =
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent e) {
+            currentTable = table;
+            refreshCurrentList();
+          }
+        };
+    addItemInMenu(tableMenu, Strings.CONTEXT_MENU_UPDATE_F5, updateIcon16, refreshListener);
+
+    addItemInMenu(tableMenu, Strings.CONTEXT_MENU_COPY_CELL, null, copyCellValueInTablesListener);
+
+    // у соединений еще есть прерывание серверного вызова (с какой то версии платформы)
+    if (clazz == WorkingServerInfoExtended.class || clazz == IAssignmentRuleInfo.class) {
+
+      final SelectionAdapter addListener =
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              addItemInTable(table);
+            }
+          };
+      final SelectionAdapter editListener =
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              TableItem[] items = table.getSelection();
+              if (items.length == 0) {
+                return;
+              }
+              editItemInTable(items[0]);
+            }
+          };
+      final SelectionAdapter deleteListener =
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              TableItem[] items = table.getSelection();
+              if (items.length == 0) {
+                return;
+              }
+              deleteItemsFromTable(items);
+            }
+          };
+
+      addMenuSeparator(tableMenu);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_ADD_HOTKEY, addIcon16, addListener);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_EDIT_HOTKEY, editIcon16, editListener);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_DELETE_HOTKEY, deleteIcon16, deleteListener);
+
+    } else if (clazz == SessionInfoExtended.class) {
+      // просмотр
+      final SelectionAdapter viewListener =
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              TableItem[] items = table.getSelection();
+              if (items.length == 0) {
+                return;
+              }
+              viewItemInTable(items[0]);
+            }
+          };
+      // TODO для сеансов есть форма, для соединений и раб.процессов - ее нет
+      // попробовать сделать генерируюмую форму со списком полей
+      addMenuSeparator(tableMenu);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_VIEW_HOTKEY, viewIcon16, viewListener);
     }
 
-    if (creatable) {
-      addItemInMenu(
-          tableMenu,
-          Strings.CONTEXT_MENU_CREATE_WORKING_SERVER,
-          addIcon16,
-          createWorkingServerListener);
+    if (clazz == SessionInfoExtended.class || clazz == ConnectionInfoExtended.class) {
+      final SelectionAdapter deleteListener =
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              TableItem[] items = table.getSelection();
+              if (items.length == 0) {
+                return;
+              }
+              deleteItemsFromTable(items);
+            }
+          };
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_DELETE_HOTKEY, deleteIcon16, deleteListener);
     }
 
-    if (editable) {
-      String title = tableContextItemEdit.get(tab);
-      addItemInMenu(tableMenu, title, editIcon16, editItemInTablesListener);
-    }
-
-    addItemInMenu(
-        tableMenu, Strings.CONTEXT_MENU_COPY_CELL_VALUE, null, copyCellValueInTablesListener);
-
-    if (killable) {
-      String title = tableContextItemDelete.get(tab);
-      addItemInMenu(tableMenu, title, deleteIcon16, deleteItemInTablesListener);
+    if (clazz == IAssignmentRuleInfo.class) {
+      // пункты увеличения и уменьшения порядка правила ТНФ
+      final SelectionAdapter increaseListener =
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              TableItem[] items = table.getSelection();
+              if (items.length == 0) {
+                return;
+              }
+              changeAssignmentRuleNumber(items[0], true);
+            }
+          };
+      final SelectionAdapter reduseListener =
+          new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+              TableItem[] items = table.getSelection();
+              if (items.length == 0) {
+                return;
+              }
+              changeAssignmentRuleNumber(items[0], false);
+            }
+          };
+      addMenuSeparator(tableMenu);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_MOVE_UP, moveUpIcon, increaseListener);
+      addItemInMenu(tableMenu, Strings.CONTEXT_MENU_MOVE_DOWN, moveDownIcon, reduseListener);
     }
   }
 
-  private void initMaps() {
+  private void initToolbarListeners() {
 
     // обработчики кнопки тулбара "Добавить"
     toolbarCreateListeners.put(TreeItemType.SERVER, addServerListener);
@@ -704,26 +956,6 @@ public class ViewerArea extends Composite {
     toolbarDeleteListeners.put(TreeItemType.CLUSTER, deleteClusterListener);
     toolbarDeleteListeners.put(TreeItemType.INFOBASE, deleteInfobaseListener);
 
-    // контекстные меню дерева серверов
-    serversTreeContextMenus.put(TreeItemType.SERVER, serverMenu);
-    serversTreeContextMenus.put(TreeItemType.CLUSTER, clusterMenu);
-    serversTreeContextMenus.put(TreeItemType.INFOBASE_NODE, infobaseNodeMenu);
-    serversTreeContextMenus.put(TreeItemType.INFOBASE, infobaseMenu);
-    serversTreeContextMenus.put(TreeItemType.WORKINGSERVER, workingServerMenu);
-
-    // тексты пунктов контекстного меню списков
-    tableContextItemEdit.put(tabSessions, Strings.CONTEXT_MENU_VIEW_SESSION_F2);
-    tableContextItemEdit.put(tabWorkingServers, Strings.CONTEXT_MENU_EDIT_WORKING_SERVER_F2);
-    tableContextItemDelete.put(tabSessions, Strings.CONTEXT_MENU_KILL_SESSION_DEL);
-    tableContextItemDelete.put(tabConnections, Strings.CONTEXT_MENU_KILL_CONNECTION_DEL);
-    tableContextItemDelete.put(tabWorkingServers, Strings.CONTEXT_MENU_DELETE_WORKING_SERVER_DEL);
-
-    // соответствие таблиц списков
-    linksTablesToExtendedClass.put(tabSessions, SessionInfoExtended.class);
-    linksTablesToExtendedClass.put(tabConnections, ConnectionInfoExtended.class);
-    linksTablesToExtendedClass.put(tabLocks, LockInfoExtended.class);
-    linksTablesToExtendedClass.put(tabWorkingServers, WorkingServerInfoExtended.class);
-    linksTablesToExtendedClass.put(tabWorkingProcesses, WorkingProcessInfoExtended.class);
   }
 
   private ToolItem addItemInToolbar(
@@ -979,13 +1211,18 @@ public class ViewerArea extends Composite {
 
   private void addTableColumn(Table table, String text, ColumnProperties columnProperties) {
 
-    final int[] columnWidth = columnProperties.getWidth();
-    final boolean[] columnVisible = columnProperties.getVisible();
-
     var newColumn = new TableColumn(table, SWT.NONE);
     newColumn.setText(text);
     newColumn.setMoveable(true);
     newColumn.setAlignment(SWT.RIGHT);
+
+    if (columnProperties == null) {
+      newColumn.setWidth(100);
+      return;
+    }
+
+    final int[] columnWidth = columnProperties.getWidth();
+    final boolean[] columnVisible = columnProperties.getVisible();
 
     int numOfColumn = table.getColumnCount() - 1;
     newColumn.setData(numOfColumn);
@@ -1399,7 +1636,6 @@ public class ViewerArea extends Composite {
 
   private void refreshCurrentList() {
 
-    Table currentTable = getCurrentTable();
     if (currentTable == null) {
       return;
     }
@@ -1414,37 +1650,46 @@ public class ViewerArea extends Composite {
     UUID workingProcessId = getCurrentWorkingProcessId();
     // TreeItemType treeItemType = getTreeItemType(currentTreeItem); // TODO currentHighlightingType
 
-    clearTabs();
+    final Class<?> clazz = (Class<?>) currentTable.getData();
+    clearTabs(clazz == IAssignmentRuleInfo.class);
     List<BaseInfoExtended> list = null;
+
+
 
     // TODO getSessionsExtendedInfo, getConnectionsExtendedInfo и др.
     // заменить на одну?, определяемую через map
-    if (currentTab.equals(tabSessions)) {
+    if (clazz == SessionInfoExtended.class) {
       list =
           server.getSessionsExtendedInfo(
               currentHighlightingType, clusterId, workingProcessId, infobaseId);
 
-    } else if (currentTab.equals(tabConnections)) {
+    } else if (clazz == ConnectionInfoExtended.class) {
       list =
           server.getConnectionsExtendedInfo(
               currentHighlightingType, clusterId, workingProcessId, infobaseId);
 
-    } else if (currentTab.equals(tabLocks)) {
+    } else if (clazz == LockInfoExtended.class) {
       list = server.getLocksExtendedInfo(currentHighlightingType, clusterId, infobaseId);
 
-    } else if (currentTab.equals(tabWorkingProcesses)) {
+    } else if (clazz == WorkingProcessInfoExtended.class) {
       list =
           server.getWorkingProcessesExtendedInfo(
               currentHighlightingType, clusterId, workingProcessId);
 
-    } else if (currentTab.equals(tabWorkingServers)) {
+    } else if (clazz == WorkingServerInfoExtended.class) {
       list = server.getWorkingServersExtendedInfo(currentHighlightingType, clusterId);
 
+      // очистка таблицы с ТНФ
+      tnfTableViewer.getTable().clearAll();
+
+    } else if (clazz == IAssignmentRuleInfo.class) {
+      fillAssignmentRulesTable();
+      return;
     } else {
       return;
     }
 
-    BaseInfoExtended.updateTabText(linksTablesToExtendedClass.get(currentTab), list.size());
+    BaseInfoExtended.updateTabText((Class<? extends BaseInfoExtended>) clazz, list.size());
     list.forEach(item -> item.addToTable(currentTable));
   }
 
@@ -1459,15 +1704,17 @@ public class ViewerArea extends Composite {
     serversTree.setMenu(serversTreeContextMenus.get(currentContextMenuItem));
   }
 
-  private void clearTabs() {
+  private void clearTabs(boolean isAssignmentRule) {
 
     // BaseInfoExtended.resetTabsTextCount();
 
-    getTable(tabSessions).removeAll();
-    getTable(tabConnections).removeAll();
-    getTable(tabLocks).removeAll();
-    getTable(tabWorkingProcesses).removeAll();
-    getTable(tabWorkingServers).removeAll();
+    tableSessions.removeAll();
+    tableConnections.removeAll();
+    tableLocks.removeAll();
+    tableWorkingProcesses.removeAll();
+    if (!isAssignmentRule) {
+      tableWorkingServers.removeAll();
+    }
   }
 
   private void clickItemInServerTree(int mouseButton) {
@@ -1498,20 +1745,23 @@ public class ViewerArea extends Composite {
   }
 
   private Table getCurrentTable() {
-    // return linksTabToTables.get(currentTab);
-    return ((Table) currentTab.getControl());
+    return currentTable;
   }
 
   private Table getTable(TabItem tab) {
-    return ((Table) tab.getControl());
+    Control control = tab.getControl();
+    if (control instanceof Table) {
+      return (Table) control;
+    }
+    if (control instanceof SashForm) {
+      return (Table) (((SashForm) control).getChildren())[0];
+    }
+    // return ((Table) tab.getControl());
+    return null;
   }
 
-  private ColumnProperties getColumnProperties(Class<? extends BaseInfoExtended> clazz) {
+  private ColumnProperties getColumnProperties(Class<?> clazz) {
     return config.getColumnsProperties(clazz);
-  }
-
-  private ColumnProperties getColumnProperties(TabItem tab) {
-    return config.getColumnsProperties(linksTablesToExtendedClass.get(tab));
   }
 
   private void saveCurrentSelectedData(TreeItem treeItem) {
@@ -1562,6 +1812,305 @@ public class ViewerArea extends Composite {
 
     editToolbarItem.setEnabled(toolbarEditListeners.get(currentHighlightingType) != null);
     deleteToolbarItem.setEnabled(toolbarDeleteListeners.get(currentHighlightingType) != null);
+  }
+
+  private void fillAssignmentRulesTable() {
+    Object wsInfo = tnfTableViewer.getTable().getData(ID_DATA_KEY);
+    fillAssignmentRulesTable((WorkingServerInfoExtended) wsInfo);
+  }
+
+  private void fillAssignmentRulesTable(WorkingServerInfoExtended wsInfo) {
+
+    TableItem[] item = tableWorkingServers.getSelection();
+    if (item.length == 0) {
+      return;
+    }
+    Server server = getCurrentServer();
+    UUID clusterId = getCurrentClusterId();
+    UUID workingServerId = wsInfo.getWorkingServerId();
+    if (server == null || clusterId == null) {
+      return;
+    }
+
+    // Заполнение таблицы с ТНФ
+    List<IAssignmentRuleInfo> listTnf = server.getAssignmentRules(clusterId, workingServerId);
+    tnfTableViewer.setInput(listTnf);
+    tnfTableViewer.getTable().setData(ID_DATA_KEY, wsInfo);
+  }
+
+  private void addTableViewerColumn(
+      TableViewer tableViewer, String name, String desc, ColumnProperties columnProperties) {
+
+    var tableViewerColumnParamKey = new TableViewerColumn(tableViewer, SWT.NONE);
+    TableColumn newColumn = tableViewerColumnParamKey.getColumn();
+    newColumn.setText(desc);
+    newColumn.setMoveable(true);
+    newColumn.setAlignment(SWT.RIGHT);
+    tableViewerColumnParamKey.setLabelProvider(new AssignmentRuleLabelProvider(name));
+
+    if (columnProperties == null) {
+      newColumn.setWidth(100);
+      return;
+    }
+
+    final int[] columnWidth = columnProperties.getWidth();
+    final boolean[] columnVisible = columnProperties.getVisible();
+
+    Table table = tableViewer.getTable();
+    int numOfColumn = table.getColumnCount() - 1;
+    newColumn.setData(numOfColumn);
+    if (numOfColumn == columnProperties.getSortColumn()) {
+      table.setSortColumn(newColumn);
+      table.setSortDirection(columnProperties.getSortDirectionSwt());
+    }
+
+    if (columnVisible != null && columnVisible[numOfColumn]) {
+      newColumn.setResizable(true);
+      newColumn.setWidth(columnWidth[numOfColumn] == 0 ? 100 : columnWidth[numOfColumn]);
+    } else {
+      newColumn.setResizable(false);
+      newColumn.setWidth(0);
+    }
+
+    newColumn.addListener(SWT.Move, columnMoveListener);
+    newColumn.addListener(SWT.Resize, columnResizeListener);
+    newColumn.addListener(SWT.Selection, columnSortListener);
+  }
+
+  private void addItemInTable(Table table) {
+    Class<?> clazz = (Class<?>) table.getData();
+
+    if (clazz == WorkingServerInfoExtended.class) {
+
+      Server server = getCurrentServer();
+      UUID clusterId = getCurrentClusterId();
+
+      if (server == null || clusterId == null) {
+        return;
+      }
+
+      WorkingServerDialog dialog;
+      try {
+        dialog =
+            new WorkingServerDialog(
+                getParent().getDisplay().getActiveShell(), server, clusterId, null);
+      } catch (Exception excp) {
+        LOGGER.error(
+            "Error init WorkingServerDialog for cluster id {}", //$NON-NLS-1$
+            clusterId,
+            excp);
+        return;
+      }
+
+      if (dialog.open() == 0) {
+        refreshCurrentList();
+      }
+    }
+
+    if (clazz == IAssignmentRuleInfo.class) {
+
+      WorkingServerInfoExtended wsInfo = (WorkingServerInfoExtended) table.getData(ID_DATA_KEY);
+
+      Server server = getCurrentServer();
+      UUID clusterId = getCurrentClusterId();
+      UUID wsId = wsInfo.getWorkingServerId();
+      if (server == null || clusterId == null || wsId == null) {
+        return;
+      }
+
+      AssignmentRuleDialog dialog;
+      try {
+        dialog =
+            new AssignmentRuleDialog(
+                getParent().getDisplay().getActiveShell(), server, clusterId, wsId, null);
+      } catch (Exception excp) {
+        excp.printStackTrace();
+        LOGGER.error(
+            "Error init AssignmentRuleEditDialog for new rule", //$NON-NLS-1$
+            excp);
+        return;
+      }
+
+      if (dialog.open() == 0) {
+        fillAssignmentRulesTable();
+      }
+    }
+  
+  }
+
+  private void viewItemInTable(TableItem item) {
+    BaseInfoExtended extInfo = (BaseInfoExtended) item.getData(EXTENDED_INFO);
+
+    if (extInfo instanceof SessionInfoExtended) {
+
+      SessionInfoExtended sessionExtInfo = (SessionInfoExtended) extInfo;
+
+      SessionInfoDialog dialog;
+      try {
+        dialog = new SessionInfoDialog(getParent().getDisplay().getActiveShell(), sessionExtInfo);
+      } catch (Exception excp) {
+        excp.printStackTrace();
+        LOGGER.error(
+            "Error init SessionInfoDialog for session id {}", //$NON-NLS-1$
+            sessionExtInfo.getSessionInfo().getSid(),
+            excp);
+        return;
+      }
+
+      dialog.open();
+    }
+  }
+
+  private void editItemInTable(TableItem item) {
+    BaseInfoExtended extInfo = (BaseInfoExtended) item.getData(EXTENDED_INFO);
+    if (extInfo instanceof WorkingServerInfoExtended) {
+
+      WorkingServerInfoExtended workingServerExtInfo = (WorkingServerInfoExtended) extInfo;
+
+      WorkingServerDialog dialog;
+      try {
+        dialog =
+            new WorkingServerDialog(
+                getParent().getDisplay().getActiveShell(), workingServerExtInfo);
+      } catch (Exception excp) {
+        excp.printStackTrace();
+        LOGGER.error(
+            "Error init WorkingServerDialog for cluster id {}", //$NON-NLS-1$
+            workingServerExtInfo.getWorkingServerId(),
+            excp);
+        return;
+      }
+
+      if (dialog.open() == 0) {
+        // clickItemInServerTree(0); // TODO что здесь должно делаться???
+        refreshCurrentList();
+      }
+    } else if (extInfo == null && item.getData() instanceof IAssignmentRuleInfo) {
+      IAssignmentRuleInfo ruleInfo = (IAssignmentRuleInfo) item.getData();
+
+      WorkingServerInfoExtended wsInfo =
+          (WorkingServerInfoExtended) item.getParent().getData(ID_DATA_KEY);
+
+      Server server = getCurrentServer();
+      UUID clusterId = getCurrentClusterId();
+      UUID wsId = wsInfo.getWorkingServerId();
+      if (server == null || clusterId == null || wsId == null) {
+        return;
+      }
+
+      AssignmentRuleDialog dialog;
+      try {
+        dialog =
+            new AssignmentRuleDialog(
+                getParent().getDisplay().getActiveShell(), server, clusterId, wsId, ruleInfo);
+      } catch (Exception excp) {
+        excp.printStackTrace();
+        LOGGER.error(
+            "Error init AssignmentRuleEditDialog for rule {}", //$NON-NLS-1$
+            ruleInfo.getObjectType(),
+            excp);
+        return;
+      }
+
+      if (dialog.open() == 0) {
+        refreshCurrentList();
+      }
+
+    } else {
+      return;
+    }
+  }
+
+  private void deleteItemsFromTable(TableItem[] selectedItems) {
+
+    for (TableItem item : selectedItems) {
+
+      Object extInfo = item.getData(EXTENDED_INFO);
+      item.setForeground(deletedItemColor); // TODO успевает ли окраситься в красный цвет
+
+      if (extInfo instanceof SessionInfoExtended) {
+        SessionInfoExtended sessionExtInfo = (SessionInfoExtended) extInfo;
+
+        Server server = sessionExtInfo.getServer();
+        UUID clusterId = sessionExtInfo.getClusterId();
+        UUID sessionId = sessionExtInfo.getSessionInfo().getSid();
+
+        if (server.terminateSession(clusterId, sessionId)) {
+          item.dispose();
+        }
+
+      } else if (extInfo instanceof ConnectionInfoExtended) {
+        ConnectionInfoExtended connExtInfo = (ConnectionInfoExtended) extInfo;
+
+        Server server = connExtInfo.getServer();
+        UUID clusterId = connExtInfo.getClusterId();
+        UUID processId = connExtInfo.getConnectionInfo().getWorkingProcessId();
+        UUID connectionId = connExtInfo.getConnectionInfo().getInfoBaseConnectionId();
+        UUID infobaseId = connExtInfo.getConnectionInfo().getInfoBaseId();
+
+        if (server.disconnectConnection(clusterId, processId, connectionId, infobaseId)) {
+          item.dispose(); // update tableConnections
+        }
+
+      } else if (extInfo instanceof WorkingServerInfoExtended) {
+        WorkingServerInfoExtended wsExtInfo = (WorkingServerInfoExtended) extInfo;
+
+        Server server = wsExtInfo.getServer();
+        UUID clusterId = wsExtInfo.getClusterId();
+        UUID workingServerId = wsExtInfo.getWorkingServerId();
+
+        int answer =
+            Helper.showQuestionBox(
+                Messages.getString("ViewerArea.DeleteServerQuestion")); // $NON-NLS-1$
+
+        if (answer == SWT.YES && server.unregWorkingServer(clusterId, workingServerId)) {
+          item.dispose(); // update tableWorkingServers
+        }
+      } else if (extInfo == null && item.getData() instanceof IAssignmentRuleInfo) {
+        IAssignmentRuleInfo ruleInfo = (IAssignmentRuleInfo) item.getData();
+
+        WorkingServerInfoExtended wsInfo =
+            (WorkingServerInfoExtended) item.getParent().getData(ID_DATA_KEY);
+
+        Server server = getCurrentServer();
+        UUID clusterId = getCurrentClusterId();
+        UUID wsId = wsInfo.getWorkingServerId();
+        if (server == null || clusterId == null || wsId == null) {
+          return;
+        }
+
+        int answer =
+            Helper.showQuestionBox(
+                Messages.getString("ViewerArea.DeleteAssignmentRule")); // $NON-NLS-1$
+
+        if (answer == SWT.YES
+            && server.unregAssignmentRule(clusterId, wsId, ruleInfo.getAssignmentRuleId())) {
+          item.dispose();
+        }
+
+      } else {
+        break;
+      }
+    }
+  }
+
+  private void changeAssignmentRuleNumber(TableItem item, boolean increase) {
+    IAssignmentRuleInfo rule = (IAssignmentRuleInfo) item.getData();
+
+    int newRuleNumber = AssignmentRuleContentProvider.getRuleNumber(rule) + (increase ? -1 : 1);
+
+    WorkingServerInfoExtended wsInfo =
+        (WorkingServerInfoExtended) item.getParent().getData(ID_DATA_KEY);
+
+    Server server = getCurrentServer();
+    UUID clusterId = getCurrentClusterId();
+    UUID wsId = wsInfo.getWorkingServerId();
+    if (server == null || clusterId == null || wsId == null) {
+      return;
+    }
+
+    server.regAssignmentRule(clusterId, wsId, rule, newRuleNumber - 1);
+    refreshCurrentList();
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -1754,7 +2303,7 @@ public class ViewerArea extends Composite {
           String buttonName = ((ToolItem) event.widget).getText();
 
           if (serversTree.getSelection().length == 0
-              && Strings.CONTEXT_MENU_CREATE.equals(buttonName)) {
+              && Strings.CONTEXT_MENU_ADD.equals(buttonName)) {
             addServerListener.widgetSelected(event);
             return;
           }
@@ -1764,7 +2313,7 @@ public class ViewerArea extends Composite {
           }
 
           Map<TreeItemType, SelectionAdapter> currListener = null;
-          if (Strings.CONTEXT_MENU_CREATE.equals(buttonName)) {
+          if (Strings.CONTEXT_MENU_ADD.equals(buttonName)) {
             currListener = toolbarCreateListeners;
           } else if (Strings.CONTEXT_MENU_EDIT.equals(buttonName)) {
             currListener = toolbarEditListeners;
@@ -2093,6 +2642,29 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter applyAssignmentRuleListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          TreeItem[] item = serversTree.getSelection();
+          if (item.length == 0) {
+            return;
+          }
+
+          Server server = getServer(item[0]);
+          UUID clusterId = getClusterId(item[0]);
+
+          if (server == null || clusterId == null) {
+            return;
+          }
+
+          Object data = ((MenuItem) event.widget).getData();
+          if (data instanceof Integer) {
+            server.applyAssignmentRules(clusterId, (int) data);
+          }
+        }
+      };
+
   SelectionAdapter createInfobaseListener =
       // TODO вызывается из контекстного меню и из тулбара
       // нет ли ошибки serversTree.getSelection() при вызове из тулбара
@@ -2400,46 +2972,6 @@ public class ViewerArea extends Composite {
         }
       };
 
-  SelectionAdapter createWorkingServerListener =
-      new SelectionAdapter() {
-        @Override
-        public void widgetSelected(SelectionEvent event) {
-          Table tableWorkingServers = getCurrentTable();
-          Server server = getCurrentServer();
-          UUID clusterId = getCurrentClusterId();
-
-          if (server == null || clusterId == null) {
-            return;
-          }
-
-          WorkingServerDialog dialog;
-          try {
-            dialog =
-                new WorkingServerDialog(
-                    getParent().getDisplay().getActiveShell(), server, clusterId, null);
-          } catch (Exception excp) {
-            LOGGER.error(
-                "Error init WorkingServerDialog for cluster id {}", //$NON-NLS-1$
-                clusterId,
-                excp);
-            return;
-          }
-
-          int dialogResult = dialog.open();
-          if (dialogResult == 0) {
-            var newWorkingServerUuid = dialog.getNewWorkingServerId();
-            if (newWorkingServerUuid != null) {
-              WorkingServerInfoExtended workingServerInfo =
-                  new WorkingServerInfoExtended(
-                      server,
-                      clusterId,
-                      server.getWorkingServerInfo(clusterId, newWorkingServerUuid));
-              workingServerInfo.addToTable(tableWorkingServers);
-            }
-          }
-        }
-      };
-
   SelectionAdapter createWorkingServerListenerInTree =
       new SelectionAdapter() {
         @Override
@@ -2522,8 +3054,7 @@ public class ViewerArea extends Composite {
           TableColumn column = (TableColumn) e.widget;
           Table currentTable = column.getParent();
 
-          final Class<? extends BaseInfoExtended> clazz =
-              linksTablesToExtendedClass.get(currentTab);
+          final Class<?> clazz = (Class<?>) currentTable.getData();
           if (clazz != null) {
             config.setColumnsOrder(clazz, currentTable.getColumnOrder());
           }
@@ -2538,13 +3069,15 @@ public class ViewerArea extends Composite {
         public void handleEvent(Event e) {
 
           TableColumn column = (TableColumn) e.widget;
-          int newWidth = column.getWidth();
           Table currentTable = column.getParent();
+
+          int newWidth = column.getWidth();
           TableColumn[] columns = currentTable.getColumns();
 
+          final Class<?> clazz = (Class<?>) currentTable.getData();
           for (int i = 0; i < columns.length; i++) {
             if (columns[i].getText().equals(column.getText())) {
-              config.setColumnsWidth(linksTablesToExtendedClass.get(currentTab), i, newWidth);
+              config.setColumnsWidth(clazz, i, newWidth);
               break;
             }
           }
@@ -2555,17 +3088,16 @@ public class ViewerArea extends Composite {
   Listener columnSortListener =
       new Listener() {
         public void handleEvent(Event e) {
-          Table currentTable = getCurrentTable();
-          if (currentTable == null) {
-            return;
-          }
+          TableColumn column = (TableColumn) e.widget;
+          Table currentTable = column.getParent();
 
-          ColumnProperties columnProperties = getColumnProperties(currentTab);
+          int numColumn = (int) column.getData();
+
+          final Class<?> clazz = (Class<?>) currentTable.getData();
+          ColumnProperties columnProperties = getColumnProperties(clazz);
           if (columnProperties == null) {
             return;
           }
-          TableColumn column = (TableColumn) e.widget;
-          int numColumn = (int) column.getData();
 
           columnProperties.setSortColumn(numColumn);
           currentTable.setSortColumn(column);
@@ -2574,17 +3106,22 @@ public class ViewerArea extends Composite {
           // сортировка того что уже есть в списке
           TableItem[] items = currentTable.getItems();
 
-          for (int i = 1; i < items.length; i++) {
-            BaseInfoExtended secondString = (BaseInfoExtended) items[i].getData(EXTENDED_INFO);
+          if (clazz == IAssignmentRuleInfo.class) {
+            tnfTableViewer.refresh();
+          }
+          if (clazz != IAssignmentRuleInfo.class) {
+            for (int i = 1; i < items.length; i++) {
+              BaseInfoExtended secondString = (BaseInfoExtended) items[i].getData(EXTENDED_INFO);
 
-            for (int j = 0; j < i; j++) {
-              BaseInfoExtended firstString = (BaseInfoExtended) items[j].getData(EXTENDED_INFO);
+              for (int j = 0; j < i; j++) {
+                BaseInfoExtended firstString = (BaseInfoExtended) items[j].getData(EXTENDED_INFO);
 
-              if (firstString.compareTo(secondString) > 0) {
-                items[i].dispose();
-                secondString.addToTable(currentTable, j);
-                items = currentTable.getItems();
-                break;
+                if (firstString.compareTo(secondString) > 0) {
+                  items[i].dispose();
+                  secondString.addToTable(currentTable, j);
+                  items = currentTable.getItems();
+                  break;
+                }
               }
             }
           }
@@ -2607,131 +3144,6 @@ public class ViewerArea extends Composite {
   //          }
   //        }
   //      };
-
-  SelectionAdapter editItemInTablesListener =
-      new SelectionAdapter() {
-        @Override
-        public void widgetSelected(SelectionEvent e) {
-
-          TableItem[] item = getCurrentTable().getSelection();
-          if (item.length == 0) {
-            return;
-          }
-
-          if (currentTab.equals(tabSessions)) {
-
-            SessionInfoExtended sessionExtInfo =
-                (SessionInfoExtended) item[0].getData(EXTENDED_INFO);
-
-            SessionInfoDialog dialog;
-            try {
-              dialog =
-                  new SessionInfoDialog(getParent().getDisplay().getActiveShell(), sessionExtInfo);
-            } catch (Exception excp) {
-              excp.printStackTrace();
-              LOGGER.error(
-                  "Error init SessionInfoDialog for session id {}", //$NON-NLS-1$
-                  sessionExtInfo.getSessionInfo().getSid(),
-                  excp);
-              return;
-            }
-
-            dialog.open();
-
-          } else if (currentTab.equals(tabWorkingServers)) {
-
-            WorkingServerInfoExtended workingServerExtInfo =
-                (WorkingServerInfoExtended) item[0].getData(EXTENDED_INFO);
-
-            WorkingServerDialog dialog;
-            try {
-              dialog =
-                  new WorkingServerDialog(
-                      getParent().getDisplay().getActiveShell(), workingServerExtInfo);
-            } catch (Exception excp) {
-              excp.printStackTrace();
-              LOGGER.error(
-                  "Error init WorkingServerDialog for cluster id {}", //$NON-NLS-1$
-                  workingServerExtInfo.getWorkingServerId(),
-                  excp);
-              return;
-            }
-
-            int dialogResult = dialog.open();
-            if (dialogResult == 0) {
-              // clickItemInServerTree(0); // TODO что здесь должно делаться???
-              refreshCurrentList();
-            }
-          } else {
-            return;
-          }
-        }
-      };
-
-  SelectionAdapter deleteItemInTablesListener =
-      new SelectionAdapter() {
-        @Override
-        public void widgetSelected(SelectionEvent e) {
-
-          TableItem[] selectedItems = getCurrentTable().getSelection();
-          if (selectedItems.length == 0) {
-            return;
-          }
-
-          for (TableItem item : selectedItems) {
-            item.setForeground(deletedItemColor); // TODO успевает ли окраситься в красный цвет
-
-            // BaseInfoExtended extInfo = (BaseInfoExtended) item.getData("ExtendedInfo");
-            // //$NON-NLS-1$
-            // Server server = extInfo.getServer();
-            // UUID clusterId = extInfo.getClusterId();
-
-            if (currentTab.equals(tabSessions)) {
-              SessionInfoExtended extInfo = (SessionInfoExtended) item.getData(EXTENDED_INFO);
-
-              Server server = extInfo.getServer();
-              UUID clusterId = extInfo.getClusterId();
-              UUID sessionId = extInfo.getSessionInfo().getSid();
-
-              if (server.terminateSession(clusterId, sessionId)) {
-                item.dispose();
-              }
-
-            } else if (currentTab.equals(tabConnections)) {
-              ConnectionInfoExtended extInfo = (ConnectionInfoExtended) item.getData(EXTENDED_INFO);
-
-              Server server = extInfo.getServer();
-              UUID clusterId = extInfo.getClusterId();
-              UUID pricessId = extInfo.getConnectionInfo().getWorkingProcessId();
-              UUID connectionId = extInfo.getConnectionInfo().getInfoBaseConnectionId();
-              UUID infobaseId = extInfo.getConnectionInfo().getInfoBaseId();
-
-              if (server.disconnectConnection(clusterId, pricessId, connectionId, infobaseId)) {
-                item.dispose(); // update tableConnections
-              }
-
-            } else if (currentTab.equals(tabWorkingServers)) {
-              WorkingServerInfoExtended extInfo =
-                  (WorkingServerInfoExtended) item.getData(EXTENDED_INFO);
-
-              Server server = extInfo.getServer();
-              UUID clusterId = extInfo.getClusterId();
-              UUID workingServerId = extInfo.getWorkingServerId();
-
-              int answer =
-                  Helper.showQuestionBox(
-                      Messages.getString("ViewerArea.DeleteServerQuestion")); //$NON-NLS-1$
-
-              if (answer == SWT.YES && server.unregWorkingServer(clusterId, workingServerId)) {
-                item.dispose(); // update tableWorkingServers
-              }
-
-            } else {
-              break;
-            }
-          }
-        }
-      };
 
   SelectionAdapter copyCellValueInTablesListener =
       new SelectionAdapter() {
@@ -2795,31 +3207,48 @@ public class ViewerArea extends Composite {
           if (event.button != 1 && event.button != 3) {
             return;
           }
-          Table currentTable = (Table) event.widget;
+          currentTable = (Table) event.widget;
 
           Point pt = new Point(event.x, event.y);
           TableItem item = currentTable.getItem(pt);
-          if (item != null) {
-            for (int col = 0; col < currentTable.getColumnCount(); col++) {
-              Rectangle rect = item.getBounds(col);
-              if (rect.contains(pt)) {
 
-                if (lastSelectItem != null && !lastSelectItem.isDisposed()) {
-                  lastSelectItem.setForeground(lastSelectColumn, null);
-                }
-                item.setForeground(col, Helper.getOrangeColor());
+          if (item == null) {
+            currentTable.deselectAll();
+            return;
+          }
 
-                lastSelectItem = item;
-                lastSelectColumn = col;
-                break;
+          for (int col = 0; col < currentTable.getColumnCount(); col++) {
+            Rectangle rect = item.getBounds(col);
+            if (rect.contains(pt)) {
+
+              if (lastSelectItem != null && !lastSelectItem.isDisposed()) {
+                lastSelectItem.setForeground(lastSelectColumn, null);
               }
+              item.setForeground(col, Helper.getOrangeColor());
+
+              // заполнение таблицы с ТНФ
+              if (currentTable.equals(tableWorkingServers) && !item.equals(lastSelectItem)) {
+                WorkingServerInfoExtended ws =
+                    (WorkingServerInfoExtended) item.getData(EXTENDED_INFO);
+                fillAssignmentRulesTable(ws);
+              }
+
+              lastSelectItem = item;
+              lastSelectColumn = col;
+              break;
             }
           }
         }
 
         @Override
-        public void mouseDoubleClick(MouseEvent e) {
-          editItemInTablesListener.widgetSelected(null);
+        public void mouseDoubleClick(MouseEvent event) {
+          currentTable = (Table) event.widget;
+          TableItem[] item = currentTable.getSelection();
+          if (item.length == 0) {
+            return;
+          }
+          editItemInTable(item[0]);
+
         }
       };
 
@@ -2829,18 +3258,30 @@ public class ViewerArea extends Composite {
         public void keyPressed(KeyEvent e) {
 
           final int keyC = 99;
+          currentTable = (Table) e.widget;
+          TableItem[] items = currentTable.getSelection();
 
           switch (e.keyCode) {
-            case SWT.F2:
-              editItemInTablesListener.widgetSelected(null);
-              break;
-
             case SWT.F5:
               refreshCurrentList();
               break;
 
+            case SWT.INSERT:
+              addItemInTable(currentTable);
+              break;
+
+            case SWT.F2:
+              if (items.length == 0) {
+                return;
+              }
+              editItemInTable(items[0]);
+              break;
+
             case SWT.DEL:
-              deleteItemInTablesListener.widgetSelected(null);
+              if (items.length == 0) {
+                return;
+              }
+              deleteItemsFromTable(items);
               break;
 
             case keyC:
@@ -3174,7 +3615,7 @@ public class ViewerArea extends Composite {
     }
   }
 
-  class RefreshTablesSelectionListener extends SelectionAdapter {
+  class RefreshTablesSelectionListener implements Listener {
 
     private ToolItem mainButton;
     private Menu dropdownMenu;
@@ -3182,7 +3623,7 @@ public class ViewerArea extends Composite {
 
     public RefreshTablesSelectionListener(ToolItem mainButton) {
       this.mainButton = mainButton;
-      this.mainButton.addSelectionListener(this);
+      this.mainButton.addListener(SWT.Selection, this);
 
       dropdownMenu = new Menu(mainButton.getParent().getShell());
 
@@ -3254,7 +3695,7 @@ public class ViewerArea extends Composite {
         };
 
     @Override
-    public void widgetSelected(SelectionEvent event) {
+    public void handleEvent(Event event) {
       if (event.detail == SWT.ARROW) {
         ToolItem item = (ToolItem) event.widget;
         Rectangle rect = item.getBounds();
@@ -3287,21 +3728,27 @@ public class ViewerArea extends Composite {
         getString("ContextMenu.DisconnectOfServer");
     static final String CONTEXT_MENU_SHOW_CONNECTION_ERROR =
         getString("ContextMenu.ShowConnectionError");
-    static final String CONTEXT_MENU_CREATE = getString("ContextMenu.Create");
+
+    static final String CONTEXT_MENU_ADD = getString("ContextMenu.Add");
     static final String CONTEXT_MENU_EDIT = getString("ContextMenu.Edit");
     static final String CONTEXT_MENU_DELETE = getString("ContextMenu.Delete");
-    static final String CONTEXT_MENU_COPY_CELL_VALUE =
-        getString("ContextMenu.CopyCellValue").concat("\tCtrl+C");
-    static final String CONTEXT_MENU_ADD_SERVER = getString("ContextMenu.AddServer");
-    static final String CONTEXT_MENU_EDIT_SERVER = getString("ContextMenu.EditServer");
+
+    static final String CONTEXT_MENU_ADD_HOTKEY = CONTEXT_MENU_ADD.concat("\tIns");
+    static final String CONTEXT_MENU_EDIT_HOTKEY = CONTEXT_MENU_EDIT.concat("\tF2");
+    static final String CONTEXT_MENU_DELETE_HOTKEY = CONTEXT_MENU_DELETE.concat("\tDEL");
+
+    static final String CONTEXT_MENU_COPY_CELL =
+        getString("ContextMenu.CopyCell").concat("\tCtrl+C");
+
     static final String CONTEXT_MENU_MOVE_UP = getString("ContextMenu.MoveUp");
     static final String CONTEXT_MENU_MOVE_DOWN = getString("ContextMenu.MoveDown");
     static final String CONTEXT_MENU_ORGANIZE_SERVERS = getString("ContextMenu.OrganizeServers");
-    static final String CONTEXT_MENU_REMOVE_SERVER = getString("ContextMenu.RemoveServer");
 
     static final String CONTEXT_MENU_CREATE_CLUSTER = getString("ContextMenu.CreateCluster");
     static final String CONTEXT_MENU_EDIT_CLUSTER = getString("ContextMenu.EditCluster");
     static final String CONTEXT_MENU_DELETE_CLUSTER = getString("ContextMenu.DeleteCluster");
+    static final String CONTEXT_MENU_APPLY_PARTIAL_RULE = getString("ContextMenu.ApplyPartialRule");
+    static final String CONTEXT_MENU_APPLY_FULL_RULE = getString("ContextMenu.ApplyFullRule");
 
     static final String CONTEXT_MENU_CREATE_WORKING_SERVER =
         getString("ContextMenu.CreateWorkingServer");
@@ -3337,8 +3784,7 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_TERMINATE_USERS_SESSIONS =
         getString("ContextMenu.TerminateUsersSessions");
 
-    static final String CONTEXT_MENU_VIEW_SESSION_F2 =
-        getString("ContextMenu.ViewSession").concat("\tF2");
+    static final String CONTEXT_MENU_VIEW_HOTKEY = getString("ContextMenu.View").concat("\tF2");
     static final String CONTEXT_MENU_KILL_SESSION_DEL =
         getString("ContextMenu.KillSession").concat("\tDEL");
     static final String CONTEXT_MENU_KILL_CONNECTION_DEL =

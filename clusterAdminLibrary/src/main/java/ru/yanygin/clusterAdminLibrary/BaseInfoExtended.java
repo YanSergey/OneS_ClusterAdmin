@@ -242,6 +242,7 @@ public abstract class BaseInfoExtended implements Comparable<BaseInfoExtended> {
     LockInfoExtended.initColumnsName();
     WorkingProcessInfoExtended.initColumnsName();
     WorkingServerInfoExtended.initColumnsName();
+    AssignmentRuleLabelProvider.initColumnsName();
   }
 
   /**
