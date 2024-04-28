@@ -168,9 +168,9 @@ public class BackgroundTask {
           String.format(
               "%s %s:%s/%s (#%d)",
               scriptName,
-              params.get("serverName"),
-              params.get("managerPort"),
-              params.get("infobase"),
+              params.get("v8serverName"),
+              params.get("v8managerPort"),
+              params.get("v8infobase"),
               taskNumber);
     }
   }
