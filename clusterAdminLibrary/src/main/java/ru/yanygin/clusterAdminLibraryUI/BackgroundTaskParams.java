@@ -29,6 +29,7 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import ru.yanygin.clusterAdminLibrary.BackgroundTask;
 import ru.yanygin.clusterAdminLibrary.UserPassPair;
 
 /** Диалог параметров фоновой задачи. */
@@ -38,6 +39,7 @@ public class BackgroundTaskParams extends Dialog {
   private static final String PASSWORD_TITLE = "v8password";
 
   private Map<String, String> params;
+  private BackgroundTask task;
   private String title;
   private Table tableParams;
   private Map<String, String> infobasesCredentials = new HashMap<>();
@@ -51,19 +53,20 @@ public class BackgroundTaskParams extends Dialog {
    *
    * @param parentShell - parent shell
    * @param params - текущие имя пользователя и пароль
-   * @param title - заголовок окна аутентификации
+   * @param task - ссылка на объект задачи
    * @param infobasesCredentials - данные доступа к инфобазам
    */
   public BackgroundTaskParams(
       Shell parentShell,
       Map<String, String> params,
-      String title,
+      BackgroundTask task,
       List<UserPassPair> infobasesCredentials) {
     super(parentShell);
     setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
     this.params = params;
-    this.title = title;
+    this.task = task;
+    this.title = task.getScriptName();
 
     infobasesCredentials.forEach(
         up -> {
@@ -180,18 +183,11 @@ public class BackgroundTaskParams extends Dialog {
   }
 
   protected boolean isFilepathParam(String[] e) {
-
-    if (e[0].toLowerCase().contains("filepath.cf")) {
-      currentFilenameExt = "*.cf";
+    if (task.isFilepathParam(e[0])) {
+      currentFilenameExt = task.getFilenameFilterExt();
       currentFilepath = e[1];
       return true;
     }
-    if (e[0].toLowerCase().contains("filepath.dt")) {
-      currentFilenameExt = "*.dt";
-      currentFilepath = e[1];
-      return true;
-    }
-
     return false;
   }
 
@@ -218,7 +214,11 @@ public class BackgroundTaskParams extends Dialog {
               final String[] filterNames = {String.format(Strings.FILTER_NAME, currentFilenameExt)};
               final String[] filterExt = {currentFilenameExt};
 
-              FileDialog dialog = new FileDialog(cellEditorWindow.getShell(), SWT.OPEN);
+              // При варианте SWT.SAVE автоматически дописывается расширение, в отличие от OPEN
+              FileDialog dialog = new FileDialog(cellEditorWindow.getShell(), SWT.SAVE);
+              // поэтому вопрос о перезаписи регулируем через setOverwrite
+              dialog.setOverwrite(task.isSaveCommand());
+
               if (currentFilepath.isBlank()) {
                 dialog.setFileName(currentFilenameExt);
               } else {

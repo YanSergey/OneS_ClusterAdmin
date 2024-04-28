@@ -1657,7 +1657,10 @@ public class ViewerArea extends Composite {
     if (foundEmptyParams) {
       BackgroundTaskParams taskParamsDialog =
           new BackgroundTaskParams(
-              getShell(), params, backgroundTask.getScriptName(), server.getInfobasesCredentials());
+              getShell(),
+              params,
+              backgroundTask,
+              server.getInfobasesCredentials());
       int dialogResult = taskParamsDialog.open();
       if (dialogResult != 0) {
         return new HashMap<>();

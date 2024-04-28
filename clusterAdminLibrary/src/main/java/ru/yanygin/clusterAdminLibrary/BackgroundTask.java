@@ -27,6 +27,7 @@ public class BackgroundTask {
   static final String enterpriseCommand = "ENTERPRISE";
   static final String logonCommand =
       "/S%v8serverName%:%v8managerPort%\\%v8infobase% /N%v8username% /P%v8password%";
+  static final String FILEPATH_PARAM_KEY = "%v8FilePath%";
 
   static int countOfRunning = 0;
   static int countOfCompleted = 0;
@@ -39,6 +40,8 @@ public class BackgroundTask {
 
   File script;
   String scriptText;
+  String v8Command;
+  String fileExtension;
 
   String scriptName;
 
@@ -53,6 +56,7 @@ public class BackgroundTask {
   TaskState stateLast;
 
   TaskVariant taskVariant;
+  V8ActionVariant v8ActionVariant;
 
   enum TaskState {
     RUNNUNG,
@@ -108,30 +112,45 @@ public class BackgroundTask {
    */
   public BackgroundTask(V8ActionVariant v8ActionVariant) {
     this.taskVariant = TaskVariant.V8ACTION;
+    this.v8ActionVariant = v8ActionVariant;
 
+    final String launchMode;
     if (v8ActionVariant == V8ActionVariant.RUN_ENTERPRISE) {
-      this.scriptText = String.join(" ", starterPath, enterpriseCommand, logonCommand);
+      launchMode = enterpriseCommand;
     } else {
-      this.scriptText = String.join(" ", starterPath, designerCommand, logonCommand);
+      launchMode = designerCommand;
     }
 
+    final String v8Command;
     switch (v8ActionVariant) {
       case SAVE_CF:
-        this.scriptText = String.join(" ", this.scriptText, "/DumpCfg %v8FilePath.cf%");
+        this.fileExtension = ".cf";
+        v8Command = String.join(" ", "/DumpCfg", FILEPATH_PARAM_KEY);
         break;
       case LOAD_CF:
-        this.scriptText = String.join(" ", this.scriptText, "/LoadCfg %v8FilePath.cf%");
+        this.fileExtension = ".cf";
+        v8Command = String.join(" ", "/LoadCfg", FILEPATH_PARAM_KEY);
         break;
       case SAVE_DT:
-        this.scriptText = String.join(" ", this.scriptText, "/DumpIB %v8FilePath.dt%");
+        this.fileExtension = ".dt";
+        v8Command = String.join(" ", "/DumpIB", FILEPATH_PARAM_KEY);
         break;
       case LOAD_DT:
-        this.scriptText = String.join(" ", this.scriptText, "/RestoreIB %v8FilePath.dt%");
+        this.fileExtension = ".dt";
+        v8Command = String.join(" ", "/RestoreIB", FILEPATH_PARAM_KEY);
         break;
-
       default:
+        v8Command = "";
         break;
     }
+
+    this.scriptText =
+        String.join(
+            " ",
+            starterPath,
+            launchMode,
+            logonCommand,
+            v8Command);
 
     this.scriptName = v8ActionVariant.toString();
   }
@@ -164,6 +183,21 @@ public class BackgroundTask {
   /** Получить имя скрипта. */
   public String getScriptName() {
     return this.scriptName;
+  }
+
+  /** Определяет, я вляется ли параметр путем к файлу. */
+  public boolean isFilepathParam(String paramName) {
+    return FILEPATH_PARAM_KEY.contains(paramName);
+  }
+
+  /** Получить строку для фильтра выбора файла. */
+  public String getFilenameFilterExt() {
+    return "*".concat(fileExtension);
+  }
+
+  /** Получить строку для фильтра выбора файла. */
+  public boolean isSaveCommand() {
+    return v8ActionVariant == V8ActionVariant.SAVE_CF || v8ActionVariant == V8ActionVariant.SAVE_DT;
   }
 
   /**
