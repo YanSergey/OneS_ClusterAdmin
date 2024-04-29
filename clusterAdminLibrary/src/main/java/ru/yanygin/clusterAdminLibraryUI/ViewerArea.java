@@ -621,11 +621,11 @@ public class ViewerArea extends Composite {
     addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_RUN_DESIGNER, null, launchV8ActionListener, V8ActionVariant.RUN_DESIGNER);
 
     addMenuSeparator(subMenuInfobaseActions);
-    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_SAVE_CF, null, launchV8ActionListener, V8ActionVariant.SAVE_CF);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_DUMP_CF, null, launchV8ActionListener, V8ActionVariant.DUMP_CF);
     addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_LOAD_CF, null, launchV8ActionListener, V8ActionVariant.LOAD_CF);
 
     addMenuSeparator(subMenuInfobaseActions);
-    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_SAVE_DT, null, launchV8ActionListener, V8ActionVariant.SAVE_DT);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_DUMP_DT, null, launchV8ActionListener, V8ActionVariant.DUMP_DT);
     addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_LOAD_DT, null, launchV8ActionListener, V8ActionVariant.LOAD_DT);
   }
 
@@ -3377,9 +3377,9 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_INFOBASE_ACTIONS = getString("ContextMenu.InfobaseActions.Group");
     static final String CONTEXT_MENU_RUN_DESIGNER = getString("ContextMenu.InfobaseActions.RunDesigner");
     static final String CONTEXT_MENU_RUN_ENTERPRISE = getString("ContextMenu.InfobaseActions.RunEnterprise");
-    static final String CONTEXT_MENU_SAVE_CF = getString("ContextMenu.InfobaseActions.SaveCf");
+    static final String CONTEXT_MENU_DUMP_CF = getString("ContextMenu.InfobaseActions.DumpCf");
     static final String CONTEXT_MENU_LOAD_CF = getString("ContextMenu.InfobaseActions.LoadCf");
-    static final String CONTEXT_MENU_SAVE_DT = getString("ContextMenu.InfobaseActions.SaveDt");
+    static final String CONTEXT_MENU_DUMP_DT = getString("ContextMenu.InfobaseActions.DumpDt");
     static final String CONTEXT_MENU_LOAD_DT = getString("ContextMenu.InfobaseActions.LoadDt");
 
     static String getString(String key) {

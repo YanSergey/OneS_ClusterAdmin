@@ -73,9 +73,9 @@ public class BackgroundTask {
     RUN_DESIGNER,
     RUN_ENTERPRISE,
     LOAD_CF,
-    SAVE_CF,
+    DUMP_CF,
     LOAD_DT,
-    SAVE_DT
+    DUMP_DT
   }
 
   Thread thread;
@@ -123,7 +123,7 @@ public class BackgroundTask {
 
     final String v8Command;
     switch (v8ActionVariant) {
-      case SAVE_CF:
+      case DUMP_CF:
         this.fileExtension = ".cf";
         v8Command = String.join(" ", "/DumpCfg", FILEPATH_PARAM_KEY);
         break;
@@ -131,7 +131,7 @@ public class BackgroundTask {
         this.fileExtension = ".cf";
         v8Command = String.join(" ", "/LoadCfg", FILEPATH_PARAM_KEY);
         break;
-      case SAVE_DT:
+      case DUMP_DT:
         this.fileExtension = ".dt";
         v8Command = String.join(" ", "/DumpIB", FILEPATH_PARAM_KEY);
         break;
@@ -195,9 +195,9 @@ public class BackgroundTask {
     return "*".concat(fileExtension);
   }
 
-  /** Получить строку для фильтра выбора файла. */
+  /** Определяет поведение диалога выбора файла (сохранение или открытие). */
   public boolean isSaveCommand() {
-    return v8ActionVariant == V8ActionVariant.SAVE_CF || v8ActionVariant == V8ActionVariant.SAVE_DT;
+    return v8ActionVariant == V8ActionVariant.DUMP_CF || v8ActionVariant == V8ActionVariant.DUMP_DT;
   }
 
   /**
