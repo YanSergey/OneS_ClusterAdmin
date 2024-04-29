@@ -22,7 +22,7 @@ public class BackgroundTask {
 
   static final Logger LOGGER = LoggerFactory.getLogger(BackgroundTask.class.getSimpleName());
 
-  static final String starterPath = "\"C:\\Program Files\\1cv8\\common\\1cestart.exe\"";
+  static final String starterPath = "\"C:\\Program Files\\1cv8\\%v8version%\\bin\\1cv8.exe\"";
   static final String designerCommand = "DESIGNER";
   static final String enterpriseCommand = "ENTERPRISE";
   static final String logonCommand =
