@@ -495,8 +495,6 @@ public class ViewerArea extends Composite {
     addItemInMenu(
         serverMenu, Strings.CONTEXT_MENU_REMOVE_SERVER, deleteIcon16, deleteServerListener);
 
-    // TODO это для отладки без запуска сервера - удалить
-    new UserScriptRunner(serverMenu);
   }
 
   private void initClusterMenu() {
