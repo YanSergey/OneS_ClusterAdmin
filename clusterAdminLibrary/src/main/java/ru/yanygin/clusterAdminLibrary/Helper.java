@@ -28,6 +28,8 @@ public class Helper {
   public static final UUID EMPTY_UUID =
       UUID.fromString("00000000-0000-0000-0000-000000000000"); //$NON-NLS-1$
 
+  public static final String BOOSTY_LINK = "https://boosty.to/YanSergeyCoder";
+
   private Helper() {}
 
   /**

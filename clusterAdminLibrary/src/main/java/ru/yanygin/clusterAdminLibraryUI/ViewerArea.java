@@ -40,6 +40,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.program.Program;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -121,6 +122,7 @@ public class ViewerArea extends Composite {
   Image sortIcon;
   Image moveUpIcon;
   Image moveDownIcon;
+  Image roubleIcon;
 
   Tree serversTree;
   TreeItem currentTreeItem;
@@ -349,6 +351,8 @@ public class ViewerArea extends Composite {
     moveUpIcon = Helper.getImage("move_up.png"); //$NON-NLS-1$
     moveDownIcon = Helper.getImage("move_down.png"); //$NON-NLS-1$
 
+    roubleIcon = Helper.getImage("Rouble.png"); // $NON-NLS-1$
+
     LOGGER.debug("Icon init succesfully"); //$NON-NLS-1$
   }
 
@@ -396,6 +400,15 @@ public class ViewerArea extends Composite {
     Menu serviceGroup = addItemGroupInMenu(mainMenu, Strings.MENU_SERVICE, null);
     addItemInMenu(serviceGroup, Strings.MENU_OPEN_SETTINGS, null, openSettingsListener);
     addItemInMenu(serviceGroup, Strings.MENU_ABOUT, null, showAboutDialogListener);
+
+    SelectionAdapter goToLinkListener =
+        new SelectionAdapter() {
+          @Override
+          public void widgetSelected(SelectionEvent e) {
+            Program.launch(Helper.BOOSTY_LINK);
+          }
+        };
+    addItemInMenu(serviceGroup, Strings.MENU_DONATE, roubleIcon, goToLinkListener);
   }
 
   private void initServersTree(SashForm sashForm) {
@@ -3276,6 +3289,7 @@ public class ViewerArea extends Composite {
     static final String MENU_SERVICE = getString("MainMenu.Service");
     static final String MENU_OPEN_SETTINGS = getString("MainMenu.OpenSettings");
     static final String MENU_ABOUT = getString("MainMenu.About");
+    static final String MENU_DONATE = getString("MainMenu.Donate");
     static final String COLUMN_SERVER = getString("ColumnServer");
     static final String TREE_INFOBASES_COUNT = getString("InfobasesCount");
 

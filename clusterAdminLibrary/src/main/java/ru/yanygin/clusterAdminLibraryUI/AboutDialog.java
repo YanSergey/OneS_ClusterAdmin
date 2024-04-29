@@ -17,6 +17,7 @@ import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.wb.swt.SWTResourceManager;
 import ru.yanygin.clusterAdminLibrary.Config;
+import ru.yanygin.clusterAdminLibrary.Helper;
 
 /** Диалог "О программе". */
 public class AboutDialog extends Dialog {
@@ -26,7 +27,6 @@ public class AboutDialog extends Dialog {
       "https://github.com/YanSergey/OneS_ClusterAdmin"; //$NON-NLS-1$
   private static final String TELEGRAM_LINK = "https://t.me/YanSergey"; //$NON-NLS-1$
   private static final String EMAIL_LINK = "mailto:yanyginsa@gmail.com"; //$NON-NLS-1$
-  private static final String BOOSTY_LINK = "https://boosty.to/YanSergeyCoder"; // $NON-NLS-1$
 
   Config config = Config.currentConfig;
 
@@ -172,7 +172,7 @@ public class AboutDialog extends Dialog {
     static final String EMAIL_DESCRIPTION =
         String.format(getString("Email_Description"), EMAIL_LINK);
     static final String BOOSTY_DESCRIPTION =
-        String.format(getString("Boosty_Description"), BOOSTY_LINK);
+        String.format(getString("Boosty_Description"), Helper.BOOSTY_LINK);
 
     static String getString(String key) {
       return Messages.getString("AboutDialog." + key); //$NON-NLS-1$
