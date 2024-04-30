@@ -131,6 +131,10 @@ public class Config {
   @Expose
   private String loggerLevel = "error";
 
+  @SerializedName("RequestLogon")
+  @Expose
+  private boolean requestLogon = false;
+
   @SerializedName("Servers")
   @Expose
   private Map<String, Server> servers = new HashMap<>();
@@ -905,6 +909,24 @@ public class Config {
    */
   public void setListRrefreshRate(int refreshRate) {
     this.listRefreshRate = refreshRate;
+  }
+
+  /**
+   * Запрашивать логин/пароль при действиях с базой.
+   *
+   * @return запрашивать или нет
+   */
+  public boolean getRequestLogon() {
+    return requestLogon;
+  }
+
+  /**
+   * Установка запроса логин/пароля при действиях с базой.
+   *
+   * @param requestLogon - запрашивать логин/пароль
+   */
+  public void setRequestLogon(boolean requestLogon) {
+    this.requestLogon = requestLogon;
   }
 
   /**

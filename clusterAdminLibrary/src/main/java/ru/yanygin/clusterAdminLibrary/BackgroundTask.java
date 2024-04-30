@@ -25,8 +25,8 @@ public class BackgroundTask {
   static final String starterPath = "\"C:\\Program Files\\1cv8\\%v8version%\\bin\\1cv8.exe\"";
   static final String designerCommand = "DESIGNER";
   static final String enterpriseCommand = "ENTERPRISE";
-  static final String logonCommand =
-      "/S%v8serverName%:%v8managerPort%\\%v8infobase% /N%v8username% /P%v8password%";
+  static final String infobasePath = "/S%v8serverName%:%v8managerPort%\\%v8infobase%";
+  static final String logonCommand = "/N%v8username% /P%v8password%";
   static final String FILEPATH_PARAM_KEY = "%v8FilePath%";
 
   static int countOfRunning = 0;
@@ -144,12 +144,15 @@ public class BackgroundTask {
         break;
     }
 
+    boolean logonEnabled = Config.currentConfig.getRequestLogon();
+
     this.scriptText =
         String.join(
             " ",
             starterPath,
             launchMode,
-            logonCommand,
+            infobasePath,
+            logonEnabled ? logonCommand : "",
             v8Command);
 
     this.scriptName = v8ActionVariant.toString();
