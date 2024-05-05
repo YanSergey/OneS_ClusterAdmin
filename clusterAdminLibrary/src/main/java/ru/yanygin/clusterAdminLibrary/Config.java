@@ -20,6 +20,9 @@ import java.lang.module.ModuleDescriptor.Version;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -215,6 +218,20 @@ public class Config {
 
   /** Миграция настроек из конфига предыдущей версии. */
   public void migrateProps() {
+
+    if (!currentVersion.toString().equals(configVersion)) {
+      // делаем бекап конфига
+      String configCopy = configPath + "_bak";
+      File configFile = new File(configPath);
+      if (configFile.exists()) {
+        try {
+          Files.copy(Path.of(configPath), Path.of(configCopy), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+          LOGGER.error("Config file backup error:", e);
+        }
+      }
+      configVersion = currentVersion.toString();
+    }
 
     if (configVersion == null) {
       configVersion = "0.2.0";
