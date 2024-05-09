@@ -219,6 +219,11 @@ public class Config {
   /** Миграция настроек из конфига предыдущей версии. */
   public void migrateProps() {
 
+    if (configVersion == null) {
+      configVersion = "0.2.0";
+      servers.forEach((key, server) -> server.migrateProps(configVersion));
+    }
+
     if (!currentVersion.toString().equals(configVersion)) {
       // делаем бекап конфига
       String configCopy = configPath + "_bak";
@@ -230,14 +235,9 @@ public class Config {
           LOGGER.error("Config file backup error:", e);
         }
       }
-      configVersion = currentVersion.toString();
     }
 
-    if (configVersion == null) {
-      configVersion = "0.2.0";
-      servers.forEach((key, server) -> server.migrateProps(configVersion));
-      configVersion = currentVersion.toString();
-    }
+    configVersion = currentVersion.toString();
   }
 
   private OsType getOperatingSystemType() {
