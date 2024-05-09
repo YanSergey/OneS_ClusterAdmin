@@ -138,7 +138,7 @@
 		<dependency>
 		    <groupId>org.eclipse.platform</groupId>
 		    <artifactId>org.eclipse.equinox.common</artifactId>
-		    <version>3.18.200</version>
+		    <version>3.14.100</version>
 		</dependency>
 	
 	    <!-- Google Protocol Buffers - completely optional -->
