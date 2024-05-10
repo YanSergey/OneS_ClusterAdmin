@@ -1099,10 +1099,11 @@ public class Server implements Comparable<Server> {
   }
 
   private void disconnectLocalRas() {
-    if (useLocalRas && localRasProcess.isAlive()) {
+    if (localRasProcess != null && localRasProcess.isAlive()) {
       Stream<ProcessHandle> ch = localRasProcess.children();
       ch.forEach(ProcessHandle::destroy);
       localRasProcess.destroy();
+      localRasProcess = null;
       LOGGER.info(
           "Local RAS of Server <{}> is shutdown now", //$NON-NLS-1$
           this.getServerKey());
