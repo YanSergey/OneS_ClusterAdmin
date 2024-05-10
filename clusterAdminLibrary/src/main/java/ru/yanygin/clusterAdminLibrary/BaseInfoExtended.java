@@ -174,6 +174,9 @@ public abstract class BaseInfoExtended implements Comparable<BaseInfoExtended> {
           break;
 
         case DATE:
+          compareResult = ((Date) left).compareTo((Date) right);
+          break;
+
         case TEXT:
         default:
           compareResult =
