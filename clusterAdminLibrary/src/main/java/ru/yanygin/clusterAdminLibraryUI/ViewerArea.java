@@ -2113,7 +2113,10 @@ public class ViewerArea extends Composite {
             return;
           }
 
-          server.checkAutenticateAgent();
+          if (!server.checkAutenticateAgent()) {
+            Helper.showMessageBox(Strings.ERROR_AUTH_FOR_RESTART_WP);
+            return;
+          }
 
           Thread thread =
               new Thread(
@@ -3405,6 +3408,8 @@ public class ViewerArea extends Composite {
         getString("ContextMenu.KillSession").concat("\tDEL");
     static final String CONTEXT_MENU_KILL_CONNECTION_DEL =
         getString("ContextMenu.KillConnection").concat("\tDEL");
+
+    static final String ERROR_AUTH_FOR_RESTART_WP = getString("ErrorAuthForRestartWp");
 
     static String getString(String key) {
       return Messages.getString("ViewerArea." + key); //$NON-NLS-1$
