@@ -1651,16 +1651,71 @@ public class Server implements Comparable<Server> {
    * @param clusterId - ID кластера
    * @return список администраторов кластера
    */
-  private List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
+  public List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
     LOGGER.debug(
-        "Gets the list of cluster administrators in the cluster <{}>", //$NON-NLS-1$
+        "Getting a list of cluster administrators <{}>", //$NON-NLS-1$
         clusterId);
+
     if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
       return new ArrayList<>();
     }
 
-    // TODO
-    return null;
+    if (!checkAutenticateCluster(clusterId)) {
+      return new ArrayList<>();
+    }
+
+    List<IRegUserInfo> clusterAdmins;
+    try {
+      clusterAdmins = agentConnection.getClusterAdmins(clusterId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error getting the list of cluster administrators", //$NON-NLS-1$
+          excp);
+      return new ArrayList<>();
+    }
+
+    return clusterAdmins;
+  }
+  
+  /**
+   * Регистрация нового или изменение существующего администратора кластера.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param info - информация о администраторе
+   * @return {@code true} в случае успешной регистрации
+   */
+  public boolean regClusterAdmin(UUID clusterId, IRegUserInfo info) {
+    LOGGER.debug(
+        "Administrator registration on the cluster <{}>", //$NON-NLS-1$
+        clusterId);
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
+      return false;
+    }
+
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.regClusterAdmin(clusterId, info);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registering the administrator of the cluster", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -1669,18 +1724,142 @@ public class Server implements Comparable<Server> {
    * <p>Требует аутентификации в кластере
    *
    * @param clusterId - ID кластера
-   * @param name - имя администратора
+   * @param username - имя администратора
    */
-  private void unregClusterAdmin(UUID clusterId, String name) {
+  public boolean unregClusterAdmin(UUID clusterId, String username) {
     LOGGER.debug(
-        "Deletes a cluster administrator in the cluster <{}>", //$NON-NLS-1$
+        "Deletes the cluster administrator in the cluster <{}>", //$NON-NLS-1$
         clusterId);
     if (!isConnected()) {
-      return;
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
+      return false;
     }
 
-    // TODO
-    return;
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregClusterAdmin(clusterId, username);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistration cluster administrator", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Получение списка администраторов центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @return список администраторов кластера
+   */
+  public List<IRegUserInfo> getAgentAdmins() {
+    LOGGER.debug(
+        "Getting the list of administrators on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return new ArrayList<>();
+    }
+
+    if (!checkAutenticateAgent()) {
+      return new ArrayList<>();
+    }
+
+    List<IRegUserInfo> clusterAdmins;
+    try {
+      clusterAdmins = agentConnection.getAgentAdmins();
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error getting the list of administrators of the main server", //$NON-NLS-1$
+          excp);
+      return new ArrayList<>();
+    }
+
+    return clusterAdmins;
+  }
+
+  /**
+   * Регистрация нового или изменение существующего администратора центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @param info - информация о администраторе
+   * @return {@code true} в случае успешной регистрации
+   */
+  public boolean regAgentAdmin(IRegUserInfo info) {
+    LOGGER.debug(
+        "Administrator registration on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return false;
+    }
+
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.regAgentAdmin(info);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registering the administrator of the main server", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Удаление администратора центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @param username - имя администратора
+   */
+  public boolean unregAgentAdmin(String username) {
+    LOGGER.debug(
+        "Deleting an administrator on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return false;
+    }
+
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregAgentAdmin(username);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistration of the main server administrator", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
   }
 
   /**

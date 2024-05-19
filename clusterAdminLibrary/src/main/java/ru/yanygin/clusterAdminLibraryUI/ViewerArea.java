@@ -538,6 +538,11 @@ public class ViewerArea extends Composite {
     addItemInMenu(serverMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateServerListener);
 
     addMenuSeparator(serverMenu);
+    MenuItem adminsItem =
+        addItemInMenu(serverMenu, Strings.CONTEXT_MENU_ADMINS, null, editAdminsListener);
+    adminsItem.setData("disconnectItem", true);
+
+    addMenuSeparator(serverMenu);
 
     addItemInMenu(serverMenu, Strings.CONTEXT_MENU_MOVE_UP, moveUpIcon, serversMoveUpListener);
     addItemInMenu(
@@ -558,6 +563,10 @@ public class ViewerArea extends Composite {
         clusterMenu, Strings.CONTEXT_MENU_CREATE_CLUSTER, addIcon16, createClusterListener);
     addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_EDIT_CLUSTER, editIcon16, editClusterListener);
     addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_UPDATE, updateIcon16, updateClusterListener);
+
+    addMenuSeparator(clusterMenu);
+    addItemInMenu(clusterMenu, Strings.CONTEXT_MENU_ADMINS, null, editAdminsListener);
+
     addMenuSeparator(clusterMenu);
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_DELETE_CLUSTER, deleteIcon16, deleteClusterListener);
@@ -2797,6 +2806,38 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter editAdminsListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          TreeItem[] item = serversTree.getSelection();
+          if (item.length == 0) {
+            return;
+          }
+          TreeItem treeItem = item[0];
+          TreeItemType treeItemType = getTreeItemType(treeItem);
+          if (treeItemType != TreeItemType.SERVER && treeItemType != TreeItemType.CLUSTER) {
+            LOGGER.error("Invalid item type for AdminsDialog"); // $NON-NLS-1$
+            return;
+          }
+
+          Server server = getServer(treeItem);
+          UUID clusterId = getClusterId(treeItem);
+
+          AdminsDialog dialog;
+          try {
+            dialog = new AdminsDialog(getParent().getDisplay().getActiveShell(), server, clusterId);
+          } catch (Exception excp) {
+            LOGGER.error(
+                "Error init AdminsDialog for cluster id {}", //$NON-NLS-1$
+                clusterId,
+                excp);
+            return;
+          }
+          dialog.open();
+        }
+      };
+
   SelectionAdapter restartWorkingProcessesListener =
       new SelectionAdapter() {
         @Override
@@ -3926,6 +3967,7 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_CREATE_CLUSTER = getString("ContextMenu.CreateCluster");
     static final String CONTEXT_MENU_EDIT_CLUSTER = getString("ContextMenu.EditCluster");
     static final String CONTEXT_MENU_DELETE_CLUSTER = getString("ContextMenu.DeleteCluster");
+    static final String CONTEXT_MENU_ADMINS = getString("ContextMenu.Admins");
     static final String CONTEXT_MENU_RESTART_PROCESSES = getString("ContextMenu.RestartProcesses");
     static final String CONTEXT_MENU_APPLY_PARTIAL_RULE = getString("ContextMenu.ApplyPartialRule");
     static final String CONTEXT_MENU_APPLY_FULL_RULE = getString("ContextMenu.ApplyFullRule");
