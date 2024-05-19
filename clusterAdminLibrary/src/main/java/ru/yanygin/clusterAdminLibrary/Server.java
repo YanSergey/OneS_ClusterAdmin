@@ -3199,77 +3199,206 @@ public class Server implements Comparable<Server> {
   }
 
   /**
-   * Applies assignment rules.
+   * Получает список описаний ТНФ рабочего сервера.
    *
    * <p>Требует аутентификации в кластере
    *
    * @param clusterId - ID кластера
-   * @param full - assigment rule application mode: 0 - partial 1 - full
-   */
-  public void applyAssignmentRules(UUID clusterId, int full) {
-    // TODO
-    agentConnection.applyAssignmentRules(clusterId, full);
-  }
-
-  /**
-   * Gets the list of descriptions of working server assignment rules.
-   *
-   * <p>Требует аутентификации в кластере
-   *
-   * @param clusterId - ID кластера
-   * @param serverId - server ID
-   * @return infobase full infobase description
+   * @param serverId - ID рабочего сервера
+   * @return список ТНФ
    */
   public List<IAssignmentRuleInfo> getAssignmentRules(UUID clusterId, UUID serverId) {
-    // TODO
-    return agentConnection.getAssignmentRules(clusterId, serverId);
+    LOGGER.debug(
+        "Getting a list of descriptions of assignment rules, cluster <{}>, ws <{}>", //$NON-NLS-1$
+        clusterId,
+        serverId);
+    
+    if (!isConnected()) {
+      return new ArrayList<>();
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return new ArrayList<>();
+    }
+
+    List<IAssignmentRuleInfo> assignmentRules;
+    try {
+      assignmentRules = agentConnection.getAssignmentRules(clusterId, serverId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error in getting a list of descriptions of assignment rules", excp); // $NON-NLS-1$
+      return new ArrayList<>();
+    }
+
+    assignmentRules.forEach(
+        rule ->
+            LOGGER.debug(
+                "\tRule: ObjectType=<{}>, RuleId=<{}>", //$NON-NLS-1$
+                rule.getObjectType(),
+                rule.getAssignmentRuleId()));
+
+    LOGGER.debug("Getting the list of assignment rule descriptions was successful"); // $NON-NLS-1$
+    return assignmentRules;
   }
 
   /**
-   * Creates an assignment rule, changes an existing one, or moves an existing rule to a new
-   * position.
+   * Получает описание правила ТНФ.
    *
    * <p>Требует аутентификации в кластере
    *
    * @param clusterId - ID кластера
-   * @param serverId - server ID
-   * @param info - assignment rule description
-   * @param position - position in the rule list (starts from 0)
-   * @return ID of the created rule, or null if an existing assignment rule was changed
-   */
-  public UUID regAssignmentRule(
-      UUID clusterId, UUID serverId, IAssignmentRuleInfo info, int position) {
-    // TODO
-    return agentConnection.regAssignmentRule(clusterId, serverId, info, position);
-  }
-
-  /**
-   * Deletes an assignment rule from the list of working server rules.
-   *
-   * <p>Требует аутентификации в кластере
-   *
-   * @param clusterId - ID кластера
-   * @param serverId - working server ID
-   * @param ruleId - assignment rule ID
-   */
-  public void unregAssignmentRule(UUID clusterId, UUID serverId, UUID ruleId) {
-    // TODO
-    agentConnection.unregAssignmentRule(clusterId, serverId, ruleId);
-  }
-
-  /**
-   * Gets an assignment rule description.
-   *
-   * <p>Требует аутентификации в кластере
-   *
-   * @param clusterId - ID кластера
-   * @param serverId - server ID
-   * @param ruleId - assignment rule ID
-   * @return assignment rule description
+   * @param serverId - ID рабочего сервера
+   * @param ruleId - ID правила ТНФ
+   * @return описание правила ТНФ
    */
   public IAssignmentRuleInfo getAssignmentRuleInfo(UUID clusterId, UUID serverId, UUID ruleId) {
+    LOGGER.debug(
+        "Getting a description of the assignment rule, cluster <{}>, ws <{}>, rule <{}>", //$NON-NLS-1$
+        clusterId,
+        serverId,
+        ruleId);
+
+    if (!isConnected()) {
+      return null;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return null;
+    }
+
+    IAssignmentRuleInfo assignmentRule;
+    try {
+      assignmentRule = agentConnection.getAssignmentRuleInfo(clusterId, serverId, ruleId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error in getting a list of descriptions of assignment rules", excp); // $NON-NLS-1$
+      return null;
+    }
+
+    LOGGER.debug(
+        "\tAssignment rule: ObjectType=<{}>", //$NON-NLS-1$
+        assignmentRule.getObjectType());
+
+    LOGGER.debug("Getting the list of assignment rule descriptions was successful"); // $NON-NLS-1$
+    return assignmentRule;
+  }
+
+  /**
+   * Создает правило ТНФ, изменяет существующее или переносит существующее правило в новую позицию.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param serverId - ID рабочего сервера
+   * @param info - правило ТНФ
+   * @param position - позиция в списке правил (начинается с 0)
+   * @return ID созданного правила или null, если существующее правило было изменено
+   */
+  public boolean regAssignmentRule(
+      UUID clusterId, UUID serverId, IAssignmentRuleInfo info, int position) {
+
+    LOGGER.debug(
+        "Registration assignment rule <{}>", //$NON-NLS-1$
+        info.getObjectType());
+
+    if (!isConnected()) {
+      return false;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    UUID newRuleId;
+    try {
+      newRuleId = agentConnection.regAssignmentRule(clusterId, serverId, info, position);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registraion assignment rule", //$NON-NLS-1$
+          excp);
+      return false;
+    }
+
+    if (newRuleId.equals(Helper.EMPTY_UUID)) {
+      LOGGER.debug(
+          "Registration new assignment rule <{}> succesful", //$NON-NLS-1$
+          newRuleId);
+    } else {
+      LOGGER.debug(
+          "Registration changes a assignment rule <{}> was succesful", //$NON-NLS-1$
+          info.getAssignmentRuleId());
+    }
+
     // TODO
-    return agentConnection.getAssignmentRuleInfo(clusterId, serverId, ruleId);
+    return true;
+  }
+
+  /**
+   * Удаляет правило ТНФ из списка правил рабочего сервера.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param serverId - ID рабочего сервера
+   * @param ruleId - ID правила ТНФ
+   */
+  public boolean unregAssignmentRule(UUID clusterId, UUID serverId, UUID ruleId) {
+
+    LOGGER.debug(
+        "Unregistration assignment rule <{}>", //$NON-NLS-1$
+        ruleId);
+
+    if (!isConnected()) {
+      return false;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregAssignmentRule(clusterId, serverId, ruleId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistraion assignment rule", //$NON-NLS-1$
+          excp);
+      return false;
+    }
+
+    LOGGER.debug("Unregistration assignment rule <{}> succesful"); // $NON-NLS-1$
+
+    return true;
+  }
+
+  /**
+   * Применяет ТНФ.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param mode - Режим применения ТНФ: 0 - частичное 1 - полное
+   */
+  public boolean applyAssignmentRules(UUID clusterId, int mode) {
+
+    LOGGER.debug(
+        "Apply assignment rules for cluster <{}>", //$NON-NLS-1$
+        clusterId);
+
+    if (!isConnected()) {
+      return false;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.applyAssignmentRules(clusterId, mode);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error apply assignment rules", //$NON-NLS-1$
+          excp);
+      return false;
+    }
+
+    LOGGER.debug("Apply assignment rules was succesful"); // $NON-NLS-1$
+
+    return true;
   }
 
   /**

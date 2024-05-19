@@ -1,5 +1,6 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import com._1c.v8.ibis.admin.IAssignmentRuleInfo;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
@@ -158,6 +159,10 @@ public class Config {
   @Expose
   private ColumnProperties wsColumnProperties = new ColumnProperties(0);
 
+  @SerializedName("AssignmentRuleColumnProperties")
+  @Expose
+  private ColumnProperties asRuleColumnProperties = new ColumnProperties(0);
+
   private static final Logger LOGGER =
       (Logger) LoggerFactory.getLogger(Config.class.getSimpleName());
 
@@ -211,8 +216,8 @@ public class Config {
   //    }
   //  }
 
-  /** Init config. */
-  public void init() {
+  /** Действия, которые нужно выполнить после чтения или создания конфига. */
+  public void postInit() {
     runReadUpstreamVersion();
   }
 
@@ -927,10 +932,10 @@ public class Config {
   /**
    * Получение свойства колонок списков.
    *
-   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @param clazz - имя класса, идентифицирующее список-владелец колонок
    * @return ColumnProperties - свойства колонок списка
    */
-  public ColumnProperties getColumnsProperties(Class<? extends BaseInfoExtended> clazz) {
+  public ColumnProperties getColumnsProperties(Class<?> clazz) {
     if (clazz == SessionInfoExtended.class) {
       return sessionColumnProperties;
     } else if (clazz == ConnectionInfoExtended.class) {
@@ -941,6 +946,8 @@ public class Config {
       return wpColumnProperties;
     } else if (clazz == WorkingServerInfoExtended.class) {
       return wsColumnProperties;
+    } else if (clazz == IAssignmentRuleInfo.class) {
+      return asRuleColumnProperties;
     } else {
       return null;
     }
@@ -952,7 +959,7 @@ public class Config {
    * @param clazz - имя класса, идентифицирующее список-кладелец колонок
    * @param columnOrder - новый порядок колонок
    */
-  public void setColumnsOrder(Class<? extends BaseInfoExtended> clazz, int[] columnOrder) {
+  public void setColumnsOrder(Class<?> clazz, int[] columnOrder) {
     getColumnsProperties(clazz).setOrder(columnOrder);
   }
 
@@ -963,7 +970,7 @@ public class Config {
    * @param index - индекс колонки
    * @param width - ширина колонки
    */
-  public void setColumnsWidth(Class<? extends BaseInfoExtended> clazz, int index, int width) {
+  public void setColumnsWidth(Class<?> clazz, int index, int width) {
     getColumnsProperties(clazz).setWidth(index, width);
   }
 
@@ -1092,7 +1099,7 @@ public class Config {
 
       config.setConfigPath(configPath);
       config.migrateProps();
-      config.init();
+      // config.init();
       if (config.getLocale() != null) {
         LOGGER.debug("Set locale is <{}>", config.getLocale()); //$NON-NLS-1$
         Locale locale = Locale.forLanguageTag(config.getLocale());
@@ -1102,6 +1109,8 @@ public class Config {
 
       config.applyLoggerLevel();
     }
+    config.postInit();
+
     LOGGER.info("Config file read successfully"); //$NON-NLS-1$
     return config;
   }
