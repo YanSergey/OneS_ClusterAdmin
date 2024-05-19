@@ -134,6 +134,7 @@ public class ViewerArea extends Composite {
   Image sortIcon;
   Image moveUpIcon;
   Image moveDownIcon;
+  Image watchSession;
   Image roubleIcon;
 
   Tree serversTree;
@@ -386,6 +387,7 @@ public class ViewerArea extends Composite {
     moveUpIcon = Helper.getImage("move_up.png"); //$NON-NLS-1$
     moveDownIcon = Helper.getImage("move_down.png"); //$NON-NLS-1$
 
+    watchSession = Helper.getImage("watch.png"); // $NON-NLS-1$
     roubleIcon = Helper.getImage("Rouble.png"); // $NON-NLS-1$
 
     LOGGER.debug("Icon init succesfully"); //$NON-NLS-1$
@@ -920,6 +922,11 @@ public class ViewerArea extends Composite {
       // попробовать сделать генерируюмую форму со списком полей
       addMenuSeparator(tableMenu);
       addItemInMenu(tableMenu, Strings.CONTEXT_MENU_VIEW_HOTKEY, viewIcon16, viewListener);
+    }
+
+    if (clazz == SessionInfoExtended.class) {
+    addItemInMenu(
+        tableMenu, Strings.CONTEXT_MENU_WATCH_SESSION, watchSession, switchWatchingMenuListener);
     }
 
     if (clazz == SessionInfoExtended.class || clazz == ConnectionInfoExtended.class) {
@@ -3422,6 +3429,21 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter switchWatchingMenuListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+
+          TableItem[] selection = getCurrentTable().getSelection();
+          if (selection.length > 0) {
+            TableItem item = selection[0];
+            item.setChecked(!item.getChecked());
+            SessionInfoExtended ext = (SessionInfoExtended) item.getData(EXTENDED_INFO);
+            ext.switchWatching(item, item.getChecked());
+          }
+        }
+      };
+
   Listener switchWatchingListener =
       new Listener() {
         @Override
@@ -3880,6 +3902,7 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_ADD = getString("ContextMenu.Add");
     static final String CONTEXT_MENU_EDIT = getString("ContextMenu.Edit");
     static final String CONTEXT_MENU_DELETE = getString("ContextMenu.Delete");
+    static final String CONTEXT_MENU_WATCH_SESSION = getString("ContextMenu.WatchSession");
 
     static final String CONTEXT_MENU_ADD_HOTKEY = CONTEXT_MENU_ADD.concat("\tIns");
     static final String CONTEXT_MENU_EDIT_HOTKEY = CONTEXT_MENU_EDIT.concat("\tF2");
