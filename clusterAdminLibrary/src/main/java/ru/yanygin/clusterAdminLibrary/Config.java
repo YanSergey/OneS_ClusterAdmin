@@ -139,6 +139,14 @@ public class Config {
   @Expose
   private boolean requestLogon = false;
 
+  @SerializedName("InfobaseDeniedFriendlyEditMode")
+  @Expose
+  private boolean infobaseDeniedFriendlyEditMode = true;
+
+  @SerializedName("InfobaseDeniedMessagePattern")
+  @Expose
+  private String infobaseDeniedMessagePattern = "";
+
   @SerializedName("Servers")
   @Expose
   private Map<String, Server> servers = new HashMap<>();
@@ -1039,6 +1047,42 @@ public class Config {
    */
   public Version getLatestVersion() {
     return latestVersion;
+  }
+
+  /**
+   * Установлен удобный вариант установки даты запрета входа в инфобазу.
+   *
+   * @return истина = удобный вариант установки даты
+   */
+  public boolean getInfobaseDeniedFriendlyEditMode() {
+    return infobaseDeniedFriendlyEditMode;
+  }
+
+  /**
+   * Устанавливает удобный вариант установки даты запрета входа в инфобазу.
+   *
+   * @param infobaseDeniedFriendlyEditMode - истина = удобный вариант установки даты
+   */
+  public void setInfobaseDeniedFriendlyEditMode(boolean infobaseDeniedFriendlyEditMode) {
+    this.infobaseDeniedFriendlyEditMode = infobaseDeniedFriendlyEditMode;
+  }
+
+  /**
+   * Возвращает шаблон текста запрета входа в инфобазу.
+   *
+   * @return Шаблон текста запрета входа
+   */
+  public String getInfobaseDeniedMessagePattern() {
+    return infobaseDeniedMessagePattern;
+  }
+
+  /**
+   * Устанавливает шаблон текста запрета входа в инфобазу.
+   *
+   * @param infobaseDeniedMessagePattern - Шаблон текста запрета входа
+   */
+  public void setInfobaseDeniedMessagePattern(String infobaseDeniedMessagePattern) {
+    this.infobaseDeniedMessagePattern = infobaseDeniedMessagePattern;
   }
 
   /**

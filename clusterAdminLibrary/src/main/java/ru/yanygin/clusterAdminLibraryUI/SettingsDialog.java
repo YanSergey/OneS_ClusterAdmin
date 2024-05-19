@@ -7,6 +7,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -55,6 +56,10 @@ public class SettingsDialog extends Dialog {
   private Button btnRequestLogon;
 
   private static final String LOCALE_RU = "ru-RU"; //$NON-NLS-1$
+  private Label lblInfobaseDeniedEditMode;
+  private Text txtInfobaseDeniedPattern;
+  private Button btnInfobaseDeniedStandardEditMode;
+  private Button btnInfobaseDeniedFriendlyEditMode;
 
   /**
    * Создание диалога настроек сервера.
@@ -239,7 +244,31 @@ public class SettingsDialog extends Dialog {
 
     btnRequestLogon = new Button(grpOther, SWT.CHECK);
     btnRequestLogon.setText(Strings.REQUEST_LOGON);
-    new Label(container, SWT.NONE);
+
+    Group grpInfobaseDenied = new Group(container, SWT.NONE);
+    grpInfobaseDenied.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpInfobaseDenied.setLayout(new GridLayout(1, false));
+
+    lblInfobaseDeniedEditMode = new Label(grpInfobaseDenied, SWT.CHECK);
+    lblInfobaseDeniedEditMode.setText(Strings.INFOBASE_DENIED_EDIT_MODE);
+
+    Composite compositeInfobaseDeniedEditMode = new Composite(grpInfobaseDenied, SWT.NONE);
+    compositeInfobaseDeniedEditMode.setLayout(new FillLayout(SWT.HORIZONTAL));
+
+    btnInfobaseDeniedStandardEditMode = new Button(compositeInfobaseDeniedEditMode, SWT.RADIO);
+    btnInfobaseDeniedStandardEditMode.setText(Strings.INFOBASE_DENIED_STANDARD_EDIT_MODE);
+
+    btnInfobaseDeniedFriendlyEditMode = new Button(compositeInfobaseDeniedEditMode, SWT.RADIO);
+    btnInfobaseDeniedFriendlyEditMode.setText(Strings.INFOBASE_DENIED_FRIENDLY_EDIT_MODE);
+
+    Label lblInfobaseDeniedPattern = new Label(grpInfobaseDenied, SWT.NONE);
+    lblInfobaseDeniedPattern.setText(Strings.INFOBASE_DENIED_MESSAGE_PATTERN);
+
+    txtInfobaseDeniedPattern = new Text(grpInfobaseDenied, SWT.BORDER | SWT.WRAP | SWT.MULTI);
+    GridData gdTxtInfobaseDeniedPattern = new GridData(SWT.FILL, SWT.FILL, false, true, 1, 1);
+    gdTxtInfobaseDeniedPattern.widthHint = 200;
+    gdTxtInfobaseDeniedPattern.heightHint = 61;
+    txtInfobaseDeniedPattern.setLayoutData(gdTxtInfobaseDeniedPattern);
 
     initProperties();
 
@@ -267,6 +296,10 @@ public class SettingsDialog extends Dialog {
     btnShadowSleepSessions.setSelection(config.isShadeSleepingSessions());
     btnReadClipboard.setSelection(config.isReadClipboard());
     btnCheckUpdate.setSelection(config.checkingUpdate());
+    
+    btnInfobaseDeniedStandardEditMode.setSelection(!config.getInfobaseDeniedFriendlyEditMode());
+    btnInfobaseDeniedFriendlyEditMode.setSelection(config.getInfobaseDeniedFriendlyEditMode());
+    txtInfobaseDeniedPattern.setText(config.getInfobaseDeniedMessagePattern());
 
     final String locale = config.getLocale();
     if (locale == null) {
@@ -312,6 +345,8 @@ public class SettingsDialog extends Dialog {
     config.setShadowSleepSessions(btnShadowSleepSessions.getSelection());
     config.setReadClipboard(btnReadClipboard.getSelection());
     config.setCheckingUpdate(btnCheckUpdate.getSelection());
+    config.setInfobaseDeniedFriendlyEditMode(btnInfobaseDeniedFriendlyEditMode.getSelection());
+    config.setInfobaseDeniedMessagePattern(txtInfobaseDeniedPattern.getText());
 
     if (btnLocaleSystem.getSelection()) {
       config.setLocale(null);
@@ -410,7 +445,13 @@ public class SettingsDialog extends Dialog {
 
     static final String READ_CLIPBOARD = getString("ReadClipboard");
     static final String CHECK_UPDATE = getString("CheckUpdate");
-    
+    static final String INFOBASE_DENIED_EDIT_MODE = getString("InfobaseDeniedEditMode");
+    static final String INFOBASE_DENIED_STANDARD_EDIT_MODE =
+        getString("InfobaseDeniedStandardEditMode");
+    static final String INFOBASE_DENIED_FRIENDLY_EDIT_MODE =
+        getString("InfobaseDeniedFriendlyEditMode");
+    static final String INFOBASE_DENIED_MESSAGE_PATTERN = getString("InfobaseDeniedMessagePattern");
+
     static final String LOGGER_LEVEL_TITLE = getString("LoggerLevelTitle");
 
     static final String REQUEST_LOGON = getString("RequestLogon");

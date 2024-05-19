@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 public class Helper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
+  private static final DateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 
   /** Пустой UUID. */
   public static final UUID EMPTY_UUID =
@@ -288,8 +289,7 @@ public class Helper {
     if (date == null || date.equals(emptyDate)) {
       return "";
     }
-
-    DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); // $NON-NLS-1$
-    return dateFormat.format(date);
+    return simpleDateFormat.format(date);
   }
+
 }
