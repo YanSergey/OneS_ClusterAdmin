@@ -428,8 +428,7 @@ public class ViewerArea extends Composite {
     }
 
     Menu serversGroup = addItemGroupInMenu(mainMenu, Strings.MENU_SERVERS, null);
-    addItemInMenu(serversGroup, Strings.MENU_FIND_SERVERS, null, findNewServersListener)
-        .setEnabled(false);
+    addItemInMenu(serversGroup, Strings.MENU_FIND_SERVERS, null, findNewServersListener);
     addItemInMenu(serversGroup, Strings.MENU_CONNECT_ALL_SERVERS, null, connectAllServersListener);
     addItemInMenu(
         serversGroup, Strings.MENU_DISCONNECT_ALL_SERVERS, null, disconnectAllServersListener);
@@ -1436,10 +1435,6 @@ public class ViewerArea extends Composite {
     Arrays.stream(serverItem.getItems()).forEach(Widget::dispose);
   }
 
-  private void fillServersList() {
-    // TODO Auto-generated method stub
-  }
-
   private void updateClustersInTree(TreeItem serverItem) {
 
     Server server = getServer(serverItem);
@@ -2326,9 +2321,22 @@ public class ViewerArea extends Composite {
       new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent e) {
-          List<String> newServers = clusterProvider.findNewServers();
-          if (!newServers.isEmpty()) {
-            fillServersList();
+          NewServersChoiseDialog dialog;
+          try {
+            dialog = new NewServersChoiseDialog(getParent().getDisplay().getActiveShell());
+          } catch (Exception excp) {
+            LOGGER.error("Error init NewServersChoiseDialog", excp); // $NON-NLS-1$
+            return;
+          }
+
+          if (dialog.open() == 0) {
+            List<Server> s = dialog.getNewServers();
+            if (s.isEmpty()) {
+              return;
+            }
+
+            Config.currentConfig.addNewServers(s);
+            s.forEach((server) -> addServerItemInServersTree(server));
           }
         }
       };

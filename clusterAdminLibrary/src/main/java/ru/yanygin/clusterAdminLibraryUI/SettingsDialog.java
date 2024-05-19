@@ -57,6 +57,7 @@ public class SettingsDialog extends Dialog {
   private Button btnRequestLogon;
 
   private static final String LOCALE_RU = "ru-RU"; //$NON-NLS-1$
+  private Text txtIbasesFilePath;
   private Label lblInfobaseDeniedEditMode;
   private Text txtInfobaseDeniedPattern;
   private Button btnInfobaseDeniedStandardEditMode;
@@ -249,6 +250,12 @@ public class SettingsDialog extends Dialog {
     btnRequestLogon = new Button(grpOther, SWT.CHECK);
     btnRequestLogon.setText(Strings.REQUEST_LOGON);
 
+    Label lblIbasesFilePath = new Label(grpOther, SWT.NONE);
+    lblIbasesFilePath.setText(Strings.IBASES_PATH_TITLE);
+
+    txtIbasesFilePath = new Text(grpOther, SWT.BORDER);
+    txtIbasesFilePath.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+
     Group grpInfobaseDenied = new Group(container, SWT.NONE);
     grpInfobaseDenied.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
     grpInfobaseDenied.setLayout(new GridLayout(1, false));
@@ -326,6 +333,7 @@ public class SettingsDialog extends Dialog {
     btnLoggerLevelInfo.setSelection(loggerLevel.equals(btnLoggerLevelInfo.getText()));
     btnLoggerLevelDebug.setSelection(loggerLevel.equals(btnLoggerLevelDebug.getText()));
 
+    txtIbasesFilePath.setText(config.getIbasesStringPath());
     btnRequestLogon.setSelection(config.getRequestLogon());
   }
 
@@ -388,6 +396,7 @@ public class SettingsDialog extends Dialog {
     }
     config.setLoggerLevel(loggerLevel);
 
+    config.setIbasesPath(txtIbasesFilePath.getText());
     config.setRequestLogon(btnRequestLogon.getSelection());
   }
 
@@ -463,6 +472,7 @@ public class SettingsDialog extends Dialog {
     static final String LOGGER_LEVEL_TITLE = getString("LoggerLevelTitle");
 
     static final String REQUEST_LOGON = getString("RequestLogon");
+    static final String IBASES_PATH_TITLE = getString("IbasesFilePathTitle");
 
     static String getString(String key) {
       return Messages.getString("SettingsDialog." + key); //$NON-NLS-1$

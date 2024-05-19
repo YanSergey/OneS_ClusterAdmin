@@ -23,8 +23,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -154,6 +154,10 @@ public class Config {
   @SerializedName("Servers")
   @Expose
   private Map<String, Server> servers = new HashMap<>();
+
+  @SerializedName("IbasesPath")
+  @Expose
+  private String ibasesPath = "";
 
   @SerializedName("SessionColumnProperties")
   @Expose
@@ -461,7 +465,6 @@ public class Config {
    * @return новый сервер
    */
   public Server createNewServer() {
-    Server newServer = null;
 
     if (isReadClipboard()) {
       Clipboard clipboard = new Clipboard(Display.getDefault());
@@ -471,16 +474,11 @@ public class Config {
       if (clip != null && clip.startsWith("Srvr=")) { //$NON-NLS-1$
         String[] srvrPart = clip.split(";"); //$NON-NLS-1$
         String srvr = srvrPart[0].substring(6, srvrPart[0].length() - 1);
-        newServer = new Server(srvr);
-      } else {
-        newServer = new Server("Server:1541"); //$NON-NLS-1$
+        return new Server(srvr);
       }
-    } else {
-      newServer = new Server("Server:1541"); //$NON-NLS-1$
     }
-    // servers.put(newServer.getServerKey(), newServer);
-    // TODO по идее еще рано добавлять в список серверов эту заготовку
-    return newServer;
+
+    return new Server();
   }
 
   public void addNewServer(Server server) {
@@ -509,29 +507,13 @@ public class Config {
    * Добавление новых серверов в конфиг.
    *
    * @param newServers - список новых серверов
-   * @return список серверов, которые были реально добавлены
    */
-  public List<String> addNewServers(List<String> newServers) {
-    // Пакетное добавление серверов в список, предполагается для механизма импорта из списка
-    // информационных баз
-
-    List<String> addedServers = new ArrayList<>();
-
-    // Имя сервера, которое приходит сюда не равно Представлению сервера, выводимому в списке
-    // Имя сервера. оно же Key в map и json, строка вида Server:1541, с обязательным указанием порта
-    // менеджера, к которому подключаемся
-    // если порт менеджера не задан - ставим стандартный 1541
-    // переделать
-    for (String serverName : newServers) {
-      if (!servers.containsKey(serverName)) {
-        Server serverConfig = new Server(serverName);
-        servers.put(serverName, serverConfig);
-
-        addedServers.add(serverName);
-      }
+  public void addNewServers(List<Server> newServers) {
+    // Пакетное добавление серверов в список
+    for (Server server : newServers) {
+      servers.put(server.getServerKey(), server);
     }
-
-    return addedServers;
+    saveConfig();
   }
 
   /** Подключиться ко всем серверам в тихом режиме. */
@@ -979,6 +961,41 @@ public class Config {
    */
   public void setRequestLogon(boolean requestLogon) {
     this.requestLogon = requestLogon;
+  }
+
+  /**
+   * Получить путь к файлу со списком информационных баз.
+   *
+   * @return Путь к списку информационных баз
+   */
+  public Path getIbasesPath() {
+    if (ibasesPath.isBlank()) {
+      return Paths.get(System.getenv("APPDATA"), "1c\\1cestart\\ibases.v8i");
+    } else {
+      return Paths.get(ibasesPath);
+    }
+  }
+
+  /**
+   * Получить установленный пользователем путь к файлу со списком информационных баз.
+   *
+   * @return Путь к списку информационных баз в виде строки
+   */
+  public String getIbasesStringPath() {
+    if (ibasesPath.isBlank()) {
+      return "";
+    } else {
+      return ibasesPath;
+    }
+  }
+
+  /**
+   * Установить путь к файлу со списком информационных баз.
+   *
+   * @param ibasesPath - путь к файлу со списком информационных баз
+   */
+  public void setIbasesPath(String ibasesPath) {
+    this.ibasesPath = ibasesPath;
   }
 
   /**

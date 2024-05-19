@@ -1,17 +1,24 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
@@ -305,4 +312,82 @@ public class Helper {
     }
   }
 
+
+  /** Ищет новые сервера в файле списка инфобаз v8i. */
+  public static List<Server> findNewServers() {
+    List<String> foundServersKey = new ArrayList<>();
+    List<Server> foundServers = new ArrayList<>();
+    Map<String, Server> currentServers = Config.currentConfig.getServers();
+
+    // Читаем файл со списком инфобаз стартера
+    Path ibasesPath = Config.currentConfig.getIbasesPath();
+    String ibasesText = readTextFile(ibasesPath);
+
+    if (!ibasesText.isBlank()) {
+
+      Pattern p = Pattern.compile("Srvr=\"(.*?)\";Ref");
+      Matcher m = p.matcher(ibasesText);
+      while (m.find()) {
+        String serverAddress = m.group(1).toLowerCase();
+
+        String[] adr = serverAddress.split(":"); // $NON-NLS-1$
+        String agentHost = adr[0];
+        int agentPort = (adr.length == 1) ? 1540 : Integer.valueOf(adr[1]) - 1;
+
+        Server server = new Server(agentHost, agentPort);
+        String serverKey = server.getServerKey();
+
+        if (!foundServersKey.contains(serverKey) && currentServers.get(serverKey) == null) {
+          foundServersKey.add(serverKey);
+          foundServers.add(server);
+        }
+      }
+    }
+
+    // читаем файл со списком серверов зарегистрированных в штатной консоли
+    Path srvPath = Paths.get(System.getenv("LOCALAPPDATA"), "1c\\1cv8\\appsrvrs.lst");
+    String srvText = readTextFile(srvPath);
+
+    if (!srvText.isBlank()) {
+      Pattern p = Pattern.compile("\\{\"tcp\",(.*,.*?),.*\\}");
+      Matcher m = p.matcher(srvText);
+      while (m.find()) {
+        String serverAddress = m.group(1).toLowerCase();
+
+        String[] adr = serverAddress.split(","); // $NON-NLS-1$
+        String agentHost = adr[0].replace("\"", "");
+        int agentPort = Integer.parseInt(adr[1]);
+
+        Server server = new Server(agentHost, agentPort);
+        String serverKey = server.getServerKey();
+
+        if (!foundServersKey.contains(serverKey) && currentServers.get(serverKey) == null) {
+          foundServersKey.add(serverKey);
+          foundServers.add(server);
+        }
+      }
+    }
+
+    return foundServers;
+  }
+
+  private static String readTextFile(Path textFile) {
+    if (textFile.toFile().exists()) {
+      try (BufferedReader br = new BufferedReader(new FileReader(textFile.toFile()))) {
+        StringBuilder sb = new StringBuilder();
+        String line = br.readLine();
+        while (line != null) {
+          sb.append(line);
+          sb.append(System.lineSeparator());
+          line = br.readLine();
+        }
+        return sb.toString();
+      } catch (IOException excp) {
+        LOGGER.error("Error: ", excp); // $NON-NLS-1$
+        return "";
+      }
+    }
+
+    return "";
+  }
 }

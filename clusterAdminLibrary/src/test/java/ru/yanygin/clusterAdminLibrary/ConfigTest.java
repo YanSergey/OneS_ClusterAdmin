@@ -73,9 +73,9 @@ class ConfigTest {
 
     Server server = emptyConfig.createNewServer();
 
-    assertEquals("Server", server.getAgentHost());
+    assertEquals("Server1c", server.getAgentHost());
     assertEquals("1540", server.getAgentPortAsString());
-    assertEquals("Server", server.getRasHost());
+    assertEquals("Server1c", server.getRasHost());
     assertEquals("1545", server.getRasPortAsString());
   }
 }

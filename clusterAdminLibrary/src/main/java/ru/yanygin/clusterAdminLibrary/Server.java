@@ -58,19 +58,19 @@ public class Server implements Comparable<Server> {
 
   @SerializedName("AgentHost")
   @Expose
-  private String agentHost = ""; //$NON-NLS-1$
+  private String agentHost = "Server1c"; //$NON-NLS-1$
 
   @SerializedName("AgentPort")
   @Expose
-  private int agentPort = 0;
+  private int agentPort = 1540;
 
   @SerializedName("RasHost")
   @Expose
-  private String rasHost = ""; //$NON-NLS-1$
+  private String rasHost = "Server1c"; //$NON-NLS-1$
 
   @SerializedName("RasPort")
   @Expose
-  private int rasPort = 0;
+  private int rasPort = 1545;
 
   @SerializedName("UseLocalRas")
   @Expose
@@ -380,7 +380,7 @@ public class Server implements Comparable<Server> {
    * @return ключ сервера
    */
   public String getServerKey() {
-    return agentHost.concat(":").concat(Integer.toString(agentPort)); //$NON-NLS-1$
+    return agentHost.toLowerCase().concat(":").concat(Integer.toString(agentPort)); // $NON-NLS-1$
   }
 
   /**
@@ -613,8 +613,12 @@ public class Server implements Comparable<Server> {
    * @param serverName - имя сервера в виде "Server" или с указанием порта менеджера "Server:2541".
    */
   public Server(String serverName) {
+    serverName = serverName.strip();
+    if (serverName.isBlank()) {
+      return;
+    }
 
-    computeServerParams(serverName);
+    computeHostAndPort(serverName);
 
     //    this.useLocalRas = false;
     //    this.localRasPort = 0;
@@ -625,6 +629,20 @@ public class Server implements Comparable<Server> {
     //    this.agentVersion = ""; //$NON-NLS-1$
 
     //    init();
+  }
+
+  /**
+   * Создание нового экземпляра.
+   *
+   * @param serverHost - имя хоста сервера в виде "Server" (без номера порта)
+   * @param agentPort - порт агента сервера (1540, 2540 и т.п.)
+   */
+  public Server(String serverHost, int agentPort) {
+
+    this.agentHost = serverHost;
+    this.rasHost = serverHost;
+    this.agentPort = agentPort;
+    this.rasPort = agentPort + 5;
   }
 
   /** Initializes some server parameters. */
@@ -779,21 +797,16 @@ public class Server implements Comparable<Server> {
    * @param serverAddress - Имя сервера из списка баз. Может содержать номер порта менеджера
    *     кластера (Если не указан, то по-умолчанию 1541). Примеры: Server1c, Server1c:2541
    */
-  private void computeServerParams(String serverAddress) {
+  private void computeHostAndPort(String serverAddress) {
 
-    String host;
-    int newAgentPort;
-    int newRasPort;
+    String[] adr = serverAddress.split(":"); // $NON-NLS-1$
 
-    serverAddress = serverAddress.strip();
-    if (serverAddress.isBlank()) {
-      serverAddress = "localhost"; //$NON-NLS-1$
-    }
-
-    String[] adr = serverAddress.split(":"); //$NON-NLS-1$
-    host = adr[0];
+    final String host = adr[0];
+    final int newAgentPort;
+    final int newRasPort;
 
     if (adr.length == 1) {
+      // адрес не содержит двоеточие и номер порта, значит используется порт по-умолчанию 1541
       newAgentPort = 1540;
       newRasPort = 1545;
     } else {
@@ -807,7 +820,7 @@ public class Server implements Comparable<Server> {
     this.agentPort = newAgentPort;
     this.rasPort = newRasPort;
 
-    LOGGER.info("Compute params for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
+    LOGGER.info("Compute host and port for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
   }
 
   /**
