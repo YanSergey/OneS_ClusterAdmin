@@ -6,7 +6,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -23,7 +25,9 @@ import org.slf4j.LoggerFactory;
 public class Helper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger("ClusterProvider"); //$NON-NLS-1$
+
   private static final DateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+  private static final DateFormat currentDayDateFormat = new SimpleDateFormat("HH:mm:ss");
 
   /** Пустой UUID. */
   public static final UUID EMPTY_UUID =
@@ -289,7 +293,16 @@ public class Helper {
     if (date == null || date.equals(emptyDate)) {
       return "";
     }
-    return simpleDateFormat.format(date);
+    Calendar startCurrentDay = new GregorianCalendar();
+    startCurrentDay.set(Calendar.HOUR_OF_DAY, 0);
+    startCurrentDay.set(Calendar.MINUTE, 0);
+    startCurrentDay.set(Calendar.SECOND, 0);
+
+    if (Config.currentConfig.showCurrentDateAsTime() && date.after(startCurrentDay.getTime())) {
+      return currentDayDateFormat.format(date);
+    } else {
+      return simpleDateFormat.format(date);
+    }
   }
 
 }

@@ -45,6 +45,7 @@ public class SettingsDialog extends Dialog {
   private Button btnShadowSleepSessions;
   private Button btnReadClipboard;
   private Button btnCheckUpdate;
+  private Button btnShowCurrentDateAsTime;
   private Button btnRowSortAsPrevious;
   private Button btnRowSortAsc;
   private Button btnRowSortDesc;
@@ -242,6 +243,9 @@ public class SettingsDialog extends Dialog {
     btnCheckUpdate = new Button(grpOther, SWT.CHECK);
     btnCheckUpdate.setText(Strings.CHECK_UPDATE);
 
+    btnShowCurrentDateAsTime = new Button(grpOther, SWT.CHECK);
+    btnShowCurrentDateAsTime.setText(Strings.SHOW_CURRENT_DATE_AS_TIME);
+
     btnRequestLogon = new Button(grpOther, SWT.CHECK);
     btnRequestLogon.setText(Strings.REQUEST_LOGON);
 
@@ -296,6 +300,7 @@ public class SettingsDialog extends Dialog {
     btnShadowSleepSessions.setSelection(config.isShadeSleepingSessions());
     btnReadClipboard.setSelection(config.isReadClipboard());
     btnCheckUpdate.setSelection(config.checkingUpdate());
+    btnShowCurrentDateAsTime.setSelection(config.showCurrentDateAsTime());
     
     btnInfobaseDeniedStandardEditMode.setSelection(!config.getInfobaseDeniedFriendlyEditMode());
     btnInfobaseDeniedFriendlyEditMode.setSelection(config.getInfobaseDeniedFriendlyEditMode());
@@ -345,6 +350,7 @@ public class SettingsDialog extends Dialog {
     config.setShadowSleepSessions(btnShadowSleepSessions.getSelection());
     config.setReadClipboard(btnReadClipboard.getSelection());
     config.setCheckingUpdate(btnCheckUpdate.getSelection());
+    config.setShowCurrentDateAsTime(btnShowCurrentDateAsTime.getSelection());
     config.setInfobaseDeniedFriendlyEditMode(btnInfobaseDeniedFriendlyEditMode.getSelection());
     config.setInfobaseDeniedMessagePattern(txtInfobaseDeniedPattern.getText());
 
@@ -445,6 +451,8 @@ public class SettingsDialog extends Dialog {
 
     static final String READ_CLIPBOARD = getString("ReadClipboard");
     static final String CHECK_UPDATE = getString("CheckUpdate");
+    static final String SHOW_CURRENT_DATE_AS_TIME = getString("ShowCurrentDateAsTime");
+
     static final String INFOBASE_DENIED_EDIT_MODE = getString("InfobaseDeniedEditMode");
     static final String INFOBASE_DENIED_STANDARD_EDIT_MODE =
         getString("InfobaseDeniedStandardEditMode");
