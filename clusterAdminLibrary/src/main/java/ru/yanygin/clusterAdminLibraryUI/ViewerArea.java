@@ -563,6 +563,10 @@ public class ViewerArea extends Composite {
 
     addMenuSeparator(clusterMenu);
     addItemInMenu(
+        clusterMenu, Strings.CONTEXT_MENU_RESTART_PROCESSES, null, restartWorkingProcessesListener);
+
+    addMenuSeparator(clusterMenu);
+    addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_APPLY_PARTIAL_RULE, null, applyAssignmentRuleListener, 0);
     addItemInMenu(
         clusterMenu, Strings.CONTEXT_MENU_APPLY_FULL_RULE, null, applyAssignmentRuleListener, 1);
@@ -2778,6 +2782,66 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter restartWorkingProcessesListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          TreeItem[] item = serversTree.getSelection();
+          if (item.length == 0) {
+            return;
+          }
+          final TreeItem clusterItem = item[0];
+
+          Server server = getServer(clusterItem);
+          UUID clusterId = getClusterId(clusterItem);
+          if (server == null || clusterId == null) {
+            return;
+          }
+
+          if (!server.checkAutenticateAgent()) {
+            Helper.showMessageBox(Strings.ERROR_AUTH_FOR_RESTART_WP);
+            return;
+          }
+
+          Thread thread =
+              new Thread(
+                  () -> {
+                    IClusterInfo clusterInfo = server.getClusterInfo(clusterId);
+
+                    final int oldLifeTimeLimit = clusterInfo.getLifeTimeLimit();
+                    final boolean oldRecyclingKillProcesses =
+                        clusterInfo.isClusterRecyclingKillProblemProcesses();
+                    final int oldExpirationTimeout = clusterInfo.getExpirationTimeout();
+
+                    clusterInfo.setLifeTimeLimit(10);
+                    clusterInfo.setClusterRecyclingKillProblemProcesses(true);
+                    clusterInfo.setExpirationTimeout(20);
+
+                    if (!server.regCluster(clusterInfo)) {
+                      Helper.showMessageBox("Error setting temporary properties for the cluster");
+                      return;
+                    }
+
+                    // подождать 10 секунд и вернуть все назад
+                    try {
+                      Thread.sleep(10000);
+                    } catch (InterruptedException excp) {
+                      LOGGER.error("Error: ", excp); // $NON-NLS-1$
+                    }
+
+                    clusterInfo.setLifeTimeLimit(oldLifeTimeLimit);
+                    clusterInfo.setClusterRecyclingKillProblemProcesses(oldRecyclingKillProcesses);
+                    clusterInfo.setExpirationTimeout(oldExpirationTimeout);
+
+                    if (!server.regCluster(clusterInfo)) {
+                      Helper.showMessageBox("Error returning cluster properties");
+                    }
+                  });
+
+          thread.start();
+        }
+      };
+
   SelectionAdapter applyAssignmentRuleListener =
       new SelectionAdapter() {
         @Override
@@ -3831,6 +3895,7 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_CREATE_CLUSTER = getString("ContextMenu.CreateCluster");
     static final String CONTEXT_MENU_EDIT_CLUSTER = getString("ContextMenu.EditCluster");
     static final String CONTEXT_MENU_DELETE_CLUSTER = getString("ContextMenu.DeleteCluster");
+    static final String CONTEXT_MENU_RESTART_PROCESSES = getString("ContextMenu.RestartProcesses");
     static final String CONTEXT_MENU_APPLY_PARTIAL_RULE = getString("ContextMenu.ApplyPartialRule");
     static final String CONTEXT_MENU_APPLY_FULL_RULE = getString("ContextMenu.ApplyFullRule");
 
@@ -3881,6 +3946,8 @@ public class ViewerArea extends Composite {
     static final String CONTEXT_MENU_LOAD_CF = getString("ContextMenu.InfobaseActions.LoadCf");
     static final String CONTEXT_MENU_DUMP_DT = getString("ContextMenu.InfobaseActions.DumpDt");
     static final String CONTEXT_MENU_LOAD_DT = getString("ContextMenu.InfobaseActions.LoadDt");
+
+    static final String ERROR_AUTH_FOR_RESTART_WP = getString("ErrorAuthForRestartWp");
 
     static String getString(String key) {
       return Messages.getString("ViewerArea." + key); //$NON-NLS-1$

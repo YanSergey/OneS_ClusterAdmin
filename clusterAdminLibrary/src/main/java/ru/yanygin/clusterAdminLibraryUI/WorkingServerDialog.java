@@ -72,6 +72,7 @@ public class WorkingServerDialog extends Dialog {
    * @param server - server
    * @param clusterId - cluster ID
    * @param workingServerId - working server ID (null для создания нового)
+   * @wbp.parser.constructor
    */
   public WorkingServerDialog(
       Shell parentShell, Server server, UUID clusterId, UUID workingServerId) {
