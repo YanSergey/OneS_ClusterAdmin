@@ -72,6 +72,7 @@ import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibrary.AssignmentRuleContentProvider;
 import ru.yanygin.clusterAdminLibrary.AssignmentRuleLabelProvider;
 import ru.yanygin.clusterAdminLibrary.BackgroundTask;
+import ru.yanygin.clusterAdminLibrary.BackgroundTask.V8ActionVariant;
 import ru.yanygin.clusterAdminLibrary.BaseInfoExtended;
 import ru.yanygin.clusterAdminLibrary.ClusterProvider;
 import ru.yanygin.clusterAdminLibrary.ColumnProperties;
@@ -326,7 +327,7 @@ public class ViewerArea extends Composite {
     tableTasks.setLinesVisible(true);
     tableTasks.addMouseListener(tableTaskMouseClickListener);
 
-    addTaskTableColumn(tableTasks, "Task", 140);
+    addTaskTableColumn(tableTasks, "Task", 200);
     addTaskTableColumn(tableTasks, "State", 50);
     addTaskTableColumn(tableTasks, "Start", 120, SWT.RIGHT);
     addTaskTableColumn(tableTasks, "End", 120);
@@ -341,7 +342,7 @@ public class ViewerArea extends Composite {
           }
         });
     // Пропорции областей
-    sashTasks.setWeights(5, 10);
+    sashTasks.setWeights(7, 10);
   }
 
   private void initIcon() {
@@ -546,8 +547,6 @@ public class ViewerArea extends Composite {
 
     addItemInMenu(serverMenu, Strings.CONTEXT_MENU_DELETE, deleteIcon16, deleteServerListener);
 
-    // TODO это для отладки без запуска сервера - удалить
-    new UserScriptRunner(serverMenu);
   }
 
   private void initClusterMenu() {
@@ -670,6 +669,22 @@ public class ViewerArea extends Composite {
         terminateUsersSessionsListener);
 
     new UserScriptRunner(infobaseMenu);
+
+    // Меню действий с базой
+    addMenuSeparator(infobaseMenu);
+
+    Menu subMenuInfobaseActions = addItemGroupInMenu(infobaseMenu, Strings.CONTEXT_MENU_INFOBASE_ACTIONS, null);
+
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_RUN_ENTERPRISE, null, launchV8ActionListener, V8ActionVariant.RUN_ENTERPRISE);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_RUN_DESIGNER, null, launchV8ActionListener, V8ActionVariant.RUN_DESIGNER);
+
+    addMenuSeparator(subMenuInfobaseActions);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_DUMP_CF, null, launchV8ActionListener, V8ActionVariant.DUMP_CF);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_LOAD_CF, null, launchV8ActionListener, V8ActionVariant.LOAD_CF);
+
+    addMenuSeparator(subMenuInfobaseActions);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_DUMP_DT, null, launchV8ActionListener, V8ActionVariant.DUMP_DT);
+    addItemInMenu(subMenuInfobaseActions, Strings.CONTEXT_MENU_LOAD_DT, null, launchV8ActionListener, V8ActionVariant.LOAD_DT);
   }
 
   private Table initTable(Composite composite, Class<?> clazz) {
@@ -2126,6 +2141,114 @@ public class ViewerArea extends Composite {
     refreshCurrentList();
   }
 
+  private Map<String, String> fillParams(BackgroundTask backgroundTask, TreeItem infobaseItem) {
+    Map<String, String> params = new LinkedHashMap<>();
+
+    UUID clusterId = getClusterId(infobaseItem);
+    UUID infobaseId = getInfobaseId(infobaseItem);
+    Server server = getServer(infobaseItem);
+    if (server == null) {
+      LOGGER.error(
+          "Error get server info {}", //$NON-NLS-1$
+          backgroundTask.getScriptName());
+      return params;
+    }
+
+    boolean foundEmptyParams = false;
+    boolean foundUsernameParam = false;
+    boolean foundPasswordParam = false;
+
+    Pattern p = Pattern.compile("\\%.+?\\%");
+    // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
+
+    Matcher m = p.matcher(backgroundTask.getScriptText());
+    while (m.find()) {
+      final String foundParam = m.group();
+      String paramValue;
+
+      switch (foundParam) {
+        case "%v8infobase%":
+          paramValue = server.getInfoBaseName(clusterId, infobaseId);
+          break;
+
+        case "%v8serverName%":
+          paramValue = server.getAgentHost();
+          break;
+
+        case "%v8agentPort%":
+          paramValue = server.getAgentPortAsString();
+          break;
+
+        case "%v8managerPort%":
+          paramValue = server.getClusterMainPort(clusterId);
+          break;
+
+        case "%v8version%":
+          paramValue = server.getV8Version();
+          break;
+
+        case "%v8username%":
+          foundUsernameParam = true;
+          foundEmptyParams = true;
+          continue;
+
+        case "%v8password%":
+          foundPasswordParam = true;
+          foundEmptyParams = true;
+          continue;
+
+        default:
+          LOGGER.info("Found unknown param {}", foundParam);
+          paramValue = "";
+          foundEmptyParams = true;
+          break;
+      }
+
+      String paramKey = foundParam.replace("%", "");
+      params.put(paramKey, paramValue);
+    }
+    if (Boolean.TRUE.equals(foundUsernameParam)) {
+      params.put("v8username", "");
+    }
+    if (Boolean.TRUE.equals(foundPasswordParam)) {
+      params.put("v8password", "");
+    }
+
+    if (foundEmptyParams) {
+      BackgroundTaskParams taskParamsDialog =
+          new BackgroundTaskParams(
+              getShell(),
+              params,
+              backgroundTask,
+              server.getInfobasesCredentials());
+      int dialogResult = taskParamsDialog.open();
+      if (dialogResult != 0) {
+        return new HashMap<>();
+      }
+
+      params = taskParamsDialog.getParams();
+    }
+
+    return params;
+  }
+
+  private void addToTasksQueue(BackgroundTask task) {
+    TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
+    tableItem.setData(task);
+    tableItem.setChecked(false);
+
+    if (tableTasks.getSelection().length == 0 || BackgroundTask.getRunningCount() == 0) {
+      tableTasks.setSelection(tableItem);
+    }
+
+    task.run();
+
+    if (BackgroundTask.getRunningCount() == 0) {
+      taskTimer = new Timer(true);
+      taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
+    }
+  }
+
   //////////////////////////////////////////////////////////////////////////
   // LISTENERS
 
@@ -2985,6 +3108,67 @@ public class ViewerArea extends Composite {
         }
       };
 
+  SelectionAdapter launchV8ActionListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          TreeItem[] items = serversTree.getSelection();
+          if (items.length == 0) {
+            return;
+          }
+
+          TreeItem infobaseItem = items[0];
+          BackgroundTask backgroundTask =
+              new BackgroundTask((V8ActionVariant) event.widget.getData());
+
+          Map<String, String> params = fillParams(backgroundTask, infobaseItem);
+          if (!params.isEmpty()) {
+            backgroundTask.setParams(params);
+            addToTasksQueue(backgroundTask);
+          }
+        }
+      };
+
+  SelectionAdapter createWorkingServerListener =
+      new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent event) {
+          Table tableWorkingServers = getCurrentTable();
+          Server server = getCurrentServer();
+          UUID clusterId = getCurrentClusterId();
+
+          if (server == null || clusterId == null) {
+            return;
+          }
+
+          WorkingServerDialog dialog;
+          try {
+            dialog =
+                new WorkingServerDialog(
+                    getParent().getDisplay().getActiveShell(), server, clusterId, null);
+          } catch (Exception excp) {
+            LOGGER.error(
+                "Error init WorkingServerDialog for cluster id {}", //$NON-NLS-1$
+                clusterId,
+                excp);
+            return;
+          }
+
+          int dialogResult = dialog.open();
+          if (dialogResult == 0) {
+            var newWorkingServerUuid = dialog.getNewWorkingServerId();
+            if (newWorkingServerUuid != null) {
+              WorkingServerInfoExtended workingServerInfo =
+                  new WorkingServerInfoExtended(
+                      server,
+                      clusterId,
+                      server.getWorkingServerInfo(clusterId, newWorkingServerUuid));
+              workingServerInfo.addToTable(tableWorkingServers);
+            }
+          }
+        }
+      };
+
   SelectionAdapter createWorkingServerListenerInTree =
       new SelectionAdapter() {
         @Override
@@ -3502,128 +3686,14 @@ public class ViewerArea extends Composite {
         return;
       }
 
-      File script = (File) event.widget.getData();
-
       TreeItem infobaseItem = items[0];
-      Map<String, String> params = fillParams(script, infobaseItem);
+      File script = (File) scriptData;
+
+      BackgroundTask backgroundTask = new BackgroundTask(script);
+      Map<String, String> params = fillParams(backgroundTask, infobaseItem);
       if (!params.isEmpty()) {
-        addToTasksQueue(new BackgroundTask(script, params));
-      }
-    }
-
-    public Map<String, String> fillParams(File script, TreeItem infobaseItem) {
-      Map<String, String> params = new LinkedHashMap<>();
-
-      UUID clusterId = getClusterId(infobaseItem);
-      UUID infobaseId = getInfobaseId(infobaseItem);
-      Server server = getServer(infobaseItem);
-      if (server == null) {
-        LOGGER.error(
-            "Error get server info {}", //$NON-NLS-1$
-            script.getName());
-        return params;
-      }
-
-      String scriptText;
-      try {
-        scriptText = Files.readString(Path.of(script.getPath()));
-      } catch (IOException excp) {
-        LOGGER.error(
-            "Error read script {}", //$NON-NLS-1$
-            script.getName(),
-            excp);
-        return params;
-      }
-
-      boolean foundEmptyParams = false;
-      boolean foundUsernameParam = false;
-      boolean foundPasswordParam = false;
-
-      Pattern p = Pattern.compile("\\%.+?\\%");
-      // Pattern p = Pattern.compile("[^\\%]++", Pattern.CASE_INSENSITIVE);
-
-      Matcher m = p.matcher(scriptText);
-      while (m.find()) {
-        final String foundParam = m.group();
-        String paramValue;
-
-        switch (foundParam) {
-          case "%infobase%":
-            paramValue = server.getInfoBaseName(clusterId, infobaseId);
-            break;
-
-          case "%serverName%":
-            paramValue = server.getAgentHost();
-            break;
-
-          case "%agentPort%":
-            paramValue = server.getAgentPortAsString();
-            break;
-
-          case "%managerPort%":
-            paramValue = server.getClusterMainPort(clusterId);
-            break;
-
-          case "%v8version%":
-            paramValue = server.getV8Version();
-            break;
-
-          case "%username%":
-            foundUsernameParam = true;
-            foundEmptyParams = true;
-            continue;
-
-          case "%password%":
-            foundPasswordParam = true;
-            foundEmptyParams = true;
-            continue;
-
-          default:
-            LOGGER.info("Found unknown param {}", foundParam);
-            paramValue = "";
-            foundEmptyParams = true;
-            break;
-        }
-
-        String paramKey = foundParam.replace("%", "");
-        params.put(paramKey, paramValue);
-      }
-      if (Boolean.TRUE.equals(foundUsernameParam)) {
-        params.put("username", "");
-      }
-      if (Boolean.TRUE.equals(foundPasswordParam)) {
-        params.put("password", "");
-      }
-
-      if (foundEmptyParams) {
-        BackgroundTaskParams taskParamsDialog =
-            new BackgroundTaskParams(
-                getShell(), params, script.getName(), server.getInfobasesCredentials());
-        int dialogResult = taskParamsDialog.open();
-        if (dialogResult != 0) {
-          return new HashMap<>();
-        }
-
-        params = taskParamsDialog.getParams();
-      }
-
-      return params;
-    }
-
-    public void addToTasksQueue(BackgroundTask task) {
-      TableItem tableItem = new TableItem(tableTasks, SWT.NONE);
-      tableItem.setData(task);
-      tableItem.setChecked(false);
-
-      if (tableTasks.getSelection().length == 0 || BackgroundTask.getRunningCount() == 0) {
-        tableTasks.setSelection(tableItem);
-      }
-
-      task.run();
-
-      if (BackgroundTask.getRunningCount() == 0) {
-        taskTimer = new Timer(true);
-        taskTimer.scheduleAtFixedRate(new TaskChekerTimer(), 1000, 1000);
+        backgroundTask.setParams(params);
+        addToTasksQueue(backgroundTask);
       }
     }
   }
@@ -3803,6 +3873,14 @@ public class ViewerArea extends Composite {
         getString("ContextMenu.KillSession").concat("\tDEL");
     static final String CONTEXT_MENU_KILL_CONNECTION_DEL =
         getString("ContextMenu.KillConnection").concat("\tDEL");
+
+    static final String CONTEXT_MENU_INFOBASE_ACTIONS = getString("ContextMenu.InfobaseActions.Group");
+    static final String CONTEXT_MENU_RUN_DESIGNER = getString("ContextMenu.InfobaseActions.RunDesigner");
+    static final String CONTEXT_MENU_RUN_ENTERPRISE = getString("ContextMenu.InfobaseActions.RunEnterprise");
+    static final String CONTEXT_MENU_DUMP_CF = getString("ContextMenu.InfobaseActions.DumpCf");
+    static final String CONTEXT_MENU_LOAD_CF = getString("ContextMenu.InfobaseActions.LoadCf");
+    static final String CONTEXT_MENU_DUMP_DT = getString("ContextMenu.InfobaseActions.DumpDt");
+    static final String CONTEXT_MENU_LOAD_DT = getString("ContextMenu.InfobaseActions.LoadDt");
 
     static String getString(String key) {
       return Messages.getString("ViewerArea." + key); //$NON-NLS-1$

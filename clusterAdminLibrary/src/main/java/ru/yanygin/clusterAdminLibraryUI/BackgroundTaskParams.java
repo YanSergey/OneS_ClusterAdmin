@@ -1,14 +1,17 @@
 package ru.yanygin.clusterAdminLibraryUI;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ComboBoxCellEditor;
+import org.eclipse.jface.viewers.DialogCellEditor;
 import org.eclipse.jface.viewers.EditingSupport;
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.TableViewer;
@@ -22,39 +25,48 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import ru.yanygin.clusterAdminLibrary.BackgroundTask;
 import ru.yanygin.clusterAdminLibrary.UserPassPair;
 
 /** Диалог параметров фоновой задачи. */
 public class BackgroundTaskParams extends Dialog {
 
+  private static final String USERNAME_TITLE = "v8username";
+  private static final String PASSWORD_TITLE = "v8password";
+
   private Map<String, String> params;
+  private BackgroundTask task;
   private String title;
   private Table tableParams;
   private Map<String, String> infobasesCredentials = new HashMap<>();
   private List<String> usernames = new ArrayList<>();
   private String currentUsernameValue = "";
+  private String currentFilenameExt = "";
+  private String currentFilepath = "";
 
   /**
    * Создание диалога ввода имени пользователя и пароля.
    *
    * @param parentShell - parent shell
    * @param params - текущие имя пользователя и пароль
-   * @param title - заголовок окна аутентификации
+   * @param task - ссылка на объект задачи
    * @param infobasesCredentials - данные доступа к инфобазам
    */
   public BackgroundTaskParams(
       Shell parentShell,
       Map<String, String> params,
-      String title,
+      BackgroundTask task,
       List<UserPassPair> infobasesCredentials) {
     super(parentShell);
     setShellStyle(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 
     this.params = params;
-    this.title = title;
+    this.task = task;
+    this.title = task.getScriptName();
 
     infobasesCredentials.forEach(
         up -> {
@@ -92,7 +104,8 @@ public class BackgroundTaskParams extends Dialog {
     clmnParamKey.setMoveable(true);
     clmnParamKey.setWidth(120);
     clmnParamKey.setText(Strings.TITLE_PARAMNAME);
-    // tableViewerColumnParamKey.setEditingSupport(new TableViewerEditingSupport(tableViewer));
+    // tableViewerColumnParamKey.setEditingSupport(new
+    // TableViewerEditingSupport(tableViewer));
     tableViewerColumnParamKey.setLabelProvider(
         new ColumnLabelProvider() {
           @Override
@@ -130,6 +143,16 @@ public class BackgroundTaskParams extends Dialog {
     return params;
   }
 
+  /** Экранирокание имени пользователя и пароля. */
+  private void checkUsernameParam() {
+    String user = params.get(USERNAME_TITLE);
+
+    if (Objects.nonNull(user)) {
+      params.put(USERNAME_TITLE, "\"" + params.get(USERNAME_TITLE) + "\"");
+      params.put(PASSWORD_TITLE, "\"" + params.get(PASSWORD_TITLE) + "\"");
+    }
+  }
+
   /**
    * Create contents of the button bar.
    *
@@ -143,6 +166,7 @@ public class BackgroundTaskParams extends Dialog {
         new SelectionAdapter() {
           @Override
           public void widgetSelected(SelectionEvent e) {
+            checkUsernameParam();
             close();
           }
         });
@@ -151,11 +175,20 @@ public class BackgroundTaskParams extends Dialog {
   }
 
   protected boolean isUsernameParam(String e) {
-    return e.equals("username");
+    return e.equals(USERNAME_TITLE);
   }
 
   protected boolean isPasswordParam(String e) {
-    return e.equals("password");
+    return e.equals(PASSWORD_TITLE);
+  }
+
+  protected boolean isFilepathParam(String[] e) {
+    if (task.isFilepathParam(e[0])) {
+      currentFilenameExt = task.getFilenameFilterExt();
+      currentFilepath = e[1];
+      return true;
+    }
+    return false;
   }
 
   class TableViewerEditingSupport extends EditingSupport {
@@ -163,6 +196,7 @@ public class BackgroundTaskParams extends Dialog {
     private TableViewer viewer;
     private TextCellEditor textEditor;
     private ComboBoxCellEditor usernameEditor;
+    private DialogCellEditor filenameEditor;
 
     public TableViewerEditingSupport(TableViewer viewer) {
       super(viewer);
@@ -171,6 +205,34 @@ public class BackgroundTaskParams extends Dialog {
       usernameEditor =
           new ComboBoxCellEditor(
               viewer.getTable(), usernames.toArray(new String[0]), SWT.SINGLE | SWT.BORDER);
+
+      filenameEditor =
+          new DialogCellEditor(viewer.getTable()) {
+            @Override
+            protected Object openDialogBox(Control cellEditorWindow) {
+
+              final String[] filterNames = {String.format(Strings.FILTER_NAME, currentFilenameExt)};
+              final String[] filterExt = {currentFilenameExt};
+
+              // При варианте SWT.SAVE автоматически дописывается расширение, в отличие от OPEN
+              FileDialog dialog = new FileDialog(cellEditorWindow.getShell(), SWT.SAVE);
+              // поэтому вопрос о перезаписи регулируем через setOverwrite
+              dialog.setOverwrite(task.isSaveCommand());
+
+              if (currentFilepath.isBlank()) {
+                dialog.setFileName(currentFilenameExt);
+              } else {
+                File file = new File(currentFilepath);
+                dialog.setFileName(file.getName());
+                dialog.setFilterPath(file.getPath());
+              }
+              dialog.setText(Strings.TITLE_FILEDIALOG);
+              dialog.setFilterNames(filterNames);
+              dialog.setFilterExtensions(filterExt);
+
+              return dialog.open();
+            }
+          };
 
       this.viewer = viewer;
     }
@@ -190,6 +252,8 @@ public class BackgroundTaskParams extends Dialog {
 
       if (isUsernameParam(e[0])) {
         return usernameEditor;
+      } else if (isFilepathParam(e)) {
+        return filenameEditor;
       } else {
         return textEditor;
       }
@@ -226,7 +290,7 @@ public class BackgroundTaskParams extends Dialog {
           newParamValue = usernames.get(valueIndex);
           currentUsernameValue = newParamValue;
           // установка пароля
-          params.put("password", infobasesCredentials.getOrDefault(newParamValue, ""));
+          params.put(PASSWORD_TITLE, infobasesCredentials.getOrDefault(newParamValue, ""));
 
         } else if (isUsernameParam(paramKey) && valueIndex == -1) {
           // ввод нового логина вручную
@@ -254,7 +318,6 @@ public class BackgroundTaskParams extends Dialog {
     public Object[] getElements(Object inputElement) {
       if (inputElement instanceof Map<?, ?>) {
 
-
         List<String[]> collection = new ArrayList<>();
         ((Map<String, String>) inputElement)
             .forEach(
@@ -278,6 +341,9 @@ public class BackgroundTaskParams extends Dialog {
     static final String TITLE_WINDOW = getString("Title");
     static final String TITLE_PARAMNAME = getString("ParamName");
     static final String TITLE_PARAMVALUE = getString("ParamValue");
+
+    static final String TITLE_FILEDIALOG = getString("TitleFileDialog");
+    static final String FILTER_NAME = getString("FilterName");
 
     static String getString(String key) {
       return Messages.getString("BackgroundTaskParams." + key);

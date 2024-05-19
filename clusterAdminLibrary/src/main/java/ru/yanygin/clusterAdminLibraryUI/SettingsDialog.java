@@ -52,6 +52,7 @@ public class SettingsDialog extends Dialog {
   private Button btnLoggerLevelWarning;
   private Button btnLoggerLevelInfo;
   private Button btnLoggerLevelDebug;
+  private Button btnRequestLogon;
 
   private static final String LOCALE_RU = "ru-RU"; //$NON-NLS-1$
 
@@ -235,6 +236,9 @@ public class SettingsDialog extends Dialog {
 
     btnCheckUpdate = new Button(grpOther, SWT.CHECK);
     btnCheckUpdate.setText(Strings.CHECK_UPDATE);
+
+    btnRequestLogon = new Button(grpOther, SWT.CHECK);
+    btnRequestLogon.setText(Strings.REQUEST_LOGON);
     new Label(container, SWT.NONE);
 
     initProperties();
@@ -283,6 +287,8 @@ public class SettingsDialog extends Dialog {
     btnLoggerLevelWarning.setSelection(loggerLevel.equals(btnLoggerLevelWarning.getText()));
     btnLoggerLevelInfo.setSelection(loggerLevel.equals(btnLoggerLevelInfo.getText()));
     btnLoggerLevelDebug.setSelection(loggerLevel.equals(btnLoggerLevelDebug.getText()));
+
+    btnRequestLogon.setSelection(config.getRequestLogon());
   }
 
   private void saveProperties() {
@@ -340,6 +346,8 @@ public class SettingsDialog extends Dialog {
       loggerLevel = btnLoggerLevelOff.getText();
     }
     config.setLoggerLevel(loggerLevel);
+
+    config.setRequestLogon(btnRequestLogon.getSelection());
   }
 
   /**
@@ -404,6 +412,8 @@ public class SettingsDialog extends Dialog {
     static final String CHECK_UPDATE = getString("CheckUpdate");
     
     static final String LOGGER_LEVEL_TITLE = getString("LoggerLevelTitle");
+
+    static final String REQUEST_LOGON = getString("RequestLogon");
 
     static String getString(String key) {
       return Messages.getString("SettingsDialog." + key); //$NON-NLS-1$
