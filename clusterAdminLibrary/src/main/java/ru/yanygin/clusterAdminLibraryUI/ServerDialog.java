@@ -63,11 +63,11 @@ public class ServerDialog extends Dialog {
   private Text txtAgentHost;
   private Text txtAgentPort;
   private Text txtLocalRasPort;
-  
+
   private Combo comboV8Version;
 
   private Link txtAgentCredential;
-  
+
   private Table tableClusterCredentials;
   private Table tableInfobasesCredentials;
 
@@ -121,27 +121,72 @@ public class ServerDialog extends Dialog {
     GridLayout glConnectContainer = new GridLayout(2, false);
     connectContainer.setLayout(glConnectContainer);
 
-    Composite composite = new Composite(connectContainer, SWT.NONE);
-    composite.setLayout(new GridLayout(2, false));
-    composite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
-
-    Label lblDescription = new Label(composite, SWT.NONE);
-    lblDescription.setText(Strings.SERVER_DESCRIPTION);
-
-    txtDescription = new Text(composite, SWT.BORDER);
-    txtDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-
     btnAutoconnect = new Button(connectContainer, SWT.CHECK);
-    GridData gdbtnAutoconnect = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    GridData gdbtnAutoconnect = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
     gdbtnAutoconnect.horizontalIndent = 5;
     btnAutoconnect.setLayoutData(gdbtnAutoconnect);
     btnAutoconnect.setText(Strings.AUTOCONNECT_AT_STARTUP);
-    new Label(connectContainer, SWT.NONE);
 
-    radioUseRemoteRas = new Button(connectContainer, SWT.RADIO);
-    GridData gdradioUseRemoteRas = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-    gdradioUseRemoteRas.horizontalIndent = 5;
-    radioUseRemoteRas.setLayoutData(gdradioUseRemoteRas);
+    Group grpDescription = new Group(connectContainer, SWT.NONE);
+    grpDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
+    grpDescription.setText(Strings.SERVER_DESCRIPTION);
+    grpDescription.setLayout(new GridLayout(1, false));
+
+    txtDescription = new Text(grpDescription, SWT.BORDER);
+    txtDescription.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+    txtDescription.setSize(392, 21);
+
+    Group grpRagentAddress = new Group(connectContainer, SWT.NONE);
+    grpRagentAddress.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
+    grpRagentAddress.setText(Strings.AGENT_PARAMETERS);
+    grpRagentAddress.setLayout(new GridLayout(3, false));
+
+    Label lblV8Version = new Label(grpRagentAddress, SWT.NONE);
+    lblV8Version.setText(Strings.V8_VERSION);
+
+    Label lblAgentHost = new Label(grpRagentAddress, SWT.NONE);
+    lblAgentHost.setText(Strings.HOST);
+
+    Label lblAgentPort = new Label(grpRagentAddress, SWT.NONE);
+    lblAgentPort.setText(Strings.PORT);
+
+    comboV8Version = new Combo(grpRagentAddress, SWT.NONE);
+    comboV8Version.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
+
+    txtAgentHost = new Text(grpRagentAddress, SWT.BORDER);
+    txtAgentHost.addModifyListener(
+        new ModifyListener() {
+          @Override
+          public void modifyText(ModifyEvent e) {
+            if (rasOnSameHost) {
+              txtRasHost.setText(((Text) e.widget).getText());
+            }
+            checkRasOnSameHost();
+          }
+        });
+    GridData gdtxtAgentHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdtxtAgentHost.widthHint = 200;
+    txtAgentHost.setLayoutData(gdtxtAgentHost);
+
+    txtAgentPort = new Text(grpRagentAddress, SWT.BORDER);
+    GridData gdtxtAgentPort = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdtxtAgentPort.widthHint = 50;
+    txtAgentPort.setLayoutData(gdtxtAgentPort);
+
+    Group grpConnectParameters = new Group(connectContainer, SWT.NONE);
+    grpConnectParameters.setLayout(new GridLayout(3, false));
+    grpConnectParameters.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
+    grpConnectParameters.setText(Strings.CONNECTION_VARIANT);
+    new Label(grpConnectParameters, SWT.NONE);
+
+    Label lblRasHost = new Label(grpConnectParameters, SWT.NONE);
+    lblRasHost.setText(Strings.HOST);
+
+    Label lblRasPort = new Label(grpConnectParameters, SWT.NONE);
+    lblRasPort.setSize(46, 15);
+    lblRasPort.setText(Strings.PORT);
+
+    radioUseRemoteRas = new Button(grpConnectParameters, SWT.RADIO);
     radioUseRemoteRas.setSelection(true);
     radioUseRemoteRas.addSelectionListener(
         new SelectionAdapter() {
@@ -153,95 +198,32 @@ public class ServerDialog extends Dialog {
     radioUseRemoteRas.setBounds(0, 0, 90, 16);
     radioUseRemoteRas.setText(Strings.USE_REMOTE_RAS);
 
-    radioUseLocalRas = new Button(connectContainer, SWT.RADIO);
-    GridData gdradioUseLocalRas = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-    gdradioUseLocalRas.horizontalIndent = 5;
-    radioUseLocalRas.setLayoutData(gdradioUseLocalRas);
-    radioUseLocalRas.setBounds(0, 0, 90, 16);
-    radioUseLocalRas.setText(Strings.USE_LOCAL_RAS);
-
-    Group grpRemoteRasParameters = new Group(connectContainer, SWT.NONE);
-    grpRemoteRasParameters.setText(Strings.REMOTE_RAS_PARAMETERS);
-    grpRemoteRasParameters.setLayout(new GridLayout(2, false));
-
-    Label lblRasHost = new Label(grpRemoteRasParameters, SWT.NONE);
-    lblRasHost.setText(Strings.HOST);
-
-    Label lblRasPort = new Label(grpRemoteRasParameters, SWT.NONE);
-    lblRasPort.setSize(46, 15);
-    lblRasPort.setText(Strings.PORT);
-
-    txtRasHost = new Text(grpRemoteRasParameters, SWT.BORDER);
+    txtRasHost = new Text(grpConnectParameters, SWT.BORDER);
+    GridData gdTxtRasHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdTxtRasHost.widthHint = 200;
+    txtRasHost.setLayoutData(gdTxtRasHost);
     txtRasHost.addModifyListener(
         new ModifyListener() {
           @Override
           public void modifyText(ModifyEvent e) {
-            if (rasOnSameHost) {
-              txtAgentHost.setText(((Text) e.widget).getText());
-            }
             checkRasOnSameHost();
           }
         });
-    GridData gdtxtRasHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-    gdtxtRasHost.widthHint = 200;
-    txtRasHost.setLayoutData(gdtxtRasHost);
 
-    txtRasPort = new Text(grpRemoteRasParameters, SWT.BORDER);
-    GridData gdtxtRasPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
-    gdtxtRasPort.widthHint = 50;
-    txtRasPort.setLayoutData(gdtxtRasPort);
+    txtRasPort = new Text(grpConnectParameters, SWT.BORDER);
+    GridData gdTxtRasPort = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdTxtRasPort.widthHint = 50;
+    txtRasPort.setLayoutData(gdTxtRasPort);
 
-    Group grpLocalRasParameters = new Group(connectContainer, SWT.NONE);
-    grpLocalRasParameters.setSize(417, 90);
-    grpLocalRasParameters.setText(Strings.LOCAL_RAS_PARAMETERS);
-    grpLocalRasParameters.setLayout(new GridLayout(2, false));
+    radioUseLocalRas = new Button(grpConnectParameters, SWT.RADIO);
+    radioUseLocalRas.setBounds(0, 0, 90, 16);
+    radioUseLocalRas.setText(Strings.USE_LOCAL_RAS);
+    new Label(grpConnectParameters, SWT.NONE);
 
-    Label lblV8Version = new Label(grpLocalRasParameters, SWT.NONE);
-    lblV8Version.setSize(124, 15);
-    lblV8Version.setText(Strings.V8_VERSION);
-
-    Label lblLocalRasPort = new Label(grpLocalRasParameters, SWT.NONE);
-    lblLocalRasPort.setSize(77, 15);
-    lblLocalRasPort.setText(Strings.PORT);
-
-    comboV8Version = new Combo(grpLocalRasParameters, SWT.READ_ONLY);
-    GridData gdcomboV8Version = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-    gdcomboV8Version.widthHint = 140;
-    comboV8Version.setLayoutData(gdcomboV8Version);
-    comboV8Version.setSize(389, 21);
-
-    txtLocalRasPort = new Text(grpLocalRasParameters, SWT.BORDER);
-    GridData gdtxtLocalRasPort = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
-    gdtxtLocalRasPort.widthHint = 50;
-    txtLocalRasPort.setLayoutData(gdtxtLocalRasPort);
-
-    Group grpRagentParameters = new Group(connectContainer, SWT.NONE);
-    grpRagentParameters.setText(Strings.AGENT_PARAMETERS);
-    grpRagentParameters.setLayout(new GridLayout(2, false));
-
-    Label lblAgentHost = new Label(grpRagentParameters, SWT.NONE);
-    lblAgentHost.setText(Strings.HOST);
-
-    Label lblAgentPort = new Label(grpRagentParameters, SWT.NONE);
-    lblAgentPort.setText(Strings.PORT);
-
-    txtAgentHost = new Text(grpRagentParameters, SWT.BORDER);
-    txtAgentHost.addModifyListener(
-        new ModifyListener() {
-          @Override
-          public void modifyText(ModifyEvent e) {
-            checkRasOnSameHost();
-          }
-        });
-    GridData gdtxtAgentHost = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-    gdtxtAgentHost.widthHint = 200;
-    txtAgentHost.setLayoutData(gdtxtAgentHost);
-
-    txtAgentPort = new Text(grpRagentParameters, SWT.BORDER);
-    GridData gdtxtAgentPort = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
-    gdtxtAgentPort.widthHint = 50;
-    txtAgentPort.setLayoutData(gdtxtAgentPort);
-    new Label(connectContainer, SWT.NONE);
+    txtLocalRasPort = new Text(grpConnectParameters, SWT.BORDER);
+    GridData gdTxtLocalRasPort = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+    gdTxtLocalRasPort.widthHint = 50;
+    txtLocalRasPort.setLayoutData(gdTxtLocalRasPort);
 
     TabItem tabCredentials = new TabItem(tabFolder, SWT.NONE);
     tabCredentials.setText(Strings.CREDENTIALS);
@@ -357,21 +339,19 @@ public class ServerDialog extends Dialog {
     if (server != null) {
       txtDescription.setText(server.getDescription());
 
-      txtRasHost.setText(server.getRasHost());
-      txtRasPort.setText(server.getRasPortAsString());
-
+      comboV8Version.setItems(getInstalledV8Versions());
+      comboV8Version.setText(server.getV8Version());
       txtAgentHost.setText(server.getAgentHost());
       txtAgentPort.setText(server.getAgentPortAsString());
+
+      btnAutoconnect.setSelection(server.getAutoconnect());
 
       radioUseRemoteRas.setSelection(!server.getUseLocalRas());
       radioUseLocalRas.setSelection(server.getUseLocalRas());
 
-      comboV8Version.setItems(getInstalledV8Versions());
-      comboV8Version.setText(server.getLocalRasV8version());
-
+      txtRasHost.setText(server.getRasHost());
+      txtRasPort.setText(server.getRasPortAsString());
       txtLocalRasPort.setText(server.getLocalRasPortAsString());
-
-      btnAutoconnect.setSelection(server.getAutoconnect());
 
       saveCredentialsVariant = server.getSaveCredentialsVariant();
       btnSaveCredentialsDisable.setSelection(
@@ -430,7 +410,7 @@ public class ServerDialog extends Dialog {
 
   private String[] getInstalledV8Versions() {
     List<String> installedV8Versions = new ArrayList<>();
-    Helper.getInstalledV8Versions().forEach((desc, path) -> installedV8Versions.add(desc));
+    Helper.getInstalledV8Versions("x64").forEach((desc, path) -> installedV8Versions.add(desc));
     installedV8Versions.sort(String.CASE_INSENSITIVE_ORDER);
     return installedV8Versions.toArray(new String[0]);
   }
@@ -455,7 +435,6 @@ public class ServerDialog extends Dialog {
   private void setEnabledRasGroupParameters() {
     txtRasHost.setEnabled(radioUseRemoteRas.getSelection());
     txtRasPort.setEnabled(radioUseRemoteRas.getSelection());
-    comboV8Version.setEnabled(!radioUseRemoteRas.getSelection());
     txtLocalRasPort.setEnabled(!radioUseRemoteRas.getSelection());
   }
 
@@ -463,15 +442,16 @@ public class ServerDialog extends Dialog {
     try {
       server.setDescription(txtDescription.getText());
 
+      server.setV8Version(comboV8Version.getText());
       server.setAgentHost(txtAgentHost.getText());
       server.setAgentPort(Integer.parseInt(txtAgentPort.getText()));
+
+      server.setAutoconnect(btnAutoconnect.getSelection());
+
+      server.setUseLocalRas(!radioUseRemoteRas.getSelection());
       server.setRasHost(txtRasHost.getText());
       server.setRasPort(Integer.parseInt(txtRasPort.getText()));
-      server.setUseLocalRas(!radioUseRemoteRas.getSelection());
       server.setLocalRasPort(Integer.parseInt(txtLocalRasPort.getText()));
-
-      server.setLocalRasV8version(comboV8Version.getText());
-      server.setAutoconnect(btnAutoconnect.getSelection());
 
       extractSaveCredentialsVariant();
       server.setSaveCredentialsVariant(saveCredentialsVariant);
@@ -618,14 +598,13 @@ public class ServerDialog extends Dialog {
 
     static final String TITLE_WINDOW = getString("TitleDialog");
     static final String CONNECT_PARAMETERS = getString("ConnectParameters");
+    static final String CONNECTION_VARIANT = getString("ConnectionVariant");
     static final String SERVER_DESCRIPTION = getString("Description");
     static final String AUTOCONNECT_AT_STARTUP = getString("AutoconnectAtStartup");
     static final String USE_REMOTE_RAS = getString("UseRemoteRAS");
     static final String USE_LOCAL_RAS = getString("UseLocalRAS");
-    static final String REMOTE_RAS_PARAMETERS = getString("RemoteRASParameters");
     static final String HOST = getString("Host");
     static final String PORT = getString("Port");
-    static final String LOCAL_RAS_PARAMETERS = getString("LocalRASParameters");
     static final String V8_VERSION = getString("V8Version");
     static final String AGENT_PARAMETERS = getString("AgentParameters");
     static final String CREDENTIALS = getString("Credentials");

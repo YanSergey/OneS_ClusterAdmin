@@ -7,6 +7,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -44,11 +45,23 @@ public class SettingsDialog extends Dialog {
   private Button btnShadowSleepSessions;
   private Button btnReadClipboard;
   private Button btnCheckUpdate;
+  private Button btnShowCurrentDateAsTime;
   private Button btnRowSortAsPrevious;
   private Button btnRowSortAsc;
   private Button btnRowSortDesc;
+  private Button btnLoggerLevelOff;
+  private Button btnLoggerLevelError;
+  private Button btnLoggerLevelWarning;
+  private Button btnLoggerLevelInfo;
+  private Button btnLoggerLevelDebug;
+  private Button btnRequestLogon;
 
   private static final String LOCALE_RU = "ru-RU"; //$NON-NLS-1$
+  private Text txtIbasesFilePath;
+  private Label lblInfobaseDeniedEditMode;
+  private Text txtInfobaseDeniedPattern;
+  private Button btnInfobaseDeniedStandardEditMode;
+  private Button btnInfobaseDeniedFriendlyEditMode;
 
   /**
    * Создание диалога настроек сервера.
@@ -130,7 +143,7 @@ public class SettingsDialog extends Dialog {
 
     Group grpLocale = new Group(container, SWT.NONE);
     grpLocale.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
-    grpLocale.setText(Strings.LOCALE);
+    grpLocale.setText(Strings.LOCALE_TITLE);
     grpLocale.setLayout(new GridLayout(1, false));
 
     btnLocaleSystem = new Button(grpLocale, SWT.RADIO);
@@ -143,7 +156,8 @@ public class SettingsDialog extends Dialog {
     btnLocaleRussian.setText(Strings.LOCALE_RUSSIAN);
 
     Group grpHighlight = new Group(container, SWT.NONE);
-    grpHighlight.setText(Strings.HIGHLIGHT);
+    grpHighlight.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpHighlight.setText(Strings.HIGHLIGHT_TITLE);
     grpHighlight.setLayout(new GridLayout(2, false));
 
     btnHighlightNewItems = new Button(grpHighlight, SWT.CHECK);
@@ -187,7 +201,8 @@ public class SettingsDialog extends Dialog {
     lblWatchSessionsColor.setLayoutData(gdLblWatchSessionsColor);
 
     Group grpRowSortDirection = new Group(container, SWT.NONE);
-    grpRowSortDirection.setText(Strings.ROW_SORT_DIRECTION);
+    grpRowSortDirection.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpRowSortDirection.setText(Strings.ROW_SORT_DIRECTION_TITLE);
     grpRowSortDirection.setLayout(new GridLayout(1, false));
 
     btnRowSortAsPrevious = new Button(grpRowSortDirection, SWT.RADIO);
@@ -199,15 +214,72 @@ public class SettingsDialog extends Dialog {
     btnRowSortDesc = new Button(grpRowSortDirection, SWT.RADIO);
     btnRowSortDesc.setText(Strings.ROW_SORT_DIRECTION_DESCENDING);
 
-    btnReadClipboard = new Button(container, SWT.CHECK);
-    btnReadClipboard.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1));
+    Group grpLoggerLevel = new Group(container, SWT.NONE);
+    grpLoggerLevel.setLayout(new GridLayout(1, false));
+    grpLoggerLevel.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpLoggerLevel.setText(Strings.LOGGER_LEVEL_TITLE);
+
+    btnLoggerLevelOff = new Button(grpLoggerLevel, SWT.RADIO);
+    btnLoggerLevelOff.setText("off");
+
+    btnLoggerLevelError = new Button(grpLoggerLevel, SWT.RADIO);
+    btnLoggerLevelError.setText("error");
+
+    btnLoggerLevelWarning = new Button(grpLoggerLevel, SWT.RADIO);
+    btnLoggerLevelWarning.setText("warning");
+
+    btnLoggerLevelInfo = new Button(grpLoggerLevel, SWT.RADIO);
+    btnLoggerLevelInfo.setText("info");
+
+    btnLoggerLevelDebug = new Button(grpLoggerLevel, SWT.RADIO);
+    btnLoggerLevelDebug.setText("debug");
+
+    Group grpOther = new Group(container, SWT.NONE);
+    grpOther.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpOther.setLayout(new GridLayout(1, false));
+
+    btnReadClipboard = new Button(grpOther, SWT.CHECK);
     btnReadClipboard.setText(Strings.READ_CLIPBOARD);
 
-    btnCheckUpdate = new Button(container, SWT.CHECK);
-    btnCheckUpdate.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1));
+    btnCheckUpdate = new Button(grpOther, SWT.CHECK);
     btnCheckUpdate.setText(Strings.CHECK_UPDATE);
 
-    new Label(container, SWT.NONE);
+    btnShowCurrentDateAsTime = new Button(grpOther, SWT.CHECK);
+    btnShowCurrentDateAsTime.setText(Strings.SHOW_CURRENT_DATE_AS_TIME);
+
+    btnRequestLogon = new Button(grpOther, SWT.CHECK);
+    btnRequestLogon.setText(Strings.REQUEST_LOGON);
+
+    Label lblIbasesFilePath = new Label(grpOther, SWT.NONE);
+    lblIbasesFilePath.setText(Strings.IBASES_PATH_TITLE);
+
+    txtIbasesFilePath = new Text(grpOther, SWT.BORDER);
+    txtIbasesFilePath.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+
+    Group grpInfobaseDenied = new Group(container, SWT.NONE);
+    grpInfobaseDenied.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 1, 1));
+    grpInfobaseDenied.setLayout(new GridLayout(1, false));
+
+    lblInfobaseDeniedEditMode = new Label(grpInfobaseDenied, SWT.CHECK);
+    lblInfobaseDeniedEditMode.setText(Strings.INFOBASE_DENIED_EDIT_MODE);
+
+    Composite compositeInfobaseDeniedEditMode = new Composite(grpInfobaseDenied, SWT.NONE);
+    compositeInfobaseDeniedEditMode.setLayout(new FillLayout(SWT.HORIZONTAL));
+
+    btnInfobaseDeniedStandardEditMode = new Button(compositeInfobaseDeniedEditMode, SWT.RADIO);
+    btnInfobaseDeniedStandardEditMode.setText(Strings.INFOBASE_DENIED_STANDARD_EDIT_MODE);
+
+    btnInfobaseDeniedFriendlyEditMode = new Button(compositeInfobaseDeniedEditMode, SWT.RADIO);
+    btnInfobaseDeniedFriendlyEditMode.setText(Strings.INFOBASE_DENIED_FRIENDLY_EDIT_MODE);
+
+    Label lblInfobaseDeniedPattern = new Label(grpInfobaseDenied, SWT.NONE);
+    lblInfobaseDeniedPattern.setText(Strings.INFOBASE_DENIED_MESSAGE_PATTERN);
+
+    txtInfobaseDeniedPattern = new Text(grpInfobaseDenied, SWT.BORDER | SWT.WRAP | SWT.MULTI);
+    GridData gdTxtInfobaseDeniedPattern = new GridData(SWT.FILL, SWT.FILL, false, true, 1, 1);
+    gdTxtInfobaseDeniedPattern.widthHint = 200;
+    gdTxtInfobaseDeniedPattern.heightHint = 61;
+    txtInfobaseDeniedPattern.setLayoutData(gdTxtInfobaseDeniedPattern);
 
     initProperties();
 
@@ -235,18 +307,34 @@ public class SettingsDialog extends Dialog {
     btnShadowSleepSessions.setSelection(config.isShadeSleepingSessions());
     btnReadClipboard.setSelection(config.isReadClipboard());
     btnCheckUpdate.setSelection(config.checkingUpdate());
+    btnShowCurrentDateAsTime.setSelection(config.showCurrentDateAsTime());
+    
+    btnInfobaseDeniedStandardEditMode.setSelection(!config.getInfobaseDeniedFriendlyEditMode());
+    btnInfobaseDeniedFriendlyEditMode.setSelection(config.getInfobaseDeniedFriendlyEditMode());
+    txtInfobaseDeniedPattern.setText(config.getInfobaseDeniedMessagePattern());
 
-    if (config.getLocale() == null) {
+    final String locale = config.getLocale();
+    if (locale == null) {
       btnLocaleSystem.setSelection(true);
     } else {
-      btnLocaleEnglish.setSelection(config.getLocale().equals(Locale.ENGLISH.toLanguageTag()));
-      btnLocaleRussian.setSelection(config.getLocale().equals(LOCALE_RU));
+      btnLocaleEnglish.setSelection(locale.equals(Locale.ENGLISH.toLanguageTag()));
+      btnLocaleRussian.setSelection(locale.equals(LOCALE_RU));
     }
 
     final RowSortDirection rowSortDirection = config.getRowSortDirection();
     btnRowSortAsPrevious.setSelection(rowSortDirection == RowSortDirection.DISABLE);
     btnRowSortAsc.setSelection(rowSortDirection == RowSortDirection.ASC);
     btnRowSortDesc.setSelection(rowSortDirection == RowSortDirection.DESC);
+
+    final String loggerLevel = config.getLoggerLevel();
+    btnLoggerLevelOff.setSelection(loggerLevel.equals(btnLoggerLevelOff.getText()));
+    btnLoggerLevelError.setSelection(loggerLevel.equals(btnLoggerLevelError.getText()));
+    btnLoggerLevelWarning.setSelection(loggerLevel.equals(btnLoggerLevelWarning.getText()));
+    btnLoggerLevelInfo.setSelection(loggerLevel.equals(btnLoggerLevelInfo.getText()));
+    btnLoggerLevelDebug.setSelection(loggerLevel.equals(btnLoggerLevelDebug.getText()));
+
+    txtIbasesFilePath.setText(config.getIbasesStringPath());
+    btnRequestLogon.setSelection(config.getRequestLogon());
   }
 
   private void saveProperties() {
@@ -270,6 +358,9 @@ public class SettingsDialog extends Dialog {
     config.setShadowSleepSessions(btnShadowSleepSessions.getSelection());
     config.setReadClipboard(btnReadClipboard.getSelection());
     config.setCheckingUpdate(btnCheckUpdate.getSelection());
+    config.setShowCurrentDateAsTime(btnShowCurrentDateAsTime.getSelection());
+    config.setInfobaseDeniedFriendlyEditMode(btnInfobaseDeniedFriendlyEditMode.getSelection());
+    config.setInfobaseDeniedMessagePattern(txtInfobaseDeniedPattern.getText());
 
     if (btnLocaleSystem.getSelection()) {
       config.setLocale(null);
@@ -289,6 +380,24 @@ public class SettingsDialog extends Dialog {
       config.setRowSortDirection(RowSortDirection.DISABLE);
     }
 
+    String loggerLevel;
+    if (btnLoggerLevelOff.getSelection()) {
+      loggerLevel = btnLoggerLevelOff.getText();
+    } else if (btnLoggerLevelError.getSelection()) {
+      loggerLevel = btnLoggerLevelError.getText();
+    } else if (btnLoggerLevelWarning.getSelection()) {
+      loggerLevel = btnLoggerLevelWarning.getText();
+    } else if (btnLoggerLevelInfo.getSelection()) {
+      loggerLevel = btnLoggerLevelInfo.getText();
+    } else if (btnLoggerLevelDebug.getSelection()) {
+      loggerLevel = btnLoggerLevelDebug.getText();
+    } else {
+      loggerLevel = btnLoggerLevelOff.getText();
+    }
+    config.setLoggerLevel(loggerLevel);
+
+    config.setIbasesPath(txtIbasesFilePath.getText());
+    config.setRequestLogon(btnRequestLogon.getSelection());
   }
 
   /**
@@ -333,24 +442,37 @@ public class SettingsDialog extends Dialog {
     static final String SHOW_INFOBASE_DESCRIPTION = getString("ShowInfobaseDescription");
     static final String SHOW_LOCAL_RAS_CONNECTINFO = getString("ShowLocalRASConnectInfo");
 
-    static final String LOCALE = getString("Locale");
+    static final String LOCALE_TITLE = getString("LocaleTitle");
     static final String LOCALE_SYSTEM = getString("LocaleSystem");
     static final String LOCALE_ENGLISH = getString("LocaleEnglish");
     static final String LOCALE_RUSSIAN = getString("LocaleRussian");
 
-    static final String HIGHLIGHT = getString("Highlight");
+    static final String HIGHLIGHT_TITLE = getString("HighlightTitle");
     static final String HIGHLIGHT_NEW_ITEMS = getString("HighlightNewItems");
     static final String HIGHLIGHT_DURATION = getString("HighlightDuration");
     static final String SHADOW_SLEEP_SESSIONS = getString("ShadowSleepSessions");
     static final String WATCH_SESSIONS = getString("WatchSessions");
 
-    static final String ROW_SORT_DIRECTION = getString("RowSortDirection");
+    static final String ROW_SORT_DIRECTION_TITLE = getString("RowSortDirectionTitle");
     static final String ROW_SORT_DIRECTION_AS_PREVIOUS = getString("RowSortDirectionAsPrevious");
     static final String ROW_SORT_DIRECTION_ASCENDING = getString("RowSortDirectionAscending");
     static final String ROW_SORT_DIRECTION_DESCENDING = getString("RowSortDirectionDescending");
 
     static final String READ_CLIPBOARD = getString("ReadClipboard");
     static final String CHECK_UPDATE = getString("CheckUpdate");
+    static final String SHOW_CURRENT_DATE_AS_TIME = getString("ShowCurrentDateAsTime");
+
+    static final String INFOBASE_DENIED_EDIT_MODE = getString("InfobaseDeniedEditMode");
+    static final String INFOBASE_DENIED_STANDARD_EDIT_MODE =
+        getString("InfobaseDeniedStandardEditMode");
+    static final String INFOBASE_DENIED_FRIENDLY_EDIT_MODE =
+        getString("InfobaseDeniedFriendlyEditMode");
+    static final String INFOBASE_DENIED_MESSAGE_PATTERN = getString("InfobaseDeniedMessagePattern");
+
+    static final String LOGGER_LEVEL_TITLE = getString("LoggerLevelTitle");
+
+    static final String REQUEST_LOGON = getString("RequestLogon");
+    static final String IBASES_PATH_TITLE = getString("IbasesFilePathTitle");
 
     static String getString(String key) {
       return Messages.getString("SettingsDialog." + key); //$NON-NLS-1$

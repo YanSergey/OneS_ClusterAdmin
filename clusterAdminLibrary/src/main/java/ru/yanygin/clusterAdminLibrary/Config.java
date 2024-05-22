@@ -1,5 +1,6 @@
 package ru.yanygin.clusterAdminLibrary;
 
+import com._1c.v8.ibis.admin.IAssignmentRuleInfo;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
@@ -20,7 +21,10 @@ import java.lang.module.ModuleDescriptor.Version;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,7 +38,8 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.slf4j.Logger;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibrary.ColumnProperties.RowSortDirection;
 import ru.yanygin.clusterAdminLibrary.InfoBaseInfoShortExt.InfobasesSortDirection;
@@ -122,9 +127,37 @@ public class Config {
   @Expose
   private InfobasesSortDirection infobasesSortDirection = InfobasesSortDirection.DISABLE;
 
+  @SerializedName("ListRefreshRate")
+  @Expose
+  private int listRefreshRate = 5000;
+
+  @SerializedName("LoggerLevel")
+  @Expose
+  private String loggerLevel = "error";
+
+  @SerializedName("ShowCurrentDateAsTime")
+  @Expose
+  private boolean showCurrentDateAsTime = false;
+
+  @SerializedName("RequestLogon")
+  @Expose
+  private boolean requestLogon = false;
+
+  @SerializedName("InfobaseDeniedFriendlyEditMode")
+  @Expose
+  private boolean infobaseDeniedFriendlyEditMode = true;
+
+  @SerializedName("InfobaseDeniedMessagePattern")
+  @Expose
+  private String infobaseDeniedMessagePattern = "";
+
   @SerializedName("Servers")
   @Expose
   private Map<String, Server> servers = new HashMap<>();
+
+  @SerializedName("IbasesPath")
+  @Expose
+  private String ibasesPath = "";
 
   @SerializedName("SessionColumnProperties")
   @Expose
@@ -146,9 +179,17 @@ public class Config {
   @Expose
   private ColumnProperties wsColumnProperties = new ColumnProperties(0);
 
+  @SerializedName("AssignmentRuleColumnProperties")
+  @Expose
+  private ColumnProperties asRuleColumnProperties = new ColumnProperties(0);
+
   private static final Logger LOGGER =
-      LoggerFactory.getLogger("clusterAdminLibrary"); //$NON-NLS-1$
-  private static final String DEFAULT_CONFIG_PATH = "config.json"; //$NON-NLS-1$
+      (Logger) LoggerFactory.getLogger(Config.class.getSimpleName());
+
+  private static final Logger ROOT_LOGGER =
+      (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+
+  private static final String DEFAULT_CONFIG_PATH = "config.json"; // $NON-NLS-1$
   private static final String TEMP_CONFIG_PATH = "config_temp.json"; //$NON-NLS-1$
 
   public static Config currentConfig;
@@ -195,8 +236,8 @@ public class Config {
   //    }
   //  }
 
-  /** Init config. */
-  public void init() {
+  /** Действия, которые нужно выполнить после чтения или создания конфига. */
+  public void postInit() {
     runReadUpstreamVersion();
   }
 
@@ -206,8 +247,22 @@ public class Config {
     if (configVersion == null) {
       configVersion = "0.2.0";
       servers.forEach((key, server) -> server.migrateProps(configVersion));
-      configVersion = currentVersion.toString();
     }
+
+    if (!currentVersion.toString().equals(configVersion)) {
+      // делаем бекап конфига
+      String configCopy = configPath + "_bak";
+      File configFile = new File(configPath);
+      if (configFile.exists()) {
+        try {
+          Files.copy(Path.of(configPath), Path.of(configCopy), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+          LOGGER.error("Config file backup error:", e);
+        }
+      }
+    }
+
+    configVersion = currentVersion.toString();
   }
 
   private OsType getOperatingSystemType() {
@@ -249,7 +304,7 @@ public class Config {
     //      return Version.parse(v);
     //    }
 
-    return Version.parse("0.3.0");
+    return Version.parse("0.4.0");
   }
 
   private void runReadUpstreamVersion() {
@@ -410,7 +465,6 @@ public class Config {
    * @return новый сервер
    */
   public Server createNewServer() {
-    Server newServer = null;
 
     if (isReadClipboard()) {
       Clipboard clipboard = new Clipboard(Display.getDefault());
@@ -420,16 +474,11 @@ public class Config {
       if (clip != null && clip.startsWith("Srvr=")) { //$NON-NLS-1$
         String[] srvrPart = clip.split(";"); //$NON-NLS-1$
         String srvr = srvrPart[0].substring(6, srvrPart[0].length() - 1);
-        newServer = new Server(srvr);
-      } else {
-        newServer = new Server("Server:1541"); //$NON-NLS-1$
+        return new Server(srvr);
       }
-    } else {
-      newServer = new Server("Server:1541"); //$NON-NLS-1$
     }
-    // servers.put(newServer.getServerKey(), newServer);
-    // TODO по идее еще рано добавлять в список серверов эту заготовку
-    return newServer;
+
+    return new Server();
   }
 
   public void addNewServer(Server server) {
@@ -458,29 +507,13 @@ public class Config {
    * Добавление новых серверов в конфиг.
    *
    * @param newServers - список новых серверов
-   * @return список серверов, которые были реально добавлены
    */
-  public List<String> addNewServers(List<String> newServers) {
-    // Пакетное добавление серверов в список, предполагается для механизма импорта из списка
-    // информационных баз
-
-    List<String> addedServers = new ArrayList<>();
-
-    // Имя сервера, которое приходит сюда не равно Представлению сервера, выводимому в списке
-    // Имя сервера. оно же Key в map и json, строка вида Server:1541, с обязательным указанием порта
-    // менеджера, к которому подключаемся
-    // если порт менеджера не задан - ставим стандартный 1541
-    // переделать
-    for (String serverName : newServers) {
-      if (!servers.containsKey(serverName)) {
-        Server serverConfig = new Server(serverName);
-        servers.put(serverName, serverConfig);
-
-        addedServers.add(serverName);
-      }
+  public void addNewServers(List<Server> newServers) {
+    // Пакетное добавление серверов в список
+    for (Server server : newServers) {
+      servers.put(server.getServerKey(), server);
     }
-
-    return addedServers;
+    saveConfig();
   }
 
   /** Подключиться ко всем серверам в тихом режиме. */
@@ -509,6 +542,24 @@ public class Config {
    */
   public void setCheckingUpdate(boolean checkingUpdate) {
     this.checkingUpdate = checkingUpdate;
+  }
+
+  /**
+   * Показывать только время в текущей дате.
+   *
+   * @return текущее значение
+   */
+  public boolean showCurrentDateAsTime() {
+    return showCurrentDateAsTime;
+  }
+
+  /**
+   * Установка отображения только времени в текущей дате.
+   *
+   * @param showCurrentDateAsTime - новое значение
+   */
+  public void setShowCurrentDateAsTime(boolean showCurrentDateAsTime) {
+    this.showCurrentDateAsTime = showCurrentDateAsTime;
   }
 
   /**
@@ -845,12 +896,115 @@ public class Config {
   }
 
   /**
+   * Получить установленный уровень логирования.
+   *
+   * @return уровень логирования
+   */
+  public String getLoggerLevel() {
+    return loggerLevel;
+  }
+
+  /**
+   * Установить уровень логирования.
+   *
+   * @param level - уровень логирования
+   */
+  public void setLoggerLevel(String level) {
+    this.loggerLevel = level;
+    applyLoggerLevel();
+  }
+
+  /** Применить уровень логирования из конфига. */
+  private void applyLoggerLevel() {
+
+    ROOT_LOGGER.setLevel(Level.toLevel("info"));
+    ROOT_LOGGER.info("logger level switching to <{}>", loggerLevel); // $NON-NLS-1$
+    ROOT_LOGGER.setLevel(Level.toLevel(loggerLevel));
+
+    ROOT_LOGGER.error("test logger level = error"); // $NON-NLS-1$
+    ROOT_LOGGER.warn("test logger level = warn"); // $NON-NLS-1$
+    ROOT_LOGGER.info("test logger level = info"); // $NON-NLS-1$
+    ROOT_LOGGER.debug("test logger level = debug"); // $NON-NLS-1$
+  }
+
+  /**
+   * Получить частоту обновления списка.
+   *
+   * @return частота обновления списка (миллисекунд)
+   */
+  public int getListRrefreshRate() {
+    return listRefreshRate;
+  }
+
+  /**
+   * Установка частоты обновления списка.
+   *
+   * @param refreshRate - частота обновления списка (миллисекунд)
+   */
+  public void setListRrefreshRate(int refreshRate) {
+    this.listRefreshRate = refreshRate;
+  }
+
+  /**
+   * Запрашивать логин/пароль при действиях с базой.
+   *
+   * @return запрашивать или нет
+   */
+  public boolean getRequestLogon() {
+    return requestLogon;
+  }
+
+  /**
+   * Установка запроса логин/пароля при действиях с базой.
+   *
+   * @param requestLogon - запрашивать логин/пароль
+   */
+  public void setRequestLogon(boolean requestLogon) {
+    this.requestLogon = requestLogon;
+  }
+
+  /**
+   * Получить путь к файлу со списком информационных баз.
+   *
+   * @return Путь к списку информационных баз
+   */
+  public Path getIbasesPath() {
+    if (ibasesPath.isBlank()) {
+      return Paths.get(System.getenv("APPDATA"), "1c\\1cestart\\ibases.v8i");
+    } else {
+      return Paths.get(ibasesPath);
+    }
+  }
+
+  /**
+   * Получить установленный пользователем путь к файлу со списком информационных баз.
+   *
+   * @return Путь к списку информационных баз в виде строки
+   */
+  public String getIbasesStringPath() {
+    if (ibasesPath.isBlank()) {
+      return "";
+    } else {
+      return ibasesPath;
+    }
+  }
+
+  /**
+   * Установить путь к файлу со списком информационных баз.
+   *
+   * @param ibasesPath - путь к файлу со списком информационных баз
+   */
+  public void setIbasesPath(String ibasesPath) {
+    this.ibasesPath = ibasesPath;
+  }
+
+  /**
    * Получение свойства колонок списков.
    *
-   * @param clazz - имя класса, идентифицирующее список-кладелец колонок
+   * @param clazz - имя класса, идентифицирующее список-владелец колонок
    * @return ColumnProperties - свойства колонок списка
    */
-  public ColumnProperties getColumnsProperties(Class<? extends BaseInfoExtended> clazz) {
+  public ColumnProperties getColumnsProperties(Class<?> clazz) {
     if (clazz == SessionInfoExtended.class) {
       return sessionColumnProperties;
     } else if (clazz == ConnectionInfoExtended.class) {
@@ -861,6 +1015,8 @@ public class Config {
       return wpColumnProperties;
     } else if (clazz == WorkingServerInfoExtended.class) {
       return wsColumnProperties;
+    } else if (clazz == IAssignmentRuleInfo.class) {
+      return asRuleColumnProperties;
     } else {
       return null;
     }
@@ -872,7 +1028,7 @@ public class Config {
    * @param clazz - имя класса, идентифицирующее список-кладелец колонок
    * @param columnOrder - новый порядок колонок
    */
-  public void setColumnsOrder(Class<? extends BaseInfoExtended> clazz, int[] columnOrder) {
+  public void setColumnsOrder(Class<?> clazz, int[] columnOrder) {
     getColumnsProperties(clazz).setOrder(columnOrder);
   }
 
@@ -883,7 +1039,7 @@ public class Config {
    * @param index - индекс колонки
    * @param width - ширина колонки
    */
-  public void setColumnsWidth(Class<? extends BaseInfoExtended> clazz, int index, int width) {
+  public void setColumnsWidth(Class<?> clazz, int index, int width) {
     getColumnsProperties(clazz).setWidth(index, width);
   }
 
@@ -930,6 +1086,42 @@ public class Config {
    */
   public Version getLatestVersion() {
     return latestVersion;
+  }
+
+  /**
+   * Установлен удобный вариант установки даты запрета входа в инфобазу.
+   *
+   * @return истина = удобный вариант установки даты
+   */
+  public boolean getInfobaseDeniedFriendlyEditMode() {
+    return infobaseDeniedFriendlyEditMode;
+  }
+
+  /**
+   * Устанавливает удобный вариант установки даты запрета входа в инфобазу.
+   *
+   * @param infobaseDeniedFriendlyEditMode - истина = удобный вариант установки даты
+   */
+  public void setInfobaseDeniedFriendlyEditMode(boolean infobaseDeniedFriendlyEditMode) {
+    this.infobaseDeniedFriendlyEditMode = infobaseDeniedFriendlyEditMode;
+  }
+
+  /**
+   * Возвращает шаблон текста запрета входа в инфобазу.
+   *
+   * @return Шаблон текста запрета входа
+   */
+  public String getInfobaseDeniedMessagePattern() {
+    return infobaseDeniedMessagePattern;
+  }
+
+  /**
+   * Устанавливает шаблон текста запрета входа в инфобазу.
+   *
+   * @param infobaseDeniedMessagePattern - Шаблон текста запрета входа
+   */
+  public void setInfobaseDeniedMessagePattern(String infobaseDeniedMessagePattern) {
+    this.infobaseDeniedMessagePattern = infobaseDeniedMessagePattern;
   }
 
   /**
@@ -1012,14 +1204,18 @@ public class Config {
 
       config.setConfigPath(configPath);
       config.migrateProps();
-      config.init();
+      // config.init();
       if (config.getLocale() != null) {
         LOGGER.debug("Set locale is <{}>", config.getLocale()); //$NON-NLS-1$
         Locale locale = Locale.forLanguageTag(config.getLocale());
         java.util.Locale.setDefault(locale);
         Messages.reloadBundle(locale); // TODO не совсем понятно как работает
       }
+
+      config.applyLoggerLevel();
     }
+    config.postInit();
+
     LOGGER.info("Config file read successfully"); //$NON-NLS-1$
     return config;
   }

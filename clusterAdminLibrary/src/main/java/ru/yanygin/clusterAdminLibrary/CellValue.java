@@ -1,8 +1,6 @@
 package ru.yanygin.clusterAdminLibrary;
 
-import java.text.DateFormat;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /** Value of cell from lists. */
@@ -60,7 +58,7 @@ public class CellValue {
         break;
 
       case DATE:
-        this.value = dateToString((Date) value);
+        this.value = Helper.dateToString((Date) value);
         break;
 
       case SECONDS_INT:
@@ -98,20 +96,6 @@ public class CellValue {
       default:
         this.value = (String) value;
     }
-  }
-
-  /**
-   * Cast date to string.
-   *
-   * @param date - date
-   * @return date format to string
-   */
-  private String dateToString(Date date) {
-
-    DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); //$NON-NLS-1$
-    Date emptyDate = new Date(0);
-
-    return date.equals(emptyDate) ? "" : dateFormat.format(date); //$NON-NLS-1$
   }
 
   /**

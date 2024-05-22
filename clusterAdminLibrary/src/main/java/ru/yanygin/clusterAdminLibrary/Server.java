@@ -30,6 +30,7 @@ import com._1c.v8.ibis.admin.client.IAgentAdminConnector;
 import com._1c.v8.ibis.admin.client.IAgentAdminConnectorFactory;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import java.lang.Runtime.Version;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,7 +41,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.TreeItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yanygin.clusterAdminLibraryUI.AuthenticateDialog;
@@ -55,19 +58,19 @@ public class Server implements Comparable<Server> {
 
   @SerializedName("AgentHost")
   @Expose
-  private String agentHost = ""; //$NON-NLS-1$
+  private String agentHost = "Server1c"; //$NON-NLS-1$
 
   @SerializedName("AgentPort")
   @Expose
-  private int agentPort = 0;
+  private int agentPort = 1540;
 
   @SerializedName("RasHost")
   @Expose
-  private String rasHost = ""; //$NON-NLS-1$
+  private String rasHost = "Server1c"; //$NON-NLS-1$
 
   @SerializedName("RasPort")
   @Expose
-  private int rasPort = 0;
+  private int rasPort = 1545;
 
   @SerializedName("UseLocalRas")
   @Expose
@@ -77,9 +80,9 @@ public class Server implements Comparable<Server> {
   @Expose
   private int localRasPort = 0;
 
-  @SerializedName("LocalRasV8version")
+  @SerializedName("V8Version")
   @Expose
-  private String localRasV8version = ""; //$NON-NLS-1$
+  private String v8version = ""; //$NON-NLS-1$
 
   @SerializedName("Autoconnect")
   @Expose
@@ -87,7 +90,7 @@ public class Server implements Comparable<Server> {
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("SaveCredentials")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private boolean saveCredentials = false;
 
   @SerializedName("SaveCredentialsVariant")
@@ -96,12 +99,12 @@ public class Server implements Comparable<Server> {
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("AgentUser")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private String agentUserName = ""; //$NON-NLS-1$
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("AgentPassword")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private String agentPassword = ""; //$NON-NLS-1$
 
   @SerializedName("AgentCredential")
@@ -110,7 +113,7 @@ public class Server implements Comparable<Server> {
 
   @Deprecated(since = "0.3.0", forRemoval = true)
   @SerializedName("ClustersCredentials")
-  @Expose(serialize = false, deserialize = true) // TODO верно ли написал
+  @Expose(serialize = false, deserialize = true)
   private Map<UUID, String[]> clustersCredentialsOld = new HashMap<>();
 
   @SerializedName("ClustersCredentialsV3")
@@ -125,11 +128,13 @@ public class Server implements Comparable<Server> {
   @Expose
   private List<String> favoriteInfobases = new ArrayList<>();
 
-
+  private ServerState serverState = ServerState.DISCONNECT;
   private boolean available;
   private Process localRasProcess;
-  private String connectionError = ""; //$NON-NLS-1$;
-  //  private String agentVersion = ""; //$NON-NLS-1$
+  private String connectionError = ""; //$NON-NLS-1$
+  boolean silentConnectionMode = false;
+
+  @Deprecated
   private String agentVersion = Messages.getString("Server.NotConnect"); //$NON-NLS-1$
 
   private IAgentAdminConnector agentConnector;
@@ -148,6 +153,18 @@ public class Server implements Comparable<Server> {
   public static final String BACKGROUND_JOB = "BackgroundJob"; //$NON-NLS-1$
 
   private static final String TREE_TITLE_PATTERN = "%s (%s)"; //$NON-NLS-1$
+
+  private static Image defaultIcon = Helper.getImage("server_default_24.png"); // $NON-NLS-1$
+  private static Image connectedIcon = Helper.getImage("server_connected_24.png"); // $NON-NLS-1$
+  private static Image connectingIcon = Helper.getImage("server_connecting_24.png"); // $NON-NLS-1$
+  private static Image connectErrorIcon = Helper.getImage("server_connectError_24.png"); // $NON-NLS-1$
+
+  private enum ServerState {
+    DISCONNECT,
+    CONNECTED,
+    CONNECTING,
+    CONNECT_ERROR
+  }
 
   public enum SaveCredentialsVariant {
     DISABLE,
@@ -322,30 +339,21 @@ public class Server implements Comparable<Server> {
   }
 
   /**
-   * Получение версии v8 локального RAS.
+   * Получение версии платформы v8 1C-сервера.
    *
-   * @return версия v8 локального RAS
+   * @return версия платформы v8 1C-сервера
    */
-  public String getLocalRasV8version() {
-    return localRasV8version;
+  public String getV8Version() {
+    return this.v8version;
   }
 
   /**
-   * Установка версии v8 локального RAS.
+   * Установка версии платформы v8 1C-сервера.
    *
-   * @param localRasV8version - версия v8 локального RAS
+   * @param v8version - версия платформы v8 1C-сервера
    */
-  public void setLocalRasV8version(String localRasV8version) {
-    this.localRasV8version = localRasV8version;
-  }
-
-  /**
-   * Получение версии агента сервера.
-   *
-   * @return версия агента сервера
-   */
-  public String getAgentVersion() {
-    return agentVersion;
+  public void setV8Version(String v8version) {
+    this.v8version = v8version;
   }
 
   /**
@@ -358,12 +366,21 @@ public class Server implements Comparable<Server> {
   }
 
   /**
+   * Показывает, нужно ли выводить ошибку подключения.
+   *
+   * @return выводить ошибку подключения
+   */
+  public boolean needShowConnectionError() {
+    return !connectionError.isBlank() && !silentConnectionMode;
+  }
+
+  /**
    * Получение ключа сервера в виде "Server:1541".
    *
    * @return ключ сервера
    */
   public String getServerKey() {
-    return agentHost.concat(":").concat(Integer.toString(agentPort)); //$NON-NLS-1$
+    return agentHost.toLowerCase().concat(":").concat(Integer.toString(agentPort)); // $NON-NLS-1$
   }
 
   /**
@@ -381,7 +398,7 @@ public class Server implements Comparable<Server> {
             : ""; //$NON-NLS-1$
     var serverVersionPatternPart =
         commonConfig.isShowServerVersion()
-            ? String.format(" (%s)", agentVersion) //$NON-NLS-1$
+            ? String.format(" (%s)", v8version) //$NON-NLS-1$
             : ""; //$NON-NLS-1$
     var serverDescriptionPatternPart =
         commonConfig.isShowServerDescription() && !description.isBlank()
@@ -596,8 +613,12 @@ public class Server implements Comparable<Server> {
    * @param serverName - имя сервера в виде "Server" или с указанием порта менеджера "Server:2541".
    */
   public Server(String serverName) {
+    serverName = serverName.strip();
+    if (serverName.isBlank()) {
+      return;
+    }
 
-    computeServerParams(serverName);
+    computeHostAndPort(serverName);
 
     //    this.useLocalRas = false;
     //    this.localRasPort = 0;
@@ -608,6 +629,20 @@ public class Server implements Comparable<Server> {
     //    this.agentVersion = ""; //$NON-NLS-1$
 
     //    init();
+  }
+
+  /**
+   * Создание нового экземпляра.
+   *
+   * @param serverHost - имя хоста сервера в виде "Server" (без номера порта)
+   * @param agentPort - порт агента сервера (1540, 2540 и т.п.)
+   */
+  public Server(String serverHost, int agentPort) {
+
+    this.agentHost = serverHost;
+    this.rasHost = serverHost;
+    this.agentPort = agentPort;
+    this.rasPort = agentPort + 5;
   }
 
   /** Initializes some server parameters. */
@@ -681,19 +716,57 @@ public class Server implements Comparable<Server> {
     return collator.compare(secondString, firstString);
   }
 
-  private void readAgentVersion() {
+  private void refreshAgentVersion() {
 
     if (!isConnected()) {
       return;
     }
-
+    
+    String newAgentVersionString = "";
     try {
-      agentVersion = agentConnection.getAgentVersion();
-      LOGGER.debug(
-          "Agent version of server <{}> is <{}>", this.getServerKey(), agentVersion); //$NON-NLS-1$
+      newAgentVersionString = agentConnection.getAgentVersion();
     } catch (Exception e) {
-      agentVersion = Messages.getString("Server.UnknownAgentVersion"); //$NON-NLS-1$
-      LOGGER.error("Unknown agent version of server <{}>", this.getServerKey()); //$NON-NLS-1$
+      // для платформы 8.3.10 и ниже agentConnection.getAgentVersion() бросает AgentAdminException
+      this.v8version = Messages.getString("Server.UnknownAgentVersion"); // $NON-NLS-1$
+      LOGGER.error("Unknown agent version of server <{}>", this.getServerKey()); // $NON-NLS-1$
+      return;
+    }
+
+    if (this.v8version.isEmpty()) {
+      this.v8version = newAgentVersionString;
+      LOGGER.debug(
+          "Set Server <{}> version is <{}>", this.getServerKey(), this.v8version); //$NON-NLS-1$
+      return;
+    }
+
+    // agentVersion = agentConnection.getAgentVersion() = [8, 3, 18, 1483]
+    // agentVersion.feature() = 8
+    // agentVersion.interim() = 3
+    // agentVersion.update() = 18
+    // agentVersion.patch() = 1483
+    // для платформы 8.3.15 и ниже agentVersion.patch() = 0 всегда
+
+    Version newAgentVersion = Version.parse(newAgentVersionString);
+    Version savedV8version = Version.parse(this.v8version);
+
+    boolean v8versionIsActual;
+
+    if (newAgentVersion.version().size() == 3) {
+      v8versionIsActual =
+          savedV8version.feature() == newAgentVersion.feature()
+              && savedV8version.interim() == newAgentVersion.interim()
+              && savedV8version.update() == newAgentVersion.update();
+
+    } else {
+      v8versionIsActual = savedV8version.equals(newAgentVersion);
+    }
+
+    if (!v8versionIsActual) {
+      this.v8version = newAgentVersionString;
+      LOGGER.debug(
+          "Refresh Server <{}> version is <{}>", //$NON-NLS-1$
+          this.getServerKey(),
+          this.v8version);
     }
   }
 
@@ -715,7 +788,7 @@ public class Server implements Comparable<Server> {
    * @return {@code true} если v8 версия 8.3.15 или выше
    */
   public boolean isFifteenOrMoreAgentVersion() {
-    return agentVersion.compareTo("8.3.15") >= 0; //$NON-NLS-1$
+    return v8version.compareTo("8.3.15") >= 0; //$NON-NLS-1$
   }
 
   /**
@@ -724,21 +797,16 @@ public class Server implements Comparable<Server> {
    * @param serverAddress - Имя сервера из списка баз. Может содержать номер порта менеджера
    *     кластера (Если не указан, то по-умолчанию 1541). Примеры: Server1c, Server1c:2541
    */
-  private void computeServerParams(String serverAddress) {
+  private void computeHostAndPort(String serverAddress) {
 
-    String host;
-    int newAgentPort;
-    int newRasPort;
+    String[] adr = serverAddress.split(":"); // $NON-NLS-1$
 
-    serverAddress = serverAddress.strip();
-    if (serverAddress.isBlank()) {
-      serverAddress = "localhost"; //$NON-NLS-1$
-    }
-
-    String[] adr = serverAddress.split(":"); //$NON-NLS-1$
-    host = adr[0];
+    final String host = adr[0];
+    final int newAgentPort;
+    final int newRasPort;
 
     if (adr.length == 1) {
+      // адрес не содержит двоеточие и номер порта, значит используется порт по-умолчанию 1541
       newAgentPort = 1540;
       newRasPort = 1545;
     } else {
@@ -752,7 +820,7 @@ public class Server implements Comparable<Server> {
     this.agentPort = newAgentPort;
     this.rasPort = newRasPort;
 
-    LOGGER.info("Compute params for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
+    LOGGER.info("Compute host and port for Server <{}> ", this.getServerKey()); //$NON-NLS-1$
   }
 
   /**
@@ -763,7 +831,10 @@ public class Server implements Comparable<Server> {
   public boolean isConnected() {
     boolean isConnected = (agentConnection != null);
 
-    if (!isConnected) {
+    if (isConnected) {
+      serverState = ServerState.CONNECTED;
+    } else if (serverState != ServerState.CONNECTING) {
+      serverState = ServerState.DISCONNECT;
       LOGGER.info(
           "The connection a server <{}> is not established", //$NON-NLS-1$
           this.getServerKey());
@@ -786,22 +857,39 @@ public class Server implements Comparable<Server> {
       return true;
     }
 
+    available = false;
+    connectionError = "";
+    serverState = ServerState.CONNECTING;
+    silentConnectionMode = silentMode;
+
+    // все вызовы здесь проверить на Helper.showMessageBox
+    // этого тут быть не должно, потому что выполняется в отдельном потоке
+
     if (!checkAndRunLocalRas()) {
+      serverState = ServerState.DISCONNECT;
       return false;
     }
 
     String currentRasHost = useLocalRas ? "localhost" : this.rasHost; //$NON-NLS-1$
 
     int currentRasPort = useLocalRas ? localRasPort : this.rasPort;
-
+    //    try {
+    //      Thread.sleep(5000);
+    //    } catch (InterruptedException e) { // TODO Искусственная задержка подключения
+    //      e.printStackTrace();
+    //    }
     try {
-      connectToAgent(currentRasHost, currentRasPort, 20);
+      connectToAgent(currentRasHost, currentRasPort, 120);
+      serverState = ServerState.CONNECTED;
 
       if (disconnectAfter) {
         disconnectFromAgent();
+        serverState = ServerState.DISCONNECT;
       }
     } catch (Exception excp) {
       available = false;
+      serverState = ServerState.CONNECT_ERROR;
+
       disconnectLocalRas();
 
       connectionError =
@@ -810,9 +898,9 @@ public class Server implements Comparable<Server> {
               this.getServerKey(), getLocalisedMessage(excp));
       LOGGER.error(connectionError);
 
-      if (!silentMode) {
-        Helper.showMessageBox(connectionError);
-      }
+      // if (!silentMode) {
+      // Helper.showMessageBox(connectionError);
+      // }
       return false;
     }
     return true;
@@ -834,28 +922,34 @@ public class Server implements Comparable<Server> {
       return true;
     }
 
-    if (localRasV8version.isBlank() || localRasPort == 0) {
-      var message =
+    if (v8version.isBlank() || localRasPort == 0) {
+      connectionError =
           String.format(
-              Messages.getString("Server.LocalRasParamsIsEmpty"), //$NON-NLS-1$
+              Messages.getString("Server.LocalRasParamsIsEmpty"), // $NON-NLS-1$
               this.getServerKey());
-      LOGGER.error(message);
-      Helper.showMessageBox(message);
+      LOGGER.error(connectionError);
+      return false;
+    }
 
+    Version savedV8version = Version.parse(v8version);
+    if (savedV8version.version().size() == 3) {
+      connectionError =
+          String.format(
+              Messages.getString("Server.LocalRasParamsIsInvalid"), // $NON-NLS-1$
+              v8version);
+      LOGGER.error(connectionError);
       return false;
     }
 
     ///////////////////////////// пока только Windows
     var processBuilder = new ProcessBuilder();
     var processOutput = ""; //$NON-NLS-1$
-    var localRasPath = Helper.getInstalledV8Versions().get(localRasV8version);
+    var localRasPath = Helper.pathToRas(v8version, "x64");
     if (localRasPath == null) {
-      var message =
+      connectionError =
           String.format(
-              Messages.getString("Server.LocalRasNotFound"), this.getServerKey()); //$NON-NLS-1$
-      LOGGER.error(message);
-      Helper.showMessageBox(message);
-
+              Messages.getString("Server.LocalRasNotFound"), this.getServerKey()); // $NON-NLS-1$
+      LOGGER.error(connectionError);
       return false;
     }
 
@@ -881,8 +975,7 @@ public class Server implements Comparable<Server> {
     } catch (Exception excp) {
       LOGGER.error("Error launch local RAS for server <{}>", this.getServerKey()); //$NON-NLS-1$
       LOGGER.error("Error: <{}>", processOutput, excp); //$NON-NLS-1$
-      Helper.showMessageBox(excp.getLocalizedMessage());
-      
+      connectionError = excp.getLocalizedMessage();
       return false;
     }
 
@@ -909,8 +1002,6 @@ public class Server implements Comparable<Server> {
       connectionError =
           String.format("Local RAS <%s> is shutdown", this.getServerKey()); //$NON-NLS-1$
       LOGGER.error(connectionError);
-      Helper.showMessageBox(connectionError);
-
       return false;
     }
   }
@@ -922,7 +1013,7 @@ public class Server implements Comparable<Server> {
    * @param clusterId - ID кластера
    * @return boolean истекла/не истекла
    */
-  private boolean checkAutenticateAgent() {
+  public boolean checkAutenticateAgent() {
 
     var needAuthenticate = false;
     try {
@@ -938,8 +1029,8 @@ public class Server implements Comparable<Server> {
       String[] rightStrings = { // TODO проверить английские варианты
         "Недостаточно прав пользователя на управление центральным сервером",
         "Администратор центрального сервера не аутентифицирован",
-        "The user's rights to manage the central server are insufficient",
-        "The administrator of the central server is not authenticated"
+        "The user's rights to manage the central server are insufficient", // не проверено
+        "Main server administrator is not authenticated"
       };
       for (String rightString : rightStrings) {
         if (excp.getLocalizedMessage().contains(rightString)) {
@@ -970,6 +1061,7 @@ public class Server implements Comparable<Server> {
           "The connection to server <{}> is already established", //$NON-NLS-1$
           this.getServerKey());
       available = true;
+      connectionError = ""; // $NON-NLS-1$
       return;
     }
 
@@ -985,7 +1077,7 @@ public class Server implements Comparable<Server> {
 
     available = true;
     connectionError = ""; //$NON-NLS-1$
-    readAgentVersion();
+    refreshAgentVersion();
 
     LOGGER.debug("Server <{}> is connected now", this.getServerKey()); //$NON-NLS-1$
   }
@@ -1015,14 +1107,16 @@ public class Server implements Comparable<Server> {
     } finally {
       agentConnection = null;
       agentConnector = null;
+      serverState = ServerState.DISCONNECT;
     }
   }
 
   private void disconnectLocalRas() {
-    if (useLocalRas && localRasProcess.isAlive()) {
+    if (localRasProcess != null && localRasProcess.isAlive()) {
       Stream<ProcessHandle> ch = localRasProcess.children();
       ch.forEach(ProcessHandle::destroy);
       localRasProcess.destroy();
+      localRasProcess = null;
       LOGGER.info(
           "Local RAS of Server <{}> is shutdown now", //$NON-NLS-1$
           this.getServerKey());
@@ -1098,8 +1192,8 @@ public class Server implements Comparable<Server> {
       String[] rightStrings = { // TODO проверить английские варианты
         "Недостаточно прав пользователя на управление кластером",
         "Администратор кластера не аутентифицирован",
-        "Insufficient user rights to manage the cluster",
-        "The cluster administrator is not authenticated"
+        "Insufficient user rights to manage cluster",
+        "The cluster administrator is not authenticated" // не проверено
       };
       for (String rightString : rightStrings) {
         if (excp.getLocalizedMessage().toLowerCase().contains(rightString.toLowerCase())) {
@@ -1378,6 +1472,16 @@ public class Server implements Comparable<Server> {
   }
 
   /**
+   * Получение порта менеджера кластера.
+   *
+   * @param clusterId - ID кластера
+   * @return String - порт менеджера кластера
+   */
+  public String getClusterMainPort(UUID clusterId) {
+    IClusterInfo clusterInfo = getClusterInfo(clusterId);
+    return clusterInfo == null ? "0" : String.valueOf(clusterInfo.getMainPort());
+  }
+  /**
    * Gets the list of cluster manager descriptions.
    *
    * <p>Требует аутентификации в кластере
@@ -1547,16 +1651,71 @@ public class Server implements Comparable<Server> {
    * @param clusterId - ID кластера
    * @return список администраторов кластера
    */
-  private List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
+  public List<IRegUserInfo> getClusterAdmins(UUID clusterId) {
     LOGGER.debug(
-        "Gets the list of cluster administrators in the cluster <{}>", //$NON-NLS-1$
+        "Getting a list of cluster administrators <{}>", //$NON-NLS-1$
         clusterId);
+
     if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
       return new ArrayList<>();
     }
 
-    // TODO
-    return null;
+    if (!checkAutenticateCluster(clusterId)) {
+      return new ArrayList<>();
+    }
+
+    List<IRegUserInfo> clusterAdmins;
+    try {
+      clusterAdmins = agentConnection.getClusterAdmins(clusterId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error getting the list of cluster administrators", //$NON-NLS-1$
+          excp);
+      return new ArrayList<>();
+    }
+
+    return clusterAdmins;
+  }
+  
+  /**
+   * Регистрация нового или изменение существующего администратора кластера.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param info - информация о администраторе
+   * @return {@code true} в случае успешной регистрации
+   */
+  public boolean regClusterAdmin(UUID clusterId, IRegUserInfo info) {
+    LOGGER.debug(
+        "Administrator registration on the cluster <{}>", //$NON-NLS-1$
+        clusterId);
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
+      return false;
+    }
+
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.regClusterAdmin(clusterId, info);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registering the administrator of the cluster", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -1565,18 +1724,142 @@ public class Server implements Comparable<Server> {
    * <p>Требует аутентификации в кластере
    *
    * @param clusterId - ID кластера
-   * @param name - имя администратора
+   * @param username - имя администратора
    */
-  private void unregClusterAdmin(UUID clusterId, String name) {
+  public boolean unregClusterAdmin(UUID clusterId, String username) {
     LOGGER.debug(
-        "Deletes a cluster administrator in the cluster <{}>", //$NON-NLS-1$
+        "Deletes the cluster administrator in the cluster <{}>", //$NON-NLS-1$
         clusterId);
     if (!isConnected()) {
-      return;
+      LOGGER.debug(
+          "The connection a cluster <{}> is not established", //$NON-NLS-1$
+          clusterId);
+      return false;
     }
 
-    // TODO
-    return;
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregClusterAdmin(clusterId, username);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistration cluster administrator", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Получение списка администраторов центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @return список администраторов кластера
+   */
+  public List<IRegUserInfo> getAgentAdmins() {
+    LOGGER.debug(
+        "Getting the list of administrators on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return new ArrayList<>();
+    }
+
+    if (!checkAutenticateAgent()) {
+      return new ArrayList<>();
+    }
+
+    List<IRegUserInfo> clusterAdmins;
+    try {
+      clusterAdmins = agentConnection.getAgentAdmins();
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error getting the list of administrators of the main server", //$NON-NLS-1$
+          excp);
+      return new ArrayList<>();
+    }
+
+    return clusterAdmins;
+  }
+
+  /**
+   * Регистрация нового или изменение существующего администратора центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @param info - информация о администраторе
+   * @return {@code true} в случае успешной регистрации
+   */
+  public boolean regAgentAdmin(IRegUserInfo info) {
+    LOGGER.debug(
+        "Administrator registration on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return false;
+    }
+
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.regAgentAdmin(info);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registering the administrator of the main server", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Удаление администратора центрального сервера.
+   *
+   * <p>Требует аутентификации на центральном сервере
+   *
+   * @param username - имя администратора
+   */
+  public boolean unregAgentAdmin(String username) {
+    LOGGER.debug(
+        "Deleting an administrator on the main server <{}>", //$NON-NLS-1$
+        getServerKey());
+    if (!isConnected()) {
+      LOGGER.debug(
+          "The connection a server <{}> is not established", //$NON-NLS-1$
+          getServerKey());
+      return false;
+    }
+
+    if (!checkAutenticateAgent()) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregAgentAdmin(username);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistration of the main server administrator", //$NON-NLS-1$
+          excp);
+      Helper.showMessageBox(excp.getLocalizedMessage());
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -3108,77 +3391,206 @@ public class Server implements Comparable<Server> {
   }
 
   /**
-   * Applies assignment rules.
+   * Получает список описаний ТНФ рабочего сервера.
    *
    * <p>Требует аутентификации в кластере
    *
    * @param clusterId - ID кластера
-   * @param full - assigment rule application mode: 0 - partial 1 - full
-   */
-  public void applyAssignmentRules(UUID clusterId, int full) {
-    // TODO
-    agentConnection.applyAssignmentRules(clusterId, full);
-  }
-
-  /**
-   * Gets the list of descriptions of working server assignment rules.
-   *
-   * <p>Требует аутентификации в кластере
-   *
-   * @param clusterId - ID кластера
-   * @param serverId - server ID
-   * @return infobase full infobase description
+   * @param serverId - ID рабочего сервера
+   * @return список ТНФ
    */
   public List<IAssignmentRuleInfo> getAssignmentRules(UUID clusterId, UUID serverId) {
-    // TODO
-    return agentConnection.getAssignmentRules(clusterId, serverId);
+    LOGGER.debug(
+        "Getting a list of descriptions of assignment rules, cluster <{}>, ws <{}>", //$NON-NLS-1$
+        clusterId,
+        serverId);
+    
+    if (!isConnected()) {
+      return new ArrayList<>();
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return new ArrayList<>();
+    }
+
+    List<IAssignmentRuleInfo> assignmentRules;
+    try {
+      assignmentRules = agentConnection.getAssignmentRules(clusterId, serverId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error in getting a list of descriptions of assignment rules", excp); // $NON-NLS-1$
+      return new ArrayList<>();
+    }
+
+    assignmentRules.forEach(
+        rule ->
+            LOGGER.debug(
+                "\tRule: ObjectType=<{}>, RuleId=<{}>", //$NON-NLS-1$
+                rule.getObjectType(),
+                rule.getAssignmentRuleId()));
+
+    LOGGER.debug("Getting the list of assignment rule descriptions was successful"); // $NON-NLS-1$
+    return assignmentRules;
   }
 
   /**
-   * Creates an assignment rule, changes an existing one, or moves an existing rule to a new
-   * position.
+   * Получает описание правила ТНФ.
    *
    * <p>Требует аутентификации в кластере
    *
    * @param clusterId - ID кластера
-   * @param serverId - server ID
-   * @param info - assignment rule description
-   * @param position - position in the rule list (starts from 0)
-   * @return ID of the created rule, or null if an existing assignment rule was changed
-   */
-  public UUID regAssignmentRule(
-      UUID clusterId, UUID serverId, IAssignmentRuleInfo info, int position) {
-    // TODO
-    return agentConnection.regAssignmentRule(clusterId, serverId, info, position);
-  }
-
-  /**
-   * Deletes an assignment rule from the list of working server rules.
-   *
-   * <p>Требует аутентификации в кластере
-   *
-   * @param clusterId - ID кластера
-   * @param serverId - working server ID
-   * @param ruleId - assignment rule ID
-   */
-  public void unregAssignmentRule(UUID clusterId, UUID serverId, UUID ruleId) {
-    // TODO
-    agentConnection.unregAssignmentRule(clusterId, serverId, ruleId);
-  }
-
-  /**
-   * Gets an assignment rule description.
-   *
-   * <p>Требует аутентификации в кластере
-   *
-   * @param clusterId - ID кластера
-   * @param serverId - server ID
-   * @param ruleId - assignment rule ID
-   * @return assignment rule description
+   * @param serverId - ID рабочего сервера
+   * @param ruleId - ID правила ТНФ
+   * @return описание правила ТНФ
    */
   public IAssignmentRuleInfo getAssignmentRuleInfo(UUID clusterId, UUID serverId, UUID ruleId) {
+    LOGGER.debug(
+        "Getting a description of the assignment rule, cluster <{}>, ws <{}>, rule <{}>", //$NON-NLS-1$
+        clusterId,
+        serverId,
+        ruleId);
+
+    if (!isConnected()) {
+      return null;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return null;
+    }
+
+    IAssignmentRuleInfo assignmentRule;
+    try {
+      assignmentRule = agentConnection.getAssignmentRuleInfo(clusterId, serverId, ruleId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error in getting a list of descriptions of assignment rules", excp); // $NON-NLS-1$
+      return null;
+    }
+
+    LOGGER.debug(
+        "\tAssignment rule: ObjectType=<{}>", //$NON-NLS-1$
+        assignmentRule.getObjectType());
+
+    LOGGER.debug("Getting the list of assignment rule descriptions was successful"); // $NON-NLS-1$
+    return assignmentRule;
+  }
+
+  /**
+   * Создает правило ТНФ, изменяет существующее или переносит существующее правило в новую позицию.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param serverId - ID рабочего сервера
+   * @param info - правило ТНФ
+   * @param position - позиция в списке правил (начинается с 0)
+   * @return ID созданного правила или null, если существующее правило было изменено
+   */
+  public boolean regAssignmentRule(
+      UUID clusterId, UUID serverId, IAssignmentRuleInfo info, int position) {
+
+    LOGGER.debug(
+        "Registration assignment rule <{}>", //$NON-NLS-1$
+        info.getObjectType());
+
+    if (!isConnected()) {
+      return false;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    UUID newRuleId;
+    try {
+      newRuleId = agentConnection.regAssignmentRule(clusterId, serverId, info, position);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error registraion assignment rule", //$NON-NLS-1$
+          excp);
+      return false;
+    }
+
+    if (newRuleId.equals(Helper.EMPTY_UUID)) {
+      LOGGER.debug(
+          "Registration new assignment rule <{}> succesful", //$NON-NLS-1$
+          newRuleId);
+    } else {
+      LOGGER.debug(
+          "Registration changes a assignment rule <{}> was succesful", //$NON-NLS-1$
+          info.getAssignmentRuleId());
+    }
+
     // TODO
-    return agentConnection.getAssignmentRuleInfo(clusterId, serverId, ruleId);
+    return true;
+  }
+
+  /**
+   * Удаляет правило ТНФ из списка правил рабочего сервера.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param serverId - ID рабочего сервера
+   * @param ruleId - ID правила ТНФ
+   */
+  public boolean unregAssignmentRule(UUID clusterId, UUID serverId, UUID ruleId) {
+
+    LOGGER.debug(
+        "Unregistration assignment rule <{}>", //$NON-NLS-1$
+        ruleId);
+
+    if (!isConnected()) {
+      return false;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.unregAssignmentRule(clusterId, serverId, ruleId);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error unregistraion assignment rule", //$NON-NLS-1$
+          excp);
+      return false;
+    }
+
+    LOGGER.debug("Unregistration assignment rule <{}> succesful"); // $NON-NLS-1$
+
+    return true;
+  }
+
+  /**
+   * Применяет ТНФ.
+   *
+   * <p>Требует аутентификации в кластере
+   *
+   * @param clusterId - ID кластера
+   * @param mode - Режим применения ТНФ: 0 - частичное 1 - полное
+   */
+  public boolean applyAssignmentRules(UUID clusterId, int mode) {
+
+    LOGGER.debug(
+        "Apply assignment rules for cluster <{}>", //$NON-NLS-1$
+        clusterId);
+
+    if (!isConnected()) {
+      return false;
+    }
+    if (!checkAutenticateCluster(clusterId)) {
+      return false;
+    }
+
+    try {
+      agentConnection.applyAssignmentRules(clusterId, mode);
+    } catch (Exception excp) {
+      LOGGER.error(
+          "Error apply assignment rules", //$NON-NLS-1$
+          excp);
+      return false;
+    }
+
+    LOGGER.debug("Apply assignment rules was succesful"); // $NON-NLS-1$
+
+    return true;
   }
 
   /**
@@ -3629,5 +4041,46 @@ public class Server implements Comparable<Server> {
     // TODO
     return agentConnection.getResourceConsumptionCounterAccumulatedValues(
         clusterId, counterName, object);
+  }
+
+  /**
+   * Получить иконку с текущим состоянием сервера.
+   *
+   * @return Image - иконка текущего состояния сервера
+   */
+  public Image getTreeImage() {
+
+    Image icon;
+
+    switch (serverState) {
+      case CONNECTED:
+        icon = connectedIcon;
+        break;
+
+      case CONNECTING:
+        icon = connectingIcon;
+        break;
+
+      case CONNECT_ERROR:
+        icon = connectErrorIcon;
+        break;
+
+      case DISCONNECT:
+      default:
+        icon = defaultIcon;
+        break;
+    }
+
+    return icon;
+  }
+
+  /**
+   * Обновить элемент дерева сервера.
+   *
+   * @param serverItem - элемент дерева содержащий ссылку на Сервер
+   */
+  public void updateTreeItemState(TreeItem serverItem) {
+    serverItem.setImage(getTreeImage());
+    serverItem.setText(new String[] {getTreeTitle()});
   }
 }

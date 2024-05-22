@@ -6,6 +6,9 @@
 
 ## Утилита для интерактивного администрирования серверов 1С
 
+![Donate](/clusterAdminLibrary/src/main/resources/icons/Rouble.png)
+Поддержать проект https://boosty.to/YanSergeyCoder
+
 Статья с описанием возможностей утилиты на Infostart https://infostart.ru/public/1489055/
 
 Разработка ведется в `Eclipse IDE for Java Developers`

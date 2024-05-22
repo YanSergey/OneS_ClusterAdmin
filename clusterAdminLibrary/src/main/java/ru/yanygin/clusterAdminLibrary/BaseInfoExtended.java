@@ -174,6 +174,9 @@ public abstract class BaseInfoExtended implements Comparable<BaseInfoExtended> {
           break;
 
         case DATE:
+          compareResult = ((Date) left).compareTo((Date) right);
+          break;
+
         case TEXT:
         default:
           compareResult =
@@ -242,6 +245,7 @@ public abstract class BaseInfoExtended implements Comparable<BaseInfoExtended> {
     LockInfoExtended.initColumnsName();
     WorkingProcessInfoExtended.initColumnsName();
     WorkingServerInfoExtended.initColumnsName();
+    AssignmentRuleLabelProvider.initColumnsName();
   }
 
   /**
