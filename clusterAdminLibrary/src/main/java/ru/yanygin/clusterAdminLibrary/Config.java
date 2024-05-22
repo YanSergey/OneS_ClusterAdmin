@@ -304,7 +304,7 @@ public class Config {
     //      return Version.parse(v);
     //    }
 
-    return Version.parse("0.4.0.beta1");
+    return Version.parse("0.4.0");
   }
 
   private void runReadUpstreamVersion() {
