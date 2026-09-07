@@ -6,11 +6,19 @@
 
 ## Утилита для интерактивного администрирования серверов 1С
 
+***На текущий момент утилита технически устарела (отстала от последний версий платформы), т.к. не развивалась долгое время.
+Поддержка остановилась приблизительно на версии 8.3.18.
+На более свежих версиях платформы утилита работает, но не поддерживает новые возможности.
+Подробнее - в [ишью №28](https://github.com/YanSergey/OneS_ClusterAdmin/issues/28).
+Там же можно поставить реакцию, если Вы хотите, что бы работа над проектом возобновилась.***
+
+---
 ![Donate](/clusterAdminLibrary/src/main/resources/icons/Rouble.png)
 Поддержать проект https://boosty.to/YanSergeyCoder
 
 Статья с описанием возможностей утилиты на Infostart https://infostart.ru/public/1489055/
 
+---
 Разработка ведется в `Eclipse IDE for Java Developers`
 
 Для разработки необходимо:
@@ -22,6 +30,7 @@
 - установить в локальный репозиторий библиотеку `clusterAdminLibrary`, выполнив команду `mvn clean install`. Пример в [clusterAdminLibrary/install.bat](clusterAdminLibrary/install.bat)
 
 - выполнить команду `mvn clean package` для сборки приложения для Windows (профиль по-умолчанию), либо с указанием конкретной ОС `mvn clean package -Plinux`, либо для всех трех ОС командой из [clusterAdminApplication/package.bat](clusterAdminApplication/package.bat)
+---
 
 ### Примечание:
 
